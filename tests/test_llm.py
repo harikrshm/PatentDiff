@@ -54,6 +54,10 @@ def test_build_user_prompt_labels_source_and_target():
         specification="spec B",
     )
     prompt = build_user_prompt(source, target)
-    # Should clearly label which is source and which is target
-    assert "source" in prompt.lower() or "patent a" in prompt.lower()
-    assert "target" in prompt.lower() or "patent b" in prompt.lower()
+    # SOURCE section must appear before TARGET section
+    source_idx = prompt.lower().index("source")
+    target_idx = prompt.lower().index("target")
+    assert source_idx < target_idx, "SOURCE label should appear before TARGET label"
+    # Each patent's content must appear under its respective section
+    assert prompt.index("claim A") < prompt.index("claim B")
+    assert prompt.index("spec A") < prompt.index("spec B")

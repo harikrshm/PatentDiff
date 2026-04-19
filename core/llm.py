@@ -86,7 +86,10 @@ def call_groq(
             "latency_ms": int,
         }
     """
-    client = Groq(api_key=os.environ["GROQ_API_KEY"])
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY environment variable is not set")
+    client = Groq(api_key=api_key)
     model_name = model or os.environ.get("PATENTDIFF_MODEL", "deepseek-r1-distill-llama-70b")
 
     start = time.time()
