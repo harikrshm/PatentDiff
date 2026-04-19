@@ -1,4 +1,4 @@
-from core.truncation import extract_keywords
+from core.truncation import extract_keywords, smart_truncate_spec
 
 
 def test_extract_keywords_removes_stop_words():
@@ -43,8 +43,6 @@ def test_extract_keywords_empty_claim():
     keywords = extract_keywords("")
     assert keywords == set()
 
-
-from core.truncation import extract_keywords, smart_truncate_spec
 
 
 def test_no_truncation_when_within_budget():
