@@ -22,4 +22,7 @@ def parse_llm_response(raw_output: str) -> AnalysisReport:
     except json.JSONDecodeError as e:
         raise ValueError(f"Failed to parse LLM response as JSON: {e}") from e
 
-    return AnalysisReport.model_validate(data)
+    try:
+        return AnalysisReport.model_validate(data)
+    except Exception as e:
+        raise ValueError(f"Failed to validate LLM response against schema: {e}") from e

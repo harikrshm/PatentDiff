@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from core.models import AnalysisReport
 from core.report import parse_llm_response
 
@@ -64,7 +66,24 @@ def test_parse_json_embedded_in_markdown():
 
 
 def test_parse_invalid_json_raises():
-    import pytest
-
     with pytest.raises(ValueError, match="Failed to parse"):
         parse_llm_response("this is not json at all")
+
+
+def test_parse_schema_violation_raises():
+    raw = json.dumps({
+        "element_mappings": [
+            {
+                "element_number": 1,
+                "element_text": "a processor",
+                "corresponding_text": "a CPU",
+                "novelty": "MAYBE",  # invalid Literal value
+                "inventive_step": "Y",
+                "verdict": "Y",
+                "comment": "Match.",
+            }
+        ],
+        "overall_opinion": "ok",
+    })
+    with pytest.raises(ValueError, match="Failed to validate"):
+        parse_llm_response(raw)
