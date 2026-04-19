@@ -101,3 +101,35 @@ def test_append_trace_creates_file_and_appends():
         parsed = json.loads(lines[0])
         assert parsed["status"] == "success"
         assert parsed["inputs"]["source_patent"]["label"] == "Patent A"
+
+
+def test_build_trace_record_includes_truncation_warnings():
+    inputs = _sample_inputs()
+    record = build_trace_record(
+        source_patent=inputs["source_patent"],
+        target_patent=inputs["target_patent"],
+        system_prompt="sys",
+        user_prompt="usr",
+        llm_response={"raw_output": "{}", "model": "test", "tokens_input": 10, "tokens_output": 20, "latency_ms": 100},
+        parsed_output=_sample_report(),
+        status="success",
+        error=None,
+        truncation_warnings=["Patent A specification truncated"],
+    )
+    assert record["truncation_warnings"] == ["Patent A specification truncated"]
+
+
+def test_build_trace_record_empty_truncation_warnings():
+    inputs = _sample_inputs()
+    record = build_trace_record(
+        source_patent=inputs["source_patent"],
+        target_patent=inputs["target_patent"],
+        system_prompt="sys",
+        user_prompt="usr",
+        llm_response={"raw_output": "{}", "model": "test", "tokens_input": 10, "tokens_output": 20, "latency_ms": 100},
+        parsed_output=_sample_report(),
+        status="success",
+        error=None,
+        truncation_warnings=[],
+    )
+    assert record["truncation_warnings"] == []

@@ -39,7 +39,8 @@ if analyze:
         target = PatentInput(label=label_b, independent_claim=claim_b, specification=spec_b)
 
         system_prompt = build_system_prompt()
-        user_prompt = build_user_prompt(source, target)
+        truncation_warnings = []
+        user_prompt, truncation_warnings = build_user_prompt(source, target)
 
         with st.spinner("Analyzing patents — this may take a minute..."):
             llm_response = None
@@ -57,6 +58,7 @@ if analyze:
                     parsed_output=report,
                     status="success",
                     error=None,
+                    truncation_warnings=truncation_warnings,
                 )
                 append_trace(trace)
 
@@ -70,6 +72,7 @@ if analyze:
                     parsed_output=None,
                     status="error",
                     error=str(e),
+                    truncation_warnings=truncation_warnings,
                 )
                 append_trace(trace)
                 st.error(f"Analysis failed: {e}")

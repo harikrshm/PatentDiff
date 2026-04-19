@@ -13,6 +13,7 @@ def build_trace_record(
     parsed_output: AnalysisReport | None,
     status: str,
     error: str | None,
+    truncation_warnings: list[str] | None = None,
 ) -> dict:
     return {
         "run_id": str(uuid.uuid4()),
@@ -37,4 +38,5 @@ def build_trace_record(
         "parsed_output": parsed_output.model_dump() if parsed_output else None,
         "status": status,
         "error": error,
+        "truncation_warnings": truncation_warnings or [],
     }
