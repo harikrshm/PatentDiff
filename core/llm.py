@@ -77,6 +77,9 @@ def build_user_prompt(
         - claim_a_tokens
         - claim_b_tokens
     )
+    # Note: `available` can be negative if both claims together exceed the fixed headroom
+    # (GROQ_TOKEN_LIMIT minus system/template/buffer). The max(..., 500) floor ensures
+    # smart_truncate_spec always receives a usable budget even in that edge case.
     per_spec_budget = max(available // 2, 500)
 
     spec_a, a_truncated = smart_truncate_spec(

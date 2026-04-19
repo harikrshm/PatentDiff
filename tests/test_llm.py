@@ -91,3 +91,20 @@ def test_build_user_prompt_no_warnings_for_short_specs():
     )
     _, warnings = build_user_prompt(source, target)
     assert warnings == []
+
+
+def test_build_user_prompt_warns_when_specs_truncated():
+    long_spec = ("The system performs computation on data inputs. " * 1000)
+    source = PatentInput(
+        label="Patent A",
+        independent_claim="A method comprising step X.",
+        specification=long_spec,
+    )
+    target = PatentInput(
+        label="Patent B",
+        independent_claim="A method comprising step Y.",
+        specification=long_spec,
+    )
+    _, warnings = build_user_prompt(source, target)
+    assert len(warnings) > 0
+    assert any("truncated" in w.lower() for w in warnings)
