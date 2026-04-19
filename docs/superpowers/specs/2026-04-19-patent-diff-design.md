@@ -68,9 +68,9 @@ patentdiff/
 - `element_number: int` — sequential element index
 - `element_text: str` — the claim element from Patent A
 - `corresponding_text: str` — corresponding text found in Patent B's claim/specification
-- `novelty: str` — Y (disclosed in Patent B / not novel) or N (novel / not found in Patent B)
-- `inventive_step: str` — Y (obvious given Patent B) or N (non-obvious / meaningful technical improvement)
-- `verdict: str` — Y (element is found/obvious) or N (element is novel/non-obvious)
+- `novelty: str` — "Y" if the element is disclosed in Patent B (i.e., NOT novel), "N" if the element is not found in Patent B (i.e., novel)
+- `inventive_step: str` — "Y" if the element is obvious given Patent B's teaching (i.e., NOT inventive), "N" if the element represents a non-obvious technical improvement (i.e., inventive)
+- `verdict: str` — "Y" if the element is found AND obvious (Patent A lacks novelty/inventive step for this element), "N" if the element is novel OR non-obvious (Patent A has novelty/inventive step for this element)
 - `comment: str` — reasoning explaining the assessment
 
 **AnalysisReport**
