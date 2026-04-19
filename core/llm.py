@@ -90,7 +90,7 @@ def call_groq(
     if not api_key:
         raise ValueError("GROQ_API_KEY environment variable is not set")
     client = Groq(api_key=api_key)
-    model_name = model or os.environ.get("PATENTDIFF_MODEL", "deepseek-r1-distill-llama-70b")
+    model_name = model or os.environ.get("PATENTDIFF_MODEL", "openai/gpt-oss-120b")
 
     start = time.time()
     response = client.chat.completions.create(
