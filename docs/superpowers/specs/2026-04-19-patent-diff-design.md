@@ -99,7 +99,7 @@ The system prompt instructs the LLM to act as a patent professional with the fol
 
 4. **Produce a verdict per element** — Y (found/obvious) or N (novel/non-obvious) with a comment explaining the reasoning. The LLM must think step by step through novelty and inventive step before arriving at the verdict.
 
-5. **Produce an overall opinion** — a final assessment of Patent A's validity considering all element mappings together.
+5. **Produce an overall opinion** — a final assessment of Patent A's validity considering all element mappings together but the main emphasis will be on the whether the Novel/ Technical claim element in Patent A is mapped with Patent B i.e. less weightage on pre-processing steps or final output claim elements and more weightage on the main technical advancement claim element in Patent A mapping as Y/N. Then overall opinion must be based on that verdict of technical advancement claim element and its reasoning.
 
 ### Output Format
 
