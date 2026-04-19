@@ -20,12 +20,12 @@ def build_trace_record(
         "inputs": {
             "source_patent": {
                 "label": source_patent.label,
-                "claim": source_patent.independent_claim,
+                "independent_claim": source_patent.independent_claim,
                 "specification": source_patent.specification,
             },
             "target_patent": {
                 "label": target_patent.label,
-                "claim": target_patent.independent_claim,
+                "independent_claim": target_patent.independent_claim,
                 "specification": target_patent.specification,
             },
         },
