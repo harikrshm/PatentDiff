@@ -42,3 +42,51 @@ def test_extract_keywords_returns_unique():
 def test_extract_keywords_empty_claim():
     keywords = extract_keywords("")
     assert keywords == set()
+
+
+from core.truncation import extract_keywords, smart_truncate_spec
+
+
+def test_no_truncation_when_within_budget():
+    spec = "The processor executes instructions. The memory stores data."
+    claim = "A system comprising a processor and memory"
+    result, was_truncated = smart_truncate_spec(spec, claim, token_budget=1000)
+    assert was_truncated is False
+    assert result == spec
+
+
+def test_truncation_removes_unprotected_sentences():
+    # Sentence 1: contains "processor" (keyword) — protected
+    # Sentence 2: no keywords — unprotected, should be dropped
+    spec = "The processor executes instructions stored in memory. The widget is used for filing purposes."
+    claim = "A system comprising a processor"
+    # Budget: only enough for ~10 tokens — forces truncation
+    result, was_truncated = smart_truncate_spec(spec, claim, token_budget=10)
+    assert was_truncated is True
+    assert "processor" in result
+    assert "widget" not in result
+
+
+def test_protected_sentences_preserved_over_budget():
+    spec = "The processor executes instructions. The memory stores processor data. Unrelated filler text here."
+    claim = "A system comprising a processor"
+    # Budget fits ~8 tokens — enough for one protected sentence
+    result, was_truncated = smart_truncate_spec(spec, claim, token_budget=8)
+    assert was_truncated is True
+    assert "processor" in result
+
+
+def test_result_preserves_original_sentence_order():
+    spec = "First sentence about widget. Second sentence about processor. Third about memory. Fourth about widget again."
+    claim = "A method using processor and memory"
+    result, was_truncated = smart_truncate_spec(spec, claim, token_budget=1000)
+    assert was_truncated is False
+    proc_idx = result.index("processor")
+    mem_idx = result.index("memory")
+    assert proc_idx < mem_idx
+
+
+def test_no_truncation_empty_spec():
+    result, was_truncated = smart_truncate_spec("", "A system comprising a processor", token_budget=100)
+    assert was_truncated is False
+    assert result == ""
