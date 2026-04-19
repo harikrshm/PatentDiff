@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -16,9 +18,9 @@ class ElementMapping(BaseModel):
     element_number: int
     element_text: str
     corresponding_text: str
-    novelty: str
-    inventive_step: str
-    verdict: str
+    novelty: Literal["Y", "N"]
+    inventive_step: Literal["Y", "N"]
+    verdict: Literal["Y", "N"]
     comment: str
 
 
