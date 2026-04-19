@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git -C C:/Users/91978/patentdiff log --oneline -5)"
+      "Bash(git -C C:/Users/91978/patentdiff log --oneline -5)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(pip show:*)",
+      "Bash(pip index:*)",
+      "Bash(git:*)"
     ]
   }
 }
