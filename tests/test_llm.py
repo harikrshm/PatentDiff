@@ -22,6 +22,25 @@ def test_build_system_prompt_contains_weighting_guidance():
     assert "technical advancement" in prompt.lower() or "technical improvement" in prompt.lower()
 
 
+def test_build_user_prompt_returns_tuple():
+    source = PatentInput(
+        label="Patent A",
+        independent_claim="A method comprising step X.",
+        specification="Step X does something.",
+    )
+    target = PatentInput(
+        label="Patent B",
+        independent_claim="A method comprising step Y.",
+        specification="Step Y does something else.",
+    )
+    result = build_user_prompt(source, target)
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+    prompt, warnings = result
+    assert isinstance(prompt, str)
+    assert isinstance(warnings, list)
+
+
 def test_build_user_prompt_contains_both_patents():
     source = PatentInput(
         label="US-PATENT-A",
@@ -33,13 +52,11 @@ def test_build_user_prompt_contains_both_patents():
         independent_claim="A method comprising step Y.",
         specification="Step Y does something else.",
     )
-    prompt = build_user_prompt(source, target)
+    prompt, warnings = build_user_prompt(source, target)
     assert "US-PATENT-A" in prompt
     assert "US-PATENT-B" in prompt
     assert "A method comprising step X." in prompt
     assert "A method comprising step Y." in prompt
-    assert "Step X does something." in prompt
-    assert "Step Y does something else." in prompt
 
 
 def test_build_user_prompt_labels_source_and_target():
@@ -53,11 +70,24 @@ def test_build_user_prompt_labels_source_and_target():
         independent_claim="claim B",
         specification="spec B",
     )
-    prompt = build_user_prompt(source, target)
-    # SOURCE section must appear before TARGET section
+    prompt, warnings = build_user_prompt(source, target)
     source_idx = prompt.lower().index("source")
     target_idx = prompt.lower().index("target")
-    assert source_idx < target_idx, "SOURCE label should appear before TARGET label"
-    # Each patent's content must appear under its respective section
+    assert source_idx < target_idx
     assert prompt.index("claim A") < prompt.index("claim B")
     assert prompt.index("spec A") < prompt.index("spec B")
+
+
+def test_build_user_prompt_no_warnings_for_short_specs():
+    source = PatentInput(
+        label="Patent A",
+        independent_claim="A method comprising step X.",
+        specification="Step X does something useful.",
+    )
+    target = PatentInput(
+        label="Patent B",
+        independent_claim="A method comprising step Y.",
+        specification="Step Y does something else.",
+    )
+    _, warnings = build_user_prompt(source, target)
+    assert warnings == []

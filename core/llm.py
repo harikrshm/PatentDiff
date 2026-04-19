@@ -1,9 +1,20 @@
+# core/llm.py
 import os
 import time
 
 from groq import Groq
 
 from core.models import PatentInput
+from core.truncation import smart_truncate_spec
+
+GROQ_TOKEN_LIMIT = 8000
+SYSTEM_PROMPT_TOKENS = 500
+TEMPLATE_OVERHEAD_TOKENS = 150
+SAFETY_BUFFER_TOKENS = 300
+
+
+def _estimate_tokens(text: str) -> int:
+    return int(len(text.split()) * 1.3)
 
 
 def build_system_prompt() -> str:
@@ -46,8 +57,42 @@ Return ONLY valid JSON matching this exact schema — no markdown fences, no ext
 }"""
 
 
-def build_user_prompt(source: PatentInput, target: PatentInput) -> str:
-    return f"""## SOURCE PATENT (Patent A) — The patent being assessed for validity
+def build_user_prompt(
+    source: PatentInput,
+    target: PatentInput,
+) -> tuple[str, list[str]]:
+    """Build the user prompt with smart spec truncation to stay within token budget.
+
+    Returns (prompt_string, truncation_warnings).
+    truncation_warnings is empty if no truncation was needed.
+    """
+    claim_a_tokens = _estimate_tokens(source.independent_claim)
+    claim_b_tokens = _estimate_tokens(target.independent_claim)
+
+    available = (
+        GROQ_TOKEN_LIMIT
+        - SYSTEM_PROMPT_TOKENS
+        - TEMPLATE_OVERHEAD_TOKENS
+        - SAFETY_BUFFER_TOKENS
+        - claim_a_tokens
+        - claim_b_tokens
+    )
+    per_spec_budget = max(available // 2, 500)
+
+    spec_a, a_truncated = smart_truncate_spec(
+        source.specification, source.independent_claim, per_spec_budget
+    )
+    spec_b, b_truncated = smart_truncate_spec(
+        target.specification, target.independent_claim, per_spec_budget
+    )
+
+    warnings = []
+    if a_truncated:
+        warnings.append("Patent A specification truncated")
+    if b_truncated:
+        warnings.append("Patent B specification truncated")
+
+    prompt = f"""## SOURCE PATENT (Patent A) — The patent being assessed for validity
 
 **Label:** {source.label}
 
@@ -55,7 +100,7 @@ def build_user_prompt(source: PatentInput, target: PatentInput) -> str:
 {source.independent_claim}
 
 **Specification Support:**
-{source.specification}
+{spec_a}
 
 ---
 
@@ -67,7 +112,9 @@ def build_user_prompt(source: PatentInput, target: PatentInput) -> str:
 {target.independent_claim}
 
 **Specification Support:**
-{target.specification}"""
+{spec_b}"""
+
+    return prompt, warnings
 
 
 def call_groq(
