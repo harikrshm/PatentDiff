@@ -5,7 +5,7 @@ _STOP_WORDS = {
     "each", "one", "at", "of", "to", "for", "with", "by", "or", "and",
     "is", "are", "that", "which", "this", "in", "on", "from", "be", "as",
     "its", "into", "based", "using", "more", "than", "not", "such", "any",
-    "also", "when", "then", "than", "where", "how",
+    "also", "when", "then", "where", "how",
 }
 
 
