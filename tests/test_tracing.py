@@ -133,3 +133,19 @@ def test_build_trace_record_empty_truncation_warnings():
         truncation_warnings=[],
     )
     assert record["truncation_warnings"] == []
+
+
+def test_build_trace_record_none_truncation_warnings_defaults_to_empty():
+    inputs = _sample_inputs()
+    record = build_trace_record(
+        source_patent=inputs["source_patent"],
+        target_patent=inputs["target_patent"],
+        system_prompt="sys",
+        user_prompt="usr",
+        llm_response={"raw_output": "{}", "model": "test", "tokens_input": 10, "tokens_output": 20, "latency_ms": 100},
+        parsed_output=_sample_report(),
+        status="success",
+        error=None,
+        truncation_warnings=None,
+    )
+    assert record["truncation_warnings"] == []
