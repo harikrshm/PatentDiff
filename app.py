@@ -1,5 +1,8 @@
 import streamlit as st
 import pandas as pd
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from core.llm import build_system_prompt, build_user_prompt, call_groq
 from core.models import PatentInput
