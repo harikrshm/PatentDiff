@@ -72,6 +72,9 @@ if analyze:
                 st.error(f"Analysis failed: {e}")
                 st.stop()
 
+        # Guard: report must be set if we reach here (error path calls st.stop())
+        assert report is not None and llm_response is not None
+
         # --- Results Area ---
         st.divider()
         st.subheader("Element Mapping")
