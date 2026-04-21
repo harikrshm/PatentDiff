@@ -40,26 +40,29 @@ def build_runs_df(records: list[dict]) -> pd.DataFrame:
         parsed = r.get("parsed_output") or {}
         warnings = r.get("truncation_warnings", [])
 
+        src_text = (
+            f"Label: {src.get('label', '')}\n\n"
+            f"Independent Claim:\n{src.get('independent_claim', '')}\n\n"
+            f"Specification:\n{src.get('specification', '')}"
+        )
+        tgt_text = (
+            f"Label: {tgt.get('label', '')}\n\n"
+            f"Independent Claim:\n{tgt.get('independent_claim', '')}\n\n"
+            f"Specification:\n{tgt.get('specification', '')}"
+        )
+
         rows.append({
-            "run_id":            r.get("run_id", ""),
-            "timestamp":         r.get("timestamp", ""),
-            "status":            r.get("status", ""),
-            "error":             r.get("error", ""),
-            # Source patent
-            "source_label":      src.get("label", ""),
-            "source_claim":      src.get("independent_claim", ""),
-            "source_spec":       src.get("specification", ""),
-            # Target patent
-            "target_label":      tgt.get("label", ""),
-            "target_claim":      tgt.get("independent_claim", ""),
-            "target_spec":       tgt.get("specification", ""),
-            # LLM metadata
-            "model":             llm.get("model", ""),
-            "tokens_input":      llm.get("tokens_input", ""),
-            "tokens_output":     llm.get("tokens_output", ""),
-            "latency_ms":        llm.get("latency_ms", ""),
-            # Result
-            "overall_opinion":   parsed.get("overall_opinion", ""),
+            "run_id":              r.get("run_id", ""),
+            "timestamp":           r.get("timestamp", ""),
+            "status":              r.get("status", ""),
+            "error":               r.get("error", ""),
+            "source_patent":       src_text,
+            "target_patent":       tgt_text,
+            "model":               llm.get("model", ""),
+            "tokens_input":        llm.get("tokens_input", ""),
+            "tokens_output":       llm.get("tokens_output", ""),
+            "latency_ms":          llm.get("latency_ms", ""),
+            "overall_opinion":     parsed.get("overall_opinion", ""),
             "truncation_warnings": "; ".join(warnings) if warnings else "",
         })
     return pd.DataFrame(rows)
