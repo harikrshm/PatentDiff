@@ -115,14 +115,21 @@ def display_trace(trace):
 
 
 
-def annotation_form(run_id):
+def annotation_form(run_id, previous_annotation=None):
     """Build simplified annotation form for Phase 1 (verdict + failure modes + comment)."""
     st.subheader("Annotation Form")
+
+    # Pre-fill with previous annotation if it exists
+    prev_verdict = previous_annotation.verdict if previous_annotation else "PASS"
+    prev_failure_modes = " | ".join(previous_annotation.open_coded_failure_modes) if previous_annotation and previous_annotation.open_coded_failure_modes else ""
+    prev_comment = previous_annotation.comment if previous_annotation else ""
+    prev_reviewed = previous_annotation.reviewed if previous_annotation else False
 
     st.write("**Trace Quality Verdict:**")
     verdict = st.radio(
         "Pass/Fail",
         ["PASS", "FAIL"],
+        index=0 if prev_verdict == "PASS" else 1,
         key=f"verdict_{run_id}",
         horizontal=True
     )
@@ -130,7 +137,7 @@ def annotation_form(run_id):
     st.write("**Failure Modes:**")
     failure_modes_text = st.text_input(
         "Delimited failure modes",
-        value="",
+        value=prev_failure_modes,
         placeholder="Format: hallucination | truncation | claim_mismatch",
         key=f"failure_modes_{run_id}"
     )
@@ -139,13 +146,13 @@ def annotation_form(run_id):
     st.write("**Comment:**")
     comment = st.text_area(
         "Explain the failure modes",
-        value="",
+        value=prev_comment,
         placeholder="Describe what failure modes you found and why...",
         key=f"comment_{run_id}",
         height=150
     )
 
-    reviewed = st.checkbox("Reviewed", key=f"reviewed_{run_id}")
+    reviewed = st.checkbox("Reviewed", value=prev_reviewed, key=f"reviewed_{run_id}")
 
     return {
         "verdict": verdict,
@@ -315,7 +322,8 @@ if view == "Annotation Interface":
             display_trace(trace)
 
         with col_form:
-            form_data = annotation_form(st.session_state.current_run_id)
+            previous_annotation = st.session_state.annotations.get(st.session_state.current_run_id)
+            form_data = annotation_form(st.session_state.current_run_id, previous_annotation)
 
             st.divider()
 
