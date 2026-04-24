@@ -3,6 +3,7 @@ import tempfile
 from pathlib import Path
 import json
 from core.annotation import AnnotationRecord, ElementJudgment, OverallOpinionJudgment, load_annotations, save_annotations
+from core.trace_loader import load_traces, Trace
 
 def test_annotation_record_creation():
     """Test basic AnnotationRecord creation."""
@@ -164,3 +165,14 @@ def test_save_annotations():
         assert len(lines) == 1
         loaded = json.loads(lines[0])
         assert loaded["run_id"] == "id1"
+
+def test_load_traces_from_jsonl():
+    """Test loading traces from traces.jsonl."""
+    traces = load_traces(Path("C:/Users/91978/PatentDiff/traces/traces.jsonl"))
+    assert len(traces) > 0
+    assert all(isinstance(t, Trace) for t in traces)
+    # Check first trace has required fields
+    first = traces[0]
+    assert hasattr(first, "run_id")
+    assert hasattr(first, "inputs")
+    assert hasattr(first, "parsed_output")
