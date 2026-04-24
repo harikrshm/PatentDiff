@@ -73,3 +73,38 @@ def test_parse_failure_modes():
 
     result = parse_failure_modes("")
     assert result == []
+
+def test_annotation_to_dict_simplified():
+    """Test simplified AnnotationRecord serialization to dict."""
+    record = AnnotationRecord(
+        run_id="id1",
+        phase=1,
+        open_coded_failure_modes=["hallucination"],
+        verdict="FAIL",
+        comment="Tool hallucinated",
+        reviewed=True,
+    )
+
+    d = record.to_dict()
+    assert d["run_id"] == "id1"
+    assert d["phase"] == 1
+    assert d["verdict"] == "FAIL"
+    assert d["comment"] == "Tool hallucinated"
+    assert d["open_coded_failure_modes"] == ["hallucination"]
+
+def test_annotation_from_dict_simplified():
+    """Test simplified AnnotationRecord deserialization from dict."""
+    data = {
+        "run_id": "id1",
+        "phase": 1,
+        "open_coded_failure_modes": ["hallucination"],
+        "verdict": "FAIL",
+        "comment": "Tool hallucinated",
+        "reviewed": True,
+        "timestamp": "2026-04-24T10:00:00+00:00"
+    }
+
+    record = AnnotationRecord.from_dict(data)
+    assert record.run_id == "id1"
+    assert record.verdict == "FAIL"
+    assert record.comment == "Tool hallucinated"
