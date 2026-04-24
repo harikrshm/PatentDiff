@@ -68,10 +68,7 @@ def display_trace(trace):
         st.write("**Independent Claim:**")
         st.text_area("Claim A", value=src.get('independent_claim', ''), disabled=True, height=100, key="src_claim")
         st.write("**Specification:**")
-        spec_preview = src.get('specification', '')[:500]
-        if len(src.get('specification', '')) > 500:
-            spec_preview += "..."
-        st.text_area("Spec A", value=spec_preview, disabled=True, height=80, key="src_spec")
+        st.text_area("Spec A", value=src.get('specification', ''), disabled=True, height=250, key="src_spec")
 
     with col_b:
         st.subheader("Target Patent (B)")
@@ -80,10 +77,7 @@ def display_trace(trace):
         st.write("**Independent Claim:**")
         st.text_area("Claim B", value=tgt.get('independent_claim', ''), disabled=True, height=100, key="tgt_claim")
         st.write("**Specification:**")
-        spec_preview_b = tgt.get('specification', '')[:500]
-        if len(tgt.get('specification', '')) > 500:
-            spec_preview_b += "..."
-        st.text_area("Spec B", value=spec_preview_b, disabled=True, height=80, key="tgt_spec")
+        st.text_area("Spec B", value=tgt.get('specification', ''), disabled=True, height=250, key="tgt_spec")
 
     st.divider()
 
