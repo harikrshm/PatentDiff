@@ -2,7 +2,7 @@ from datetime import datetime
 import tempfile
 from pathlib import Path
 import json
-from core.annotation import AnnotationRecord, ElementJudgment, OverallOpinionJudgment, load_annotations, save_annotations
+from core.annotation import AnnotationRecord, load_annotations, save_annotations
 from core.trace_loader import load_traces, Trace
 
 def test_annotation_record_creation():
@@ -176,6 +176,21 @@ def test_load_traces_from_jsonl():
     assert hasattr(first, "run_id")
     assert hasattr(first, "inputs")
     assert hasattr(first, "parsed_output")
+
+def test_annotation_record_simplified():
+    """Test simplified AnnotationRecord with verdict and comment."""
+    record = AnnotationRecord(
+        run_id="test-id-123",
+        phase=1,
+        open_coded_failure_modes=["hallucination", "truncation"],
+        verdict="FAIL",
+        comment="Tool hallucinated correspondence in element 3.",
+        reviewed=True,
+    )
+    assert record.run_id == "test-id-123"
+    assert record.verdict == "FAIL"
+    assert len(record.open_coded_failure_modes) == 2
+    assert record.comment == "Tool hallucinated correspondence in element 3."
 
 def test_parse_failure_modes():
     """Test parsing delimited failure modes."""
