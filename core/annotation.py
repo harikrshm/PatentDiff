@@ -83,3 +83,23 @@ def save_annotations(filepath: Path, annotations: Dict[str, AnnotationRecord]) -
     with open(filepath, "w", encoding="utf-8") as f:
         for record in annotations.values():
             f.write(json.dumps(record.to_dict()) + "\n")
+
+def detect_phase(taxonomy_path: Path = None) -> int:
+    """Detect which phase to use based on whether taxonomy exists."""
+    if taxonomy_path is None:
+        taxonomy_path = Path("traces/failure_taxonomy.json")
+    return 3 if taxonomy_path.exists() else 1
+
+def load_taxonomy(taxonomy_path: Path) -> Dict[str, str]:
+    """Load failure taxonomy. Returns empty dict if file doesn't exist."""
+    if not taxonomy_path.exists():
+        return {}
+    with open(taxonomy_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def parse_failure_modes(text: str, delimiter: str = "|") -> List[str]:
+    """Parse delimited failure modes from text input."""
+    if not text:
+        return []
+    modes = [mode.strip() for mode in text.split(delimiter)]
+    return [m for m in modes if m]

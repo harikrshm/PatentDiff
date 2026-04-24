@@ -176,3 +176,16 @@ def test_load_traces_from_jsonl():
     assert hasattr(first, "run_id")
     assert hasattr(first, "inputs")
     assert hasattr(first, "parsed_output")
+
+def test_parse_failure_modes():
+    """Test parsing delimited failure modes."""
+    from core.annotation import parse_failure_modes
+
+    result = parse_failure_modes("hallucination | truncation | claim_mismatch")
+    assert result == ["hallucination", "truncation", "claim_mismatch"]
+
+    result = parse_failure_modes("mode1")
+    assert result == ["mode1"]
+
+    result = parse_failure_modes("")
+    assert result == []
