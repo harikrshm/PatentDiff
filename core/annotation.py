@@ -4,18 +4,6 @@ from pydantic import BaseModel, Field
 import json
 from pathlib import Path
 
-class ElementJudgment(BaseModel):
-    element_number: int
-    tool_novelty: bool
-    tool_inventive_step: bool
-    your_verdict: str  # "PASS" or "FAIL"
-    critique: str
-
-class OverallOpinionJudgment(BaseModel):
-    tool_verdict: str
-    your_verdict: str  # "PASS" or "FAIL"
-    critique: str
-
 class AnnotationRecord(BaseModel):
     run_id: str
     phase: int  # 1 or 3

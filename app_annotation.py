@@ -3,8 +3,8 @@ import pandas as pd
 from pathlib import Path
 from collections import Counter
 from core.annotation import (
-    AnnotationRecord, ElementJudgment, OverallOpinionJudgment,
-    load_annotations, save_annotations, detect_phase, load_taxonomy, parse_failure_modes
+    load_annotations, save_annotations, detect_phase, load_taxonomy,
+    parse_failure_modes, AnnotationRecord
 )
 from core.trace_loader import load_traces
 
