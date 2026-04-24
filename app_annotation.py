@@ -119,106 +119,64 @@ def display_trace(trace):
         with cols[3]:
             st.metric("Model", trace.llm_response.model)
 
-def element_critique_form(trace, run_id, current_annotation=None):
-    """Build element-level critique form."""
-    if not trace.parsed_output or not trace.parsed_output.element_mappings:
-        st.warning("No element mappings found in this trace.")
-        return None
 
-    elements = trace.parsed_output.element_mappings
-    element_numbers = [em.element_number for em in elements]
 
-    st.subheader("Element-Level Critique")
+def annotation_form(run_id):
+    """Build simplified annotation form for Phase 1 (verdict + failure modes + comment)."""
+    st.subheader("Annotation Form")
 
-    selected_element_num = st.selectbox("Select Element", element_numbers, key=f"element_select_{run_id}")
-    selected_element = next(em for em in elements if em.element_number == selected_element_num)
+    st.write("**Trace Quality Verdict:**")
+    verdict = st.radio(
+        "Pass/Fail",
+        ["PASS", "FAIL"],
+        key=f"verdict_{run_id}",
+        horizontal=True
+    )
 
-    st.write(f"**Element {selected_element.element_number}**")
-    st.write(f"Element Text: {selected_element.element_text}")
-    st.write(f"Corresponding Text: {selected_element.corresponding_text}")
+    st.write("**Failure Modes:**")
+    failure_modes_text = st.text_input(
+        "Delimited failure modes",
+        value="",
+        placeholder="Format: hallucination | truncation | claim_mismatch",
+        key=f"failure_modes_{run_id}"
+    )
+    failure_modes = parse_failure_modes(failure_modes_text)
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Tool's Novelty", "✅ Yes" if selected_element.novelty else "❌ No")
-    with col2:
-        st.metric("Tool's Inventive Step", "✅ Yes" if selected_element.inventive_step else "❌ No")
-    with col3:
-        st.metric("Tool's Verdict", selected_element.verdict)
+    st.write("**Comment:**")
+    comment = st.text_area(
+        "Explain the failure modes",
+        value="",
+        placeholder="Describe what failure modes you found and why...",
+        key=f"comment_{run_id}",
+        height=150
+    )
 
-    st.write("**Your Judgment:**")
-    your_verdict = st.radio("Pass/Fail", ["PASS", "FAIL"], key=f"element_verdict_{run_id}_{selected_element_num}")
-    critique = st.text_area("Critique", value="", placeholder="Explain your verdict for this element...",
-                           key=f"element_critique_{run_id}_{selected_element_num}", height=100)
-
-    return {
-        "element_number": selected_element_num,
-        "tool_novelty": selected_element.novelty,
-        "tool_inventive_step": selected_element.inventive_step,
-        "your_verdict": your_verdict,
-        "critique": critique,
-    }
-
-def overall_opinion_critique_form(trace, run_id):
-    """Build overall opinion critique form."""
-    st.subheader("Overall Opinion Critique")
-
-    if not trace.parsed_output:
-        st.warning("No parsed output found.")
-        return None
-
-    st.write("**Tool's Final Verdict:**")
-    st.text_area("Overall Opinion", value=trace.parsed_output.overall_opinion, disabled=True, height=150, key=f"overall_opinion_display_{run_id}")
-
-    st.write("**Your Judgment:**")
-    your_verdict = st.radio("Pass/Fail", ["PASS", "FAIL"], key=f"overall_verdict_{run_id}")
-    critique = st.text_area("Critique", value="", placeholder="Explain your verdict for the overall opinion...",
-                           key=f"overall_critique_{run_id}", height=100)
+    reviewed = st.checkbox("Reviewed", key=f"reviewed_{run_id}")
 
     return {
-        "tool_verdict": trace.parsed_output.overall_opinion,
-        "your_verdict": your_verdict,
-        "critique": critique,
+        "verdict": verdict,
+        "failure_modes": failure_modes,
+        "comment": comment,
+        "reviewed": reviewed,
     }
 
-def failure_mode_annotation_form(run_id, phase=1, current_annotation=None, taxonomy=None):
-    """Build failure mode annotation form based on phase."""
-    st.subheader("Failure Mode Annotation")
-
-    if phase == 1:
-        st.write("**Phase 1: Open Coding**")
-        failure_modes_text = st.text_input("Open-Coded Failure Modes", value="",
-                                          placeholder="Format: hallucination | truncation | claim_mismatch",
-                                          key=f"open_failure_modes_{run_id}")
-        failure_modes = parse_failure_modes(failure_modes_text)
-    else:  # phase == 3
-        st.write("**Phase 3: Re-annotation with Taxonomy**")
-        failure_modes_text = st.text_input("Failure Modes", value="",
-                                          placeholder="Format: mode1 | mode2",
-                                          key=f"failure_modes_{run_id}")
-        failure_modes = parse_failure_modes(failure_modes_text)
-
-    annotation_text = st.text_area("Annotation/Critique", value="",
-                                  placeholder="Describe all failure modes found in this trace...",
-                                  key=f"annotation_text_{run_id}", height=120)
-
-    return {"failure_modes": failure_modes, "failure_modes_text": failure_modes_text, "annotation": annotation_text}
-
-def save_annotation(run_id, element_judgments, overall_opinion, failure_modes, annotation_text, phase):
+def save_annotation(run_id, verdict, failure_modes, comment, reviewed):
     """Save annotation to session state and file."""
-    if not run_id or not annotation_text:
-        st.error("Run ID and annotation text are required.")
+    if not comment:
+        st.error("Comment is required.")
         return False
 
-    element_objs = [ElementJudgment(**ej) for ej in element_judgments]
-    overall_obj = OverallOpinionJudgment(**overall_opinion)
-
-    open_coded = failure_modes if phase == 1 else None
-    standardized = failure_modes if phase == 3 else None
+    if verdict == "FAIL" and not failure_modes:
+        st.warning("FAIL verdict but no failure modes noted. Please add at least one mode or mark as PASS.")
+        return False
 
     record = AnnotationRecord(
-        run_id=run_id, phase=phase, element_judgments=element_objs,
-        overall_opinion_judgment=overall_obj, open_coded_failure_modes=open_coded,
-        failure_modes=standardized, annotation=annotation_text, reviewed=True,
+        run_id=run_id,
+        phase=1,
+        open_coded_failure_modes=failure_modes,
+        verdict=verdict,
+        comment=comment,
+        reviewed=reviewed,
     )
 
     st.session_state.annotations[run_id] = record
@@ -236,7 +194,7 @@ def build_analysis_dashboard():
         if trace:
             src_label = trace.inputs.get("source_patent", {}).get("label", "?")
             tgt_label = trace.inputs.get("target_patent", {}).get("label", "?")
-            failure_modes = annotation.failure_modes or annotation.open_coded_failure_modes or []
+            failure_modes = annotation.open_coded_failure_modes or []
             failure_modes_str = "; ".join(failure_modes) if failure_modes else ""
 
             rows.append({
@@ -245,10 +203,9 @@ def build_analysis_dashboard():
                 "Source": src_label,
                 "Target": tgt_label,
                 "Failure Modes": failure_modes_str,
-                "Phase": annotation.phase,
-                "Your Verdict": annotation.overall_opinion_judgment.your_verdict,
+                "Verdict": annotation.verdict,
                 "Reviewed": "✅" if annotation.reviewed else "❌",
-                "Annotation": annotation.annotation[:50] + "..." if annotation.annotation else "",
+                "Comment": annotation.comment[:50] + "..." if annotation.comment else "",
             })
 
     if rows:
@@ -259,7 +216,7 @@ def build_analysis_dashboard():
         st.subheader("Failure Mode Frequency")
         all_modes = []
         for annotation in st.session_state.annotations.values():
-            modes = annotation.failure_modes or annotation.open_coded_failure_modes or []
+            modes = annotation.open_coded_failure_modes or []
             all_modes.extend(modes)
 
         mode_counts = Counter(all_modes)
@@ -273,7 +230,7 @@ def build_analysis_dashboard():
 
         # Verdict summary
         st.subheader("Verdict Summary")
-        verdicts = [a.overall_opinion_judgment.your_verdict for a in st.session_state.annotations.values()]
+        verdicts = [a.verdict for a in st.session_state.annotations.values()]
         verdict_counts = Counter(verdicts)
         col1, col2 = st.columns(2)
         with col1:
@@ -298,44 +255,46 @@ st.sidebar.divider()
 if view == "Annotation Interface":
     st.sidebar.subheader("Trace Navigator")
 
-    search_term = st.sidebar.text_input("Search by Run ID or annotation", value="")
+    search_term = st.sidebar.text_input("Search by Run ID or comment", value="")
+
     col1, col2 = st.sidebar.columns(2)
     with col1:
-        filter_reviewed = st.selectbox("Reviewed", ["All", "Reviewed", "Unreviewed"])
+        filter_verdict = st.selectbox("Verdict", ["All", "PASS", "FAIL"])
     with col2:
-        filter_phase = st.selectbox("Phase", ["All", "Phase 1", "Phase 3"])
+        filter_reviewed = st.selectbox("Reviewed", ["All", "Reviewed", "Unreviewed"])
 
+    # Build filtered trace list
     filtered_traces = []
     for run_id, trace in st.session_state.traces.items():
         annotation = st.session_state.annotations.get(run_id)
 
-        if search_term and search_term.lower() not in run_id.lower():
-            if annotation and search_term.lower() not in annotation.annotation.lower():
-                continue
+        if search_term:
+            if search_term.lower() not in run_id.lower():
+                if not annotation or search_term.lower() not in annotation.comment.lower():
+                    continue
+
+        if filter_verdict != "All" and annotation and annotation.verdict != filter_verdict:
+            continue
 
         if filter_reviewed == "Reviewed" and (not annotation or not annotation.reviewed):
             continue
         if filter_reviewed == "Unreviewed" and annotation and annotation.reviewed:
             continue
 
-        if filter_phase == "Phase 1" and annotation and annotation.phase != 1:
-            continue
-        if filter_phase == "Phase 3" and annotation and annotation.phase != 3:
-            continue
-
         filtered_traces.append((run_id, trace, annotation))
 
+    # Progress bar
     reviewed_count = sum(1 for _, _, a in filtered_traces if a and a.reviewed)
     total_count = len(filtered_traces)
     st.sidebar.progress(reviewed_count / total_count if total_count > 0 else 0)
     st.sidebar.caption(f"Reviewed {reviewed_count}/{total_count} traces")
 
+    # Trace list
     st.sidebar.subheader("Traces")
     for run_id, trace, annotation in filtered_traces:
         status_icon = "✅" if annotation and annotation.reviewed else "⭕"
-        phase_icon = "🔹" if annotation and annotation.phase == 3 else ""
         label = trace.inputs.get("source_patent", {}).get("label", "?")
-        display_text = f"{status_icon} {phase_icon} {label[:15]}..."
+        display_text = f"{status_icon} {label[:15]}..."
 
         if st.sidebar.button(display_text, key=f"trace_{run_id}", use_container_width=True):
             st.session_state.current_run_id = run_id
@@ -344,7 +303,6 @@ if view == "Annotation Interface":
 
     if st.session_state.current_run_id and st.session_state.current_run_id in st.session_state.traces:
         trace = st.session_state.traces[st.session_state.current_run_id]
-        current_annotation = st.session_state.annotations.get(st.session_state.current_run_id)
 
         col_trace, col_form = st.columns([1.5, 1])
 
@@ -352,19 +310,7 @@ if view == "Annotation Interface":
             display_trace(trace)
 
         with col_form:
-            st.subheader("Annotation Form")
-            element_judgment = element_critique_form(trace, st.session_state.current_run_id, current_annotation)
-
-            st.divider()
-
-            overall_opinion = overall_opinion_critique_form(trace, st.session_state.current_run_id)
-
-            st.divider()
-
-            failure_mode_data = failure_mode_annotation_form(
-                st.session_state.current_run_id, phase=st.session_state.phase,
-                current_annotation=current_annotation, taxonomy=st.session_state.taxonomy
-            )
+            form_data = annotation_form(st.session_state.current_run_id)
 
             st.divider()
 
@@ -372,25 +318,14 @@ if view == "Annotation Interface":
 
             with col_save:
                 if st.button("💾 Save", use_container_width=True):
-                    if element_judgment and overall_opinion and failure_mode_data:
-                        all_element_judgments = []
-                        if trace.parsed_output:
-                            for em in trace.parsed_output.element_mappings:
-                                all_element_judgments.append({
-                                    "element_number": em.element_number,
-                                    "tool_novelty": em.novelty,
-                                    "tool_inventive_step": em.inventive_step,
-                                    "your_verdict": "PASS",
-                                    "critique": "",
-                                })
-
-                        save_annotation(
-                            st.session_state.current_run_id, all_element_judgments,
-                            overall_opinion, failure_mode_data["failure_modes"],
-                            failure_mode_data["annotation"], st.session_state.phase
-                        )
-                    else:
-                        st.error("Please complete all fields before saving.")
+                    if save_annotation(
+                        st.session_state.current_run_id,
+                        form_data["verdict"],
+                        form_data["failure_modes"],
+                        form_data["comment"],
+                        form_data["reviewed"]
+                    ):
+                        pass  # Success message already shown
 
             with col_next:
                 if st.button("→ Next", use_container_width=True):
@@ -399,8 +334,6 @@ if view == "Annotation Interface":
                     if current_idx < len(trace_ids) - 1:
                         st.session_state.current_run_id = trace_ids[current_idx + 1]
                         st.rerun()
-                    else:
-                        st.info("No more traces.")
 
             with col_prev:
                 if st.button("← Prev", use_container_width=True):
