@@ -185,9 +185,14 @@ def save_annotation(run_id, verdict, failure_modes, comment, reviewed):
     return True
 
 def build_analysis_dashboard():
-    """Build tabular view of all annotations."""
+    """Build simplified analysis dashboard for Phase 1."""
     st.subheader("All Annotations")
 
+    if not st.session_state.annotations:
+        st.info("No annotations yet. Start with Annotation Interface to annotate traces.")
+        return
+
+    # Build dataframe
     rows = []
     for run_id, annotation in st.session_state.annotations.items():
         trace = st.session_state.traces.get(run_id)
@@ -195,56 +200,62 @@ def build_analysis_dashboard():
             src_label = trace.inputs.get("source_patent", {}).get("label", "?")
             tgt_label = trace.inputs.get("target_patent", {}).get("label", "?")
             failure_modes = annotation.open_coded_failure_modes or []
-            failure_modes_str = "; ".join(failure_modes) if failure_modes else ""
+            failure_modes_str = "; ".join(failure_modes) if failure_modes else "none"
 
             rows.append({
                 "Run ID": run_id[:12] + "...",
                 "Status": trace.status,
                 "Source": src_label,
                 "Target": tgt_label,
-                "Failure Modes": failure_modes_str,
                 "Verdict": annotation.verdict,
-                "Reviewed": "✅" if annotation.reviewed else "❌",
+                "Failure Modes": failure_modes_str,
                 "Comment": annotation.comment[:50] + "..." if annotation.comment else "",
+                "Reviewed": "✅" if annotation.reviewed else "❌",
             })
 
-    if rows:
-        df = pd.DataFrame(rows)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+    df = pd.DataFrame(rows)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
-        # Frequency analysis
-        st.subheader("Failure Mode Frequency")
-        all_modes = []
-        for annotation in st.session_state.annotations.values():
-            modes = annotation.open_coded_failure_modes or []
-            all_modes.extend(modes)
+    # Failure mode frequency
+    st.subheader("Failure Mode Frequency")
+    all_modes = []
+    for annotation in st.session_state.annotations.values():
+        modes = annotation.open_coded_failure_modes or []
+        all_modes.extend(modes)
 
-        mode_counts = Counter(all_modes)
-        if mode_counts:
-            freq_df = pd.DataFrame(sorted(mode_counts.items(), key=lambda x: x[1], reverse=True),
-                                 columns=["Failure Mode", "Count"])
-            st.bar_chart(freq_df.set_index("Failure Mode"))
-            st.dataframe(freq_df, use_container_width=True, hide_index=True)
-        else:
-            st.info("No failure modes annotated yet.")
+    from collections import Counter
+    mode_counts = Counter(all_modes)
 
-        # Verdict summary
-        st.subheader("Verdict Summary")
-        verdicts = [a.verdict for a in st.session_state.annotations.values()]
-        verdict_counts = Counter(verdicts)
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("PASS", verdict_counts.get("PASS", 0))
-        with col2:
-            st.metric("FAIL", verdict_counts.get("FAIL", 0))
-
-        # Export
-        st.divider()
-        st.subheader("Export")
-        csv = df.to_csv(index=False)
-        st.download_button(label="📥 Download as CSV", data=csv, file_name="annotations_export.csv", mime="text/csv")
+    if mode_counts:
+        freq_df = pd.DataFrame(
+            sorted(mode_counts.items(), key=lambda x: x[1], reverse=True),
+            columns=["Failure Mode", "Count"]
+        )
+        st.bar_chart(freq_df.set_index("Failure Mode"))
+        st.dataframe(freq_df, use_container_width=True, hide_index=True)
     else:
-        st.info("No annotations yet. Start with Annotation Interface to begin annotating traces.")
+        st.info("No failure modes annotated yet.")
+
+    # Verdict summary
+    st.subheader("Verdict Summary")
+    verdicts = [a.verdict for a in st.session_state.annotations.values()]
+    verdict_counts = Counter(verdicts)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("PASS", verdict_counts.get("PASS", 0))
+    with col2:
+        st.metric("FAIL", verdict_counts.get("FAIL", 0))
+
+    # Export
+    st.divider()
+    st.subheader("Export")
+    csv = df.to_csv(index=False)
+    st.download_button(
+        label="📥 Download as CSV",
+        data=csv,
+        file_name="annotations_export.csv",
+        mime="text/csv"
+    )
 
 # --- Main Navigation ---
 st.sidebar.title("Navigation")
