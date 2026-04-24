@@ -1,6 +1,8 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
+import json
+from pathlib import Path
 
 class ElementJudgment(BaseModel):
     element_number: int
@@ -55,3 +57,29 @@ class AnnotationRecord(BaseModel):
             reviewed=data["reviewed"],
             timestamp=data.get("timestamp", datetime.now(timezone.utc).isoformat()),
         )
+
+def load_annotations(filepath: Path) -> Dict[str, AnnotationRecord]:
+    """Load annotations from JSONL file. Returns empty dict if file doesn't exist."""
+    annotations = {}
+    if not filepath.exists():
+        return annotations
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                data = json.loads(line)
+                record = AnnotationRecord.from_dict(data)
+                annotations[record.run_id] = record
+            except Exception as e:
+                print(f"Warning: Failed to parse line: {e}")
+    return annotations
+
+def save_annotations(filepath: Path, annotations: Dict[str, AnnotationRecord]) -> None:
+    """Save annotations to JSONL file (overwrites)."""
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    with open(filepath, "w", encoding="utf-8") as f:
+        for record in annotations.values():
+            f.write(json.dumps(record.to_dict()) + "\n")

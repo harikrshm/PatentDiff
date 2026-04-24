@@ -1,5 +1,8 @@
 from datetime import datetime
-from core.annotation import AnnotationRecord, ElementJudgment, OverallOpinionJudgment
+import tempfile
+from pathlib import Path
+import json
+from core.annotation import AnnotationRecord, ElementJudgment, OverallOpinionJudgment, load_annotations, save_annotations
 
 def test_annotation_record_creation():
     """Test basic AnnotationRecord creation."""
@@ -95,3 +98,69 @@ def test_annotation_from_dict():
     assert record.run_id == "id1"
     assert record.phase == 1
     assert len(record.element_judgments) == 1
+
+def test_load_empty_annotations():
+    """Test loading from non-existent file returns empty dict."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = Path(tmpdir) / "annotations.jsonl"
+        annotations = load_annotations(path)
+        assert annotations == {}
+
+def test_load_annotations_from_jsonl():
+    """Test loading annotations from JSONL file."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = Path(tmpdir) / "annotations.jsonl"
+
+        # Write test data
+        record1 = {
+            "run_id": "id1",
+            "phase": 1,
+            "element_judgments": [],
+            "overall_opinion_judgment": {
+                "tool_verdict": "test",
+                "your_verdict": "PASS",
+                "critique": "ok"
+            },
+            "open_coded_failure_modes": ["mode1"],
+            "failure_modes": None,
+            "annotation": "annotation1",
+            "reviewed": True,
+            "timestamp": "2026-04-24T10:00:00+00:00"
+        }
+        with open(path, "w") as f:
+            f.write(json.dumps(record1) + "\n")
+
+        annotations = load_annotations(path)
+        assert len(annotations) == 1
+        assert annotations["id1"].run_id == "id1"
+        assert annotations["id1"].phase == 1
+
+def test_save_annotations():
+    """Test saving annotations to JSONL."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = Path(tmpdir) / "annotations.jsonl"
+
+        record = AnnotationRecord(
+            run_id="id1",
+            phase=1,
+            element_judgments=[],
+            overall_opinion_judgment=OverallOpinionJudgment(
+                tool_verdict="test",
+                your_verdict="PASS",
+                critique="ok"
+            ),
+            open_coded_failure_modes=["mode1"],
+            failure_modes=None,
+            annotation="test",
+            reviewed=True,
+        )
+
+        save_annotations(path, {"id1": record})
+
+        # Verify file exists and contains data
+        assert path.exists()
+        with open(path) as f:
+            lines = f.readlines()
+        assert len(lines) == 1
+        loaded = json.loads(lines[0])
+        assert loaded["run_id"] == "id1"
