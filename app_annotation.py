@@ -4,7 +4,7 @@ from pathlib import Path
 from collections import Counter
 from core.annotation import (
     load_annotations, save_annotations, detect_phase, load_taxonomy,
-    parse_failure_modes, AnnotationRecord, ElementJudgment, OverallOpinionJudgment
+    parse_failure_modes, AnnotationRecord
 )
 from core.trace_loader import load_traces
 
