@@ -1,0 +1,128 @@
+{
+  "phase": 2,
+  "date_generated": "2026-04-25",
+  "methodology": "Axial Coding - Workflow Stage Based",
+  "statistics": {
+    "total_traces_analyzed": 11,
+    "pass_traces": 3,
+    "fail_traces": 8,
+    "total_failures_identified": 9,
+    "unique_consolidated_categories": 9
+  },
+  "exclusions": {
+    "technical_errors": [
+      "token_limit",
+      "toke_limit"
+    ],
+    "reason": "Treated as system/environmental constraint, not methodology error"
+  },
+  "failure_taxonomy": {
+    "STAGE_1_INPUT_UNDERSTANDING": {
+      "name": "Input Understanding & Decomposition",
+      "description": "Failures in understanding input patents, decomposing claims, and identifying preprocessing steps",
+      "categories": {
+        "Claim Decomposition & Structure": {
+          "consolidated_codes": [
+            "claim_decomposition",
+            "claim element decomposition",
+            "big_claim"
+          ],
+          "description": "Large claims not properly broken down into elements; elements analyzed without context of full claim",
+          "impact": "HIGH - Incomplete element-by-element analysis"
+        },
+        "Preprocessing & Input Step Recognition": {
+          "consolidated_codes": [
+            "pre_processing_mapping",
+            "pre_processing  step",
+            "pre+post_processing_steps"
+          ],
+          "description": "Failure to correctly classify preprocessing/postprocessing steps; treating them as novel when they are foundational",
+          "impact": "HIGH - Incorrect novelty/inventive step assessment"
+        },
+        "Patent Document Coverage": {
+          "consolidated_codes": [
+            "preamble_missed"
+          ],
+          "description": "Failure to analyze all sections of patent (preamble, claims, specification)",
+          "impact": "MEDIUM - Incomplete analysis"
+        }
+      }
+    },
+    "STAGE_2_CLAIM_ANALYSIS": {
+      "name": "Claim Language & Term Analysis",
+      "description": "Failures in interpreting claim language, identifying corresponding text between patents",
+      "categories": {
+        "Term Interpretation & Consistency": {
+          "consolidated_codes": [
+            "term_consistent",
+            "verbatim_term"
+          ],
+          "description": "Treating claim terms verbatim instead of using specification context; inconsistent interpretation",
+          "impact": "HIGH - Misinterpretation of claim scope"
+        },
+        "Corresponding Text Identification": {
+          "consolidated_codes": [
+            "correspond_text"
+          ],
+          "description": "Verdict summarizes/paraphrases rather than quoting actual corresponding text from patent",
+          "impact": "MEDIUM - Traceability and verification issues"
+        }
+      }
+    },
+    "STAGE_3_NOVELTY_ASSESSMENT": {
+      "name": "Novelty Assessment",
+      "description": "Failures in understanding novelty concept and assessing against prior art",
+      "categories": {
+        "Novelty vs. Inventive Step Distinction": {
+          "consolidated_codes": [
+            "diff_nov_and_invent",
+            "diff_in_tech"
+          ],
+          "description": "Confusion between novelty and inventive step; missing explanation of technical differences",
+          "impact": "HIGH - Fundamental conceptual error"
+        },
+        "Person Skilled in Art Consideration": {
+          "consolidated_codes": [
+            "person_skilled"
+          ],
+          "description": "Failure to consider assessment from perspective of person skilled in the art",
+          "impact": "HIGH - Fundamental patent law requirement"
+        }
+      }
+    },
+    "STAGE_4_INVENTIVE_STEP_ASSESSMENT": {
+      "name": "Inventive Step Assessment",
+      "description": "All errors related to assessing whether differences from prior art constitute inventive step",
+      "categories": {
+        "Inventive Step Reasoning & Judgment": {
+          "consolidated_codes": [
+            "hallucination_inventive_step",
+            "narrow_inventive_step",
+            "mark_inventive_step",
+            "inventive_why?"
+          ],
+          "description": "Incorrect marking of inventive step; hallucinated reasoning; threshold issues; missing justification",
+          "impact": "CRITICAL - Direct impact on final verdict"
+        }
+      }
+    }
+  },
+  "stage_summary": {
+    "Claim Language & Term Analysis": {
+      "count": 2,
+      "percentage": "22.2%"
+    },
+    "Input Understanding & Decomposition": {
+      "count": 5,
+      "percentage": "55.6%"
+    },
+    "Inventive Step Assessment": {
+      "count": 1,
+      "percentage": "11.1%"
+    },
+    "Novelty Assessment": {
+      "count": 1,
+      "percentage": "11.1%"
+    }
+  }
+}
