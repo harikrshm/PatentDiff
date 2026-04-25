@@ -261,6 +261,18 @@ def build_analysis_dashboard():
 # --- Main Navigation ---
 st.sidebar.title("Navigation")
 view = st.sidebar.radio("View", ["Annotation Interface", "Analysis Dashboard"])
+
+# Phase selector
+st.sidebar.divider()
+st.sidebar.subheader("Phase Selection")
+phase_option = st.sidebar.radio(
+    "Coding Phase",
+    [1, 3],
+    format_func=lambda x: f"Phase {x}: {'Open Coding (Free-form)' if x == 1 else 'Re-annotation (Standardized)'}",
+    key="phase_selector"
+)
+st.session_state.phase = phase_option
+
 st.sidebar.divider()
 
 # --- Annotation Interface ---
