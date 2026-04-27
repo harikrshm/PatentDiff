@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from collections import Counter
 from datetime import datetime
+from typing import Optional, Dict
 from core.annotation import (
     load_annotations, save_annotations, detect_phase, load_taxonomy,
     parse_failure_modes, AnnotationRecord
@@ -128,7 +129,7 @@ def display_trace(trace):
 
 
 
-def annotation_form(run_id, previous_annotation=None, phase=1):
+def annotation_form(run_id: str, previous_annotation: Optional[AnnotationRecord] = None, phase: int = 1) -> Dict:
     """Build annotation form for Phase 1 or Phase 3."""
     st.subheader("Annotation Form")
 
