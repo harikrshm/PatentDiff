@@ -236,7 +236,6 @@ def build_analysis_dashboard():
         modes = annotation.open_coded_failure_modes or []
         all_modes.extend(modes)
 
-    from collections import Counter
     mode_counts = Counter(all_modes)
 
     if mode_counts:
@@ -324,7 +323,7 @@ if view == "Annotation Interface":
 
         if search_term:
             if search_term.lower() not in run_id.lower():
-                if not annotation or search_term.lower() not in annotation.comment.lower():
+                if not annotation or search_term.lower() not in (annotation.comment or "").lower():
                     continue
 
         if filter_verdict != "All" and annotation and annotation.verdict != filter_verdict:
