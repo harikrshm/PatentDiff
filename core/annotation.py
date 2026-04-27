@@ -12,6 +12,7 @@ class AnnotationRecord(BaseModel):
     comment: str
     reviewed: bool = False
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    dimensions: Optional[Dict[str, str]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -23,6 +24,7 @@ class AnnotationRecord(BaseModel):
             "comment": self.comment,
             "reviewed": self.reviewed,
             "timestamp": self.timestamp,
+            "dimensions": self.dimensions,
         }
 
     @staticmethod
@@ -36,6 +38,7 @@ class AnnotationRecord(BaseModel):
             comment=data["comment"],
             reviewed=data.get("reviewed", False),
             timestamp=data.get("timestamp", datetime.now(timezone.utc).isoformat()),
+            dimensions=data.get("dimensions"),
         )
 
 def load_annotations(filepath: Path) -> Dict[str, AnnotationRecord]:
