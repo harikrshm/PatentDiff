@@ -74,10 +74,10 @@ def main():
 
                 # Create Phase 3 record
                 phase3_record = {
-                    'run_id': record['run_id'],
+                    'run_id': record.get('run_id', ''),
                     'phase': 3,
                     'dimensions': record.get('dimensions'),
-                    'verdict': record['verdict'],
+                    'verdict': record.get('verdict', 'UNKNOWN'),
                     'failure_modes': list(new_modes),
                     'open_coded_failure_modes': old_modes,  # Preserve for traceability
                     'comment': record.get('comment', ''),
@@ -90,6 +90,18 @@ def main():
 
             except json.JSONDecodeError as e:
                 print(f"Warning: Skipped malformed JSON: {e}")
+
+    # Check if Phase 3 records already exist
+    existing_phase3_count = 0
+    with open(jsonl_file, 'r') as f:
+        for line in f:
+            if line.strip() and '"phase": 3' in line:
+                existing_phase3_count += 1
+
+    if existing_phase3_count > 0:
+        print(f"Note: {existing_phase3_count} Phase 3 records already exist.")
+        print("Skipping append to avoid duplicates. Run with fresh traces_annotations.jsonl if you need to re-run.")
+        sys.exit(0)
 
     # Append Phase 3 records to file
     print(f"Appending {mapped_count} Phase 3 records to {jsonl_file}...")
