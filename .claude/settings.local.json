@@ -8,7 +8,11 @@
       "Bash(git commit -m ':*)",
       "Bash(pip show:*)",
       "Bash(pip index:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(npm test *)",
+      "Bash(pytest *)",
+      "Bash(python3 *)",
+      "Bash(grep -E \"\\\\.py$|\\\\.json$|\\\\.jsonl$|\\\\.xlsx$\")"
     ]
   }
 }
