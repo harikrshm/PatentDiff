@@ -108,3 +108,58 @@ def test_annotation_from_dict_simplified():
     assert record.run_id == "id1"
     assert record.verdict == "FAIL"
     assert record.comment == "Tool hallucinated"
+
+def test_annotation_with_dimensions():
+    """Test that dimensions are preserved in annotations"""
+    data = {
+        "run_id": "test-123",
+        "phase": 3,
+        "dimensions": {
+            "claim_type": "independent",
+            "claim_length": "medium",
+            "relationship": "similar_domain"
+        },
+        "verdict": "FAIL",
+        "failure_modes": ["failed_claim_construction"],
+        "open_coded_failure_modes": ["big_claim"],
+        "comment": "Test comment",
+        "reviewed": True,
+        "timestamp": "2026-04-27T10:00:00"
+    }
+
+    record = AnnotationRecord.from_dict(data)
+    assert record.dimensions == data["dimensions"]
+    assert record.failure_modes == ["failed_claim_construction"]
+    assert record.to_dict()["dimensions"] == data["dimensions"]
+
+def test_pass_verdict_with_failure_modes():
+    """Test that PASS verdict with failure modes is recorded (UI should prevent)"""
+    data = {
+        "run_id": "test-124",
+        "phase": 3,
+        "verdict": "PASS",
+        "failure_modes": ["failed_claim_construction"],
+        "comment": "Test",
+        "reviewed": True
+    }
+
+    # Data model allows this; UI validation should prevent it
+    record = AnnotationRecord.from_dict(data)
+    assert record.verdict == "PASS"
+    assert record.failure_modes == ["failed_claim_construction"]
+
+def test_fail_verdict_without_failure_modes():
+    """Test that FAIL verdict without failure modes is recorded (UI should prevent)"""
+    data = {
+        "run_id": "test-125",
+        "phase": 3,
+        "verdict": "FAIL",
+        "failure_modes": [],
+        "comment": "Test",
+        "reviewed": True
+    }
+
+    # Data model allows this; UI validation should prevent it
+    record = AnnotationRecord.from_dict(data)
+    assert record.verdict == "FAIL"
+    assert len(record.failure_modes) == 0
