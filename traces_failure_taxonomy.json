@@ -1,0 +1,127 @@
+{
+  "phase": 3,
+  "date_created": "2026-04-28",
+  "methodology": "Axial Coding - Phase 3 Failure Taxonomy for Trace Analysis",
+  "description": "Structured failure taxonomy for Phase 3 axial coding. Each failure category includes observed behaviors, frequency tracking, and evaluation type.",
+  "failure_categories": [
+    {
+      "id": "failed_claim_construction",
+      "name": "Failed Claim Construction",
+      "description": "Claim elements are understood based on LLM's interpretation of the term rather than how the claim element is defined in the specification",
+      "observed_behaviors": [
+        "Claim elements understood based on LLM's interpretation instead of specification",
+        "Breaking claim elements incorrectly to understand flow",
+        "Not using specification support to define claim terms",
+        "Large claims not properly decomposed into elements"
+      ],
+      "indicators": [
+        "verbatim_term",
+        "claim_decomposition",
+        "claim element decomposition",
+        "big_claim",
+        "term_consistent"
+      ],
+      "frequency": "HIGH",
+      "eval_type": "LLM Judge + Code Check",
+      "priority": "HIGH",
+      "impact": "Element interpretation affects all downstream analysis"
+    },
+    {
+      "id": "absent_phosita_reasoning",
+      "name": "Absent PHOSITA Reasoning",
+      "description": "The mental model of a person skilled in the art to determine obviousness is weak. Every novel element is considered non-obvious with no reasoning on why a PHOSITA would judge this as obvious or non-obvious",
+      "observed_behaviors": [
+        "No reasoning for why PHOSITA would find element obvious or non-obvious",
+        "Weak threshold for obviousness assessment",
+        "Missing consideration of ordinary skilled person's understanding",
+        "Confusing novelty with inventive step"
+      ],
+      "indicators": [
+        "person_skilled",
+        "diff nov and invent",
+        "diff in tech",
+        "hallucination_inventive step",
+        "inventive_why?",
+        "mark_inventive step",
+        "narrow inventive step"
+      ],
+      "frequency": "HIGH",
+      "eval_type": "LLM Judge + Patent Law Analysis",
+      "priority": "HIGH",
+      "impact": "Critical for obviousness assessment which affects patentability conclusion"
+    },
+    {
+      "id": "citation_text",
+      "name": "Citation Text",
+      "description": "Tool summarizes prior art text instead of quoting verbatim, preventing user verification of the mapping between prior art and claim elements",
+      "observed_behaviors": [
+        "Corresponding text is summarized instead of quoted",
+        "User cannot verify the claimed correspondence",
+        "Paraphrasing prevents traceability back to source"
+      ],
+      "indicators": [
+        "correspond text"
+      ],
+      "frequency": "MEDIUM",
+      "eval_type": "Code Check + Manual Verification",
+      "priority": "MEDIUM",
+      "impact": "Reduces verifiability and traceability of mapping"
+    },
+    {
+      "id": "inconsistent_verdict",
+      "name": "Inconsistent Verdict Logic",
+      "description": "Difference between element mapping and verdict. Element is mapped as novel but the final opinion is that it is anticipated (or other contradictions)",
+      "observed_behaviors": [
+        "Element mapped as novel but verdict says anticipated",
+        "Element verdict contradicts overall opinion",
+        "Inconsistent reasoning across analysis"
+      ],
+      "indicators": [],
+      "frequency": "MEDIUM",
+      "eval_type": "LLM Judge + Logic Verification",
+      "priority": "MEDIUM",
+      "impact": "Indicates logical inconsistency in analysis that affects conclusion reliability"
+    },
+    {
+      "id": "unnecessary_evaluation",
+      "name": "Claim Elements Evaluated Unnecessarily",
+      "description": "Tool runs novelty check on generic preamble, input elements, or preprocessing steps that should not be evaluated for inventive step",
+      "observed_behaviors": [
+        "Generic preamble analyzed as novel element",
+        "Input elements checked for novelty incorrectly",
+        "Preprocessing/postprocessing steps evaluated as novel",
+        "Steps that are foundational treated as inventive"
+      ],
+      "indicators": [
+        "pre+post processing steps",
+        "pre_processing step",
+        "pre_processing mapping",
+        "preamble_missed"
+      ],
+      "frequency": "MEDIUM",
+      "eval_type": "Code Check + Prompt Correction",
+      "priority": "LOW",
+      "impact": "Inflates novelty assessment by evaluating non-patentable subject matter"
+    }
+  ],
+  "phase_3_workflow": {
+    "step_1_identify": "Open trace and identify which of the 5 failure categories apply",
+    "step_2_mark": "Select all applicable failure categories (can be 1-5)",
+    "step_3_document": "Write comment explaining why each selected failure mode applies",
+    "step_4_review": "Mark as reviewed when complete",
+    "step_5_save": "Save annotation - will persist immediately"
+  },
+  "usage_notes": {
+    "pass_verdict": "Use PASS when trace has no significant failures - failure_modes field will be empty",
+    "fail_verdict": "Use FAIL when trace has ≥1 failure - select applicable categories",
+    "multiple_modes": "A single trace can have 1-5 failure modes - select all that apply",
+    "dimension_context": "Use trace dimensions (claim_type, claim_length, relationship) to understand error patterns",
+    "open_coded_preservation": "Original Phase 1 open-coded modes are preserved for traceability"
+  },
+  "analysis_instructions": {
+    "error_patterns": "After Phase 3 annotation, group failures by: (1) failure category, (2) trace dimensions, (3) verdict",
+    "hotspots": "Identify which claim types/lengths most frequently trigger specific failure modes",
+    "improvement_areas": "Focus prompt improvements on highest-frequency failure categories",
+    "baseline": "11 Phase 1 traces auto-mapped to Phase 3; ~76 unannotated traces remaining"
+  }
+}

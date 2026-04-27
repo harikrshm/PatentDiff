@@ -484,7 +484,7 @@ if view == "Annotation Interface":
                         form_data["reviewed"],
                         phase=st.session_state.phase
                     ):
-                        pass  # Success message already shown
+                        st.rerun()  # Refresh to show updated data
 
             with col_next:
                 if st.button("→ Next", use_container_width=True):
