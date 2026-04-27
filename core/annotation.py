@@ -7,7 +7,8 @@ from pathlib import Path
 class AnnotationRecord(BaseModel):
     run_id: str
     phase: int  # 1 or 3
-    open_coded_failure_modes: Optional[List[str]] = None
+    open_coded_failure_modes: Optional[List[str]] = None  # Phase 1: free-form failure modes
+    failure_modes: Optional[List[str]] = None  # Phase 3: taxonomy-based failure mode IDs
     verdict: str  # "PASS" or "FAIL"
     comment: str
     reviewed: bool = False
@@ -20,6 +21,7 @@ class AnnotationRecord(BaseModel):
             "run_id": self.run_id,
             "phase": self.phase,
             "open_coded_failure_modes": self.open_coded_failure_modes,
+            "failure_modes": self.failure_modes,
             "verdict": self.verdict,
             "comment": self.comment,
             "reviewed": self.reviewed,
@@ -34,6 +36,7 @@ class AnnotationRecord(BaseModel):
             run_id=data["run_id"],
             phase=data["phase"],
             open_coded_failure_modes=data.get("open_coded_failure_modes"),
+            failure_modes=data.get("failure_modes"),
             verdict=data["verdict"],
             comment=data["comment"],
             reviewed=data.get("reviewed", False),

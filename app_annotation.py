@@ -3,6 +3,7 @@ import pandas as pd
 import json
 from pathlib import Path
 from collections import Counter
+from datetime import datetime
 from core.annotation import (
     load_annotations, save_annotations, detect_phase, load_taxonomy,
     parse_failure_modes, AnnotationRecord
@@ -127,70 +128,171 @@ def display_trace(trace):
 
 
 
-def annotation_form(run_id, previous_annotation=None):
-    """Build simplified annotation form for Phase 1 (verdict + failure modes + comment)."""
+def annotation_form(run_id, previous_annotation=None, phase=1):
+    """Build annotation form for Phase 1 or Phase 3."""
     st.subheader("Annotation Form")
 
     # Pre-fill with previous annotation if it exists
     prev_verdict = previous_annotation.verdict if previous_annotation else "PASS"
-    prev_failure_modes = " | ".join(previous_annotation.open_coded_failure_modes) if previous_annotation and previous_annotation.open_coded_failure_modes else ""
     prev_comment = previous_annotation.comment if previous_annotation else ""
     prev_reviewed = previous_annotation.reviewed if previous_annotation else False
 
-    st.write("**Trace Quality Verdict:**")
-    verdict = st.radio(
-        "Pass/Fail",
-        ["PASS", "FAIL"],
-        index=0 if prev_verdict == "PASS" else 1,
-        key=f"verdict_{run_id}",
-        horizontal=True
-    )
+    # PHASE 1: Open Coding (Free-form)
+    if phase == 1:
+        prev_failure_modes = " | ".join(previous_annotation.open_coded_failure_modes) if previous_annotation and previous_annotation.open_coded_failure_modes else ""
 
-    st.write("**Failure Modes:**")
-    failure_modes_text = st.text_input(
-        "Delimited failure modes",
-        value=prev_failure_modes,
-        placeholder="Format: hallucination | truncation | claim_mismatch",
-        key=f"failure_modes_{run_id}"
-    )
-    failure_modes = parse_failure_modes(failure_modes_text)
+        st.write("**Trace Quality Verdict:**")
+        verdict = st.radio(
+            "Pass/Fail",
+            ["PASS", "FAIL"],
+            index=0 if prev_verdict == "PASS" else 1,
+            key=f"verdict_{run_id}",
+            horizontal=True
+        )
 
-    st.write("**Comment:**")
-    comment = st.text_area(
-        "Explain the failure modes",
-        value=prev_comment,
-        placeholder="Describe what failure modes you found and why...",
-        key=f"comment_{run_id}",
-        height=150
-    )
+        st.write("**Failure Modes:**")
+        failure_modes_text = st.text_input(
+            "Delimited failure modes",
+            value=prev_failure_modes,
+            placeholder="Format: hallucination | truncation | claim_mismatch",
+            key=f"failure_modes_{run_id}"
+        )
+        failure_modes = parse_failure_modes(failure_modes_text)
+        failure_modes_ids = failure_modes
 
-    reviewed = st.checkbox("Reviewed", value=prev_reviewed, key=f"reviewed_{run_id}")
+        st.write("**Comment:**")
+        comment = st.text_area(
+            "Explain the failure modes",
+            value=prev_comment,
+            placeholder="Describe what failure modes you found and why...",
+            key=f"comment_{run_id}",
+            height=150
+        )
 
-    return {
-        "verdict": verdict,
-        "failure_modes": failure_modes,
-        "comment": comment,
-        "reviewed": reviewed,
-    }
+        reviewed = st.checkbox("Reviewed", value=prev_reviewed, key=f"reviewed_{run_id}")
 
-def save_annotation(run_id, verdict, failure_modes, comment, reviewed):
+        return {
+            "verdict": verdict,
+            "failure_modes": failure_modes,
+            "failure_modes_ids": failure_modes_ids,
+            "comment": comment,
+            "reviewed": reviewed,
+        }
+
+    # PHASE 3: Re-annotation with Standardized Taxonomy
+    else:
+        taxonomy = st.session_state.taxonomy if st.session_state.taxonomy else {}
+        failure_categories = {cat['id']: cat['name'] for cat in taxonomy.get('failure_categories', [])}
+        category_names = [cat['name'] for cat in taxonomy.get('failure_categories', [])]
+
+        st.write("**VERDICT:**")
+        verdict = st.radio(
+            "Pass/Fail",
+            ["PASS", "FAIL"],
+            index=0 if prev_verdict == "PASS" else 1,
+            key=f"verdict_{run_id}",
+            horizontal=True
+        )
+
+        failure_modes = []
+        failure_modes_ids = []
+
+        if verdict == "FAIL":
+            st.write("**FAILURE MODES:** (Required for FAIL verdict)")
+
+            # Get previous failure modes for defaults
+            prev_failure_modes_names = []
+            if previous_annotation and previous_annotation.failure_modes:
+                prev_failure_modes_names = [
+                    failure_categories.get(mode_id, mode_id)
+                    for mode_id in previous_annotation.failure_modes
+                ]
+
+            # Multi-select for failure modes
+            failure_modes = st.multiselect(
+                "Select failure modes that apply to this trace:",
+                options=category_names,
+                default=prev_failure_modes_names,
+                key=f"failure_modes_{run_id}"
+            )
+
+            # Map category names back to IDs
+            if failure_modes and taxonomy:
+                failure_modes_ids = [
+                    cat['id']
+                    for cat in taxonomy.get('failure_categories', [])
+                    if cat['name'] in failure_modes
+                ]
+
+            if not failure_modes:
+                st.warning("⚠️ FAIL verdict requires at least one failure mode")
+        else:
+            st.info("✓ PASS verdict: no failure modes applicable")
+            failure_modes_ids = []
+
+        st.write("**COMMENT:**")
+        comment = st.text_area(
+            "Explain the verdict and failure modes",
+            value=prev_comment,
+            placeholder="Describe the verdict and failure modes you found...",
+            key=f"comment_{run_id}",
+            height=150
+        )
+
+        reviewed = st.checkbox("Reviewed", value=prev_reviewed, key=f"reviewed_{run_id}")
+
+        return {
+            "verdict": verdict,
+            "failure_modes": failure_modes,
+            "failure_modes_ids": failure_modes_ids,
+            "comment": comment,
+            "reviewed": reviewed,
+        }
+
+def save_annotation(run_id, verdict, failure_modes, failure_modes_ids, comment, reviewed, phase=1):
     """Save annotation to session state and file."""
+    # Validation
+    errors = []
+
     if not comment:
-        st.error("Comment is required.")
-        return False
+        errors.append("Comment is required")
+
+    if verdict == "PASS" and failure_modes:
+        errors.append("PASS verdict cannot have failure modes selected")
 
     if verdict == "FAIL" and not failure_modes:
-        st.warning("FAIL verdict but no failure modes noted. Please add at least one mode or mark as PASS.")
+        errors.append("FAIL verdict requires at least one failure mode")
+
+    if errors:
+        for error in errors:
+            st.error(f"❌ {error}")
         return False
 
-    record = AnnotationRecord(
-        run_id=run_id,
-        phase=1,
-        open_coded_failure_modes=failure_modes,
-        verdict=verdict,
-        comment=comment,
-        reviewed=reviewed,
-    )
+    # Get dimensions from trace
+    trace = st.session_state.traces.get(run_id)
+    dimensions = trace.dimensions if trace else None
+
+    # Create record based on phase
+    if phase == 1:
+        record = AnnotationRecord(
+            run_id=run_id,
+            phase=1,
+            open_coded_failure_modes=failure_modes_ids if verdict == "FAIL" else [],
+            verdict=verdict,
+            comment=comment,
+            reviewed=reviewed,
+            dimensions=dimensions,
+        )
+    else:
+        record = AnnotationRecord(
+            run_id=run_id,
+            phase=3,
+            failure_modes=failure_modes_ids if verdict == "FAIL" else [],
+            verdict=verdict,
+            comment=comment,
+            reviewed=reviewed,
+            dimensions=dimensions,
+        )
 
     st.session_state.annotations[run_id] = record
     save_annotations(ANNOTATIONS_FILE, st.session_state.annotations)
@@ -364,7 +466,7 @@ if view == "Annotation Interface":
 
         with col_form:
             previous_annotation = st.session_state.annotations.get(st.session_state.current_run_id)
-            form_data = annotation_form(st.session_state.current_run_id, previous_annotation)
+            form_data = annotation_form(st.session_state.current_run_id, previous_annotation, phase=st.session_state.phase)
 
             st.divider()
 
@@ -376,8 +478,10 @@ if view == "Annotation Interface":
                         st.session_state.current_run_id,
                         form_data["verdict"],
                         form_data["failure_modes"],
+                        form_data["failure_modes_ids"],
                         form_data["comment"],
-                        form_data["reviewed"]
+                        form_data["reviewed"],
+                        phase=st.session_state.phase
                     ):
                         pass  # Success message already shown
 
