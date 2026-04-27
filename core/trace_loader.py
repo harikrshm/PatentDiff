@@ -37,6 +37,7 @@ class Trace(BaseModel):
     status: str
     error: Optional[str]
     truncation_warnings: Optional[List[str]] = None
+    dimensions: Optional[Dict[str, Any]] = None  # claim_type, claim_length, relationship
 
     class Config:
         extra = "allow"  # Allow extra fields from JSON

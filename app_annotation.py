@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import json
 from pathlib import Path
 from collections import Counter
 from core.annotation import (
@@ -46,15 +47,26 @@ if "taxonomy" not in st.session_state:
 def display_trace(trace):
     """Display full trace details in read-only format."""
     st.subheader("Trace Metadata")
-    col1, col2, col3, col4 = st.columns(4)
+
+    # Row 1: Run ID, Source, Status
+    col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Run ID", trace.run_id[:12] + "...")
+        st.write(f"**Run ID:** {trace.run_id[:12]}...")
     with col2:
-        st.metric("Status", trace.status)
+        src_label = trace.inputs.get("source_patent", {}).get("label", "N/A")
+        st.write(f"**Source:** {src_label}")
     with col3:
-        st.metric("Timestamp", trace.timestamp[:10])
-    with col4:
-        st.metric("Model", trace.llm_response.model if trace.llm_response else "N/A")
+        st.write(f"**Status:** {trace.status}")
+
+    # Row 2: Claim Type, Claim Length, Relationship
+    dimensions = trace.dimensions or {}
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.write(f"**Claim Type:** {dimensions.get('claim_type', 'N/A')}")
+    with col2:
+        st.write(f"**Claim Length:** {dimensions.get('claim_length', 'N/A')}")
+    with col3:
+        st.write(f"**Relationship:** {dimensions.get('relationship', 'N/A')}")
 
     st.divider()
 
@@ -279,6 +291,21 @@ st.sidebar.divider()
 if view == "Annotation Interface":
     st.sidebar.subheader("Trace Navigator")
 
+    # Filter out token_limit traces (not for error analysis)
+    token_limit_run_ids = set()
+    try:
+        with open(ANNOTATIONS_FILE, 'r') as f:
+            for line in f:
+                try:
+                    record = json.loads(line)
+                    if 'token_limit' in record.get('open_coded_failure_modes', []) or \
+                       'toke_limit' in record.get('open_coded_failure_modes', []):
+                        token_limit_run_ids.add(record['run_id'])
+                except:
+                    pass
+    except:
+        pass
+
     search_term = st.sidebar.text_input("Search by Run ID or comment", value="")
 
     col1, col2 = st.sidebar.columns(2)
@@ -287,9 +314,12 @@ if view == "Annotation Interface":
     with col2:
         filter_reviewed = st.selectbox("Reviewed", ["All", "Reviewed", "Unreviewed"])
 
-    # Build filtered trace list
+    # Build filtered trace list (excluding token_limit traces)
     filtered_traces = []
     for run_id, trace in st.session_state.traces.items():
+        # Skip token_limit traces
+        if run_id in token_limit_run_ids:
+            continue
         annotation = st.session_state.annotations.get(run_id)
 
         if search_term:
