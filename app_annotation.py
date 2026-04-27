@@ -13,7 +13,7 @@ from core.trace_loader import load_traces
 # --- Configuration ---
 TRACES_FILE = Path("traces/traces.jsonl")
 ANNOTATIONS_FILE = Path("traces/traces_annotations.jsonl")
-TAXONOMY_FILE = Path("traces/failure_taxonomy.json")
+TAXONOMY_FILE = Path("failure_taxonomy.json")
 
 # --- App Setup ---
 st.set_page_config(page_title="PatentDiff Annotation Tool", layout="wide")
