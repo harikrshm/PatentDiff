@@ -181,6 +181,12 @@ def annotation_form(run_id: str, previous_annotation: Optional[AnnotationRecord]
         }
 
     # PHASE 3: Re-annotation with Standardized Taxonomy
+    # Note: This form is mode-agnostic and dynamically loads failure_categories from failure_taxonomy.json
+    # The form reads from st.session_state.taxonomy (initialized at line 45 via load_taxonomy())
+    # After taxonomy update to 2 modes, the multiselect widget shows only 2 options:
+    # - Absent PHOSITA Reasoning
+    # - Citation Text
+    # (No code changes needed — the form automatically adapts to taxonomy structure)
     else:
         taxonomy = st.session_state.taxonomy if st.session_state.taxonomy else {}
         failure_categories = {cat['id']: cat['name'] for cat in taxonomy.get('failure_categories', [])}
