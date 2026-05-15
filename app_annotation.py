@@ -307,7 +307,14 @@ def save_annotation(run_id, verdict, failure_modes, failure_modes_ids, comment, 
     return True
 
 def build_analysis_dashboard():
-    """Build simplified analysis dashboard for Phase 1."""
+    """Build simplified analysis dashboard for all phases.
+
+    Note: Dashboard displays failure modes from saved annotations.
+    - Phase 1: reads open_coded_failure_modes (free-form)
+    - Phase 3: reads failure_modes (2-mode taxonomy IDs: absent_phosita_reasoning, citation_text)
+    With fresh empty annotations file, dashboard initially shows no data.
+    Dashboard is mode-agnostic: automatically adapts to whatever modes are saved.
+    """
     st.subheader("All Annotations")
 
     if not st.session_state.annotations:
@@ -321,7 +328,11 @@ def build_analysis_dashboard():
         if trace:
             src_label = trace.inputs.get("source_patent", {}).get("label", "?")
             tgt_label = trace.inputs.get("target_patent", {}).get("label", "?")
-            failure_modes = annotation.open_coded_failure_modes or []
+            # Read failure modes based on phase (mode-agnostic approach)
+            if annotation.phase == 3:
+                failure_modes = annotation.failure_modes or []
+            else:
+                failure_modes = annotation.open_coded_failure_modes or []
             failure_modes_str = "; ".join(failure_modes) if failure_modes else "none"
 
             rows.append({
@@ -342,7 +353,11 @@ def build_analysis_dashboard():
     st.subheader("Failure Mode Frequency")
     all_modes = []
     for annotation in st.session_state.annotations.values():
-        modes = annotation.open_coded_failure_modes or []
+        # Read failure modes based on phase (mode-agnostic approach)
+        if annotation.phase == 3:
+            modes = annotation.failure_modes or []
+        else:
+            modes = annotation.open_coded_failure_modes or []
         all_modes.extend(modes)
 
     mode_counts = Counter(all_modes)
