@@ -1,13 +1,8 @@
 {
   "phase": 3,
-  "date_created": "2026-04-27",
-  "methodology": "Axial Coding - Manual 5-Category Taxonomy",
+  "date_created": "2026-05-15",
+  "methodology": "Axial Coding - 2-Category Focused Taxonomy",
   "failure_categories": [
-    {
-      "id": "failed_claim_construction",
-      "name": "Failed Claim Construction",
-      "description": "Claim elements understood based on LLM's interpretation rather than specification"
-    },
     {
       "id": "absent_phosita_reasoning",
       "name": "Absent PHOSITA Reasoning",
@@ -17,16 +12,6 @@
       "id": "citation_text",
       "name": "Citation Text",
       "description": "Tool summarizes prior art instead of quoting verbatim"
-    },
-    {
-      "id": "inconsistent_verdict",
-      "name": "Inconsistent Verdict Logic",
-      "description": "Difference between element mapping and verdict"
-    },
-    {
-      "id": "unnecessary_evaluation",
-      "name": "Claim Elements Evaluated Unnecessarily",
-      "description": "Tool runs novelty check on generic elements"
     }
   ]
 }
