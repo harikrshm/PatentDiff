@@ -19,8 +19,9 @@ def extract_keywords(claim_text: str) -> set[str]:
 
 
 def _estimate_tokens(text: str) -> int:
-    """Estimate token count as word count * 1.3."""
-    return int(len(text.split()) * 1.3)
+    """Estimate token count as word count * 2.5 (calibrated for patent text on
+    BPE tokenizers — patent jargon subword-splits into multiple tokens per word)."""
+    return int(len(text.split()) * 2.5)
 
 
 def _split_sentences(text: str) -> list[str]:

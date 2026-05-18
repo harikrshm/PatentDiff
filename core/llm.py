@@ -7,14 +7,14 @@ from groq import Groq
 from core.models import PatentInput
 from core.truncation import smart_truncate_spec
 
-GROQ_TOKEN_LIMIT = 8000
-SYSTEM_PROMPT_TOKENS = 1000
-TEMPLATE_OVERHEAD_TOKENS = 150
-SAFETY_BUFFER_TOKENS = 300
+GROQ_TOKEN_LIMIT = 6500
+SYSTEM_PROMPT_TOKENS = 1800
+TEMPLATE_OVERHEAD_TOKENS = 800
+SAFETY_BUFFER_TOKENS = 700
 
 
 def _estimate_tokens(text: str) -> int:
-    return int(len(text.split()) * 1.3)
+    return int(len(text.split()) * 2.5)
 
 
 def build_system_prompt() -> str:

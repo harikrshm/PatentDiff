@@ -14,11 +14,16 @@ Usage:
 import argparse
 import json
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
+
+load_dotenv(REPO_ROOT / ".env")
 
 from core.llm import build_system_prompt, build_user_prompt, call_groq
 from core.models import PatentInput
@@ -63,15 +68,33 @@ def regenerate_one(trace: dict, system_prompt: str) -> dict:
     }
 
 
+def _load_run_id_filter(path: Path) -> set[str]:
+    ids = set()
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            ids.add(line)
+    return ids
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--traces", type=Path, default=DEFAULT_TRACES_PATH, help="Source traces JSONL")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUTPUT_PATH, help="Output JSONL")
     parser.add_argument("--limit", type=int, default=None, help="Max traces to process (smoke test)")
     parser.add_argument("--resume", action="store_true", help="Skip run_ids already present in --out")
+    parser.add_argument("--run-ids", type=Path, default=None, help="File with one run_id per line; only these are processed")
+    parser.add_argument("--sleep", type=float, default=0.0, help="Seconds to sleep between requests (TPM throttling)")
     args = parser.parse_args()
 
     system_prompt = build_system_prompt()
+
+    run_id_filter: set[str] | None = None
+    if args.run_ids:
+        run_id_filter = _load_run_id_filter(args.run_ids)
+        print(f"Filter: {len(run_id_filter)} run_ids from {args.run_ids.name}")
 
     done_ids: set[str] = set()
     if args.resume and args.out.exists():
@@ -91,6 +114,7 @@ def main() -> int:
     api_err = 0
 
     with open(args.traces, encoding="utf-8") as src, open(args.out, out_mode, encoding="utf-8") as dst:
+        first = True
         for line in src:
             line = line.strip()
             if not line:
@@ -100,6 +124,12 @@ def main() -> int:
                 break
             if trace["run_id"] in done_ids:
                 continue
+            if run_id_filter is not None and trace["run_id"] not in run_id_filter:
+                continue
+
+            if not first and args.sleep > 0:
+                time.sleep(args.sleep)
+            first = False
 
             print(f"[{processed + 1}] {trace['run_id'][:8]} {trace['inputs']['source_patent']['label']} -> {trace['inputs']['target_patent']['label']} ...", end=" ", flush=True)
             new_trace = regenerate_one(trace, system_prompt)
