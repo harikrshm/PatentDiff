@@ -1,10 +1,12 @@
 #!/usr/bin/env python
-"""Run the citation_text coded eval on unannotated traces.
+"""Run the citation_text coded eval on every trace and write the framework output.
 
-Reads traces/traces.jsonl and traces/traces_annotations.jsonl, runs
-core.citation_eval.evaluate_trace on every trace whose run_id is not a
-reviewed annotation, and writes results to traces/citation_text_eval.jsonl.
+Reads traces/traces.jsonl, runs core.citation_eval.evaluate_trace on every
+trace with a non-null parsed_output, and writes results to
+traces/citation_text_eval_full.jsonl. Traces whose parsed_output is null
+(model run failed) are skipped.
 """
+import argparse
 import json
 import sys
 from datetime import datetime, timezone
@@ -15,49 +17,29 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from core.citation_eval import evaluate_trace
 
-TRACES_PATH = REPO_ROOT / "traces" / "traces.jsonl"
-ANNOTATIONS_PATH = REPO_ROOT / "traces" / "traces_annotations.jsonl"
-OUTPUT_PATH = REPO_ROOT / "traces" / "citation_text_eval.jsonl"
+DEFAULT_TRACES_PATH = REPO_ROOT / "traces" / "traces.jsonl"
+DEFAULT_OUTPUT_PATH = REPO_ROOT / "traces" / "citation_text_eval_full.jsonl"
 
 
-def load_reviewed_run_ids() -> set[str]:
-    reviewed: set[str] = set()
-    if not ANNOTATIONS_PATH.exists():
-        return reviewed
-    with open(ANNOTATIONS_PATH, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            d = json.loads(line)
-            if d.get("reviewed"):
-                reviewed.add(d["run_id"])
-    return reviewed
-
-
-def iter_eval_traces(reviewed: set[str]):
-    with open(TRACES_PATH, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            trace = json.loads(line)
-            if trace.get("run_id") in reviewed:
-                continue
-            if not trace.get("parsed_output"):
-                continue
-            yield trace
-
-
-def main() -> int:
-    reviewed = load_reviewed_run_ids()
+def run(traces_path: Path, output_path: Path) -> int:
     results = []
-    for trace in iter_eval_traces(reviewed):
-        result = evaluate_trace(trace)
-        result["timestamp"] = datetime.now(timezone.utc).isoformat()
-        results.append(result)
+    skipped_no_parsed = 0
+    total_lines = 0
+    with open(traces_path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            total_lines += 1
+            trace = json.loads(line)
+            if not trace.get("parsed_output"):
+                skipped_no_parsed += 1
+                continue
+            result = evaluate_trace(trace)
+            result["timestamp"] = datetime.now(timezone.utc).isoformat()
+            results.append(result)
 
-    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         for r in results:
             f.write(json.dumps(r) + "\n")
 
@@ -65,12 +47,24 @@ def main() -> int:
     for r in results:
         counts[r["verdict"]] += 1
     total = len(results)
-    print(f"Evaluated {total} unannotated traces")
+    print(f"Read {total_lines} traces from {traces_path.name}; evaluated {total} (skipped {skipped_no_parsed} with null parsed_output)")
     print(f"  PASS         : {counts['PASS']}")
     print(f"  FAIL         : {counts['FAIL']}")
     print(f"  NO_CITATIONS : {counts['NO_CITATIONS']}")
-    print(f"Wrote {OUTPUT_PATH.relative_to(REPO_ROOT)}")
+    try:
+        rel = output_path.relative_to(REPO_ROOT)
+    except ValueError:
+        rel = output_path
+    print(f"Wrote {rel}")
     return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--traces", type=Path, default=DEFAULT_TRACES_PATH, help="Path to traces JSONL file")
+    parser.add_argument("--out", type=Path, default=DEFAULT_OUTPUT_PATH, help="Path to write eval JSONL output")
+    args = parser.parse_args()
+    return run(args.traces, args.out)
 
 
 if __name__ == "__main__":
