@@ -9,10 +9,10 @@
 
 |                    | Human positive | Human negative |
 |--------------------|---------------:|---------------:|
-| **Coded positive** |              2 |             17 |
-| **Coded negative** |              0 |             11 |
+| **Coded positive** |              2 |             10 |
+| **Coded negative** |              0 |             18 |
 
 ## Metrics
 
 - **TPR (sensitivity)** = TP / (TP + FN) = 2 / 2 = 100.0%
-- **TNR (specificity)** = TN / (TN + FP) = 11 / 28 = 39.3%
+- **TNR (specificity)** = TN / (TN + FP) = 18 / 28 = 64.3%

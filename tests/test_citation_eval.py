@@ -179,3 +179,72 @@ def test_normalize_folds_curly_double_quotes():
     result = normalize("“foo”")
     # curly quotes survive NFKC; only lowercase + whitespace changes apply
     assert result == "“foo”"
+
+
+_FRAGMENT_TARGET = (
+    "the quick brown fox jumps over the lazy dog. "
+    "an apple a day keeps the doctor away."
+)
+
+
+def test_ellipsis_joined_fragments_count_as_quoted():
+    ct = "the quick brown fox jumps over ... an apple a day keeps the doctor away"
+    result = score_corresponding(ct, _FRAGMENT_TARGET)
+    assert result["verdict"] == "quoted"
+    assert result["num_fragments"] == 2
+
+
+def test_semicolon_joined_fragments_count_as_quoted():
+    ct = "the quick brown fox jumps over; an apple a day keeps the doctor away"
+    result = score_corresponding(ct, _FRAGMENT_TARGET)
+    assert result["verdict"] == "quoted"
+    assert result["num_fragments"] == 2
+
+
+def test_unicode_horizontal_ellipsis_splits():
+    ct = "the quick brown fox jumps over…an apple a day keeps the doctor away"
+    result = score_corresponding(ct, _FRAGMENT_TARGET)
+    assert result["verdict"] == "quoted"
+    assert result["num_fragments"] == 2
+
+
+def test_mixed_quoted_and_paraphrased_fragment_is_summarised():
+    ct = "the quick brown fox jumps over ... a fabricated phrase not anywhere in the target"
+    result = score_corresponding(ct, _FRAGMENT_TARGET)
+    assert result["verdict"] == "summarised"
+
+
+def test_no_separator_unchanged_behaviour():
+    ct = "the quick brown fox jumps over the lazy dog"
+    result = score_corresponding(ct, _FRAGMENT_TARGET)
+    assert result["verdict"] == "quoted"
+    assert result["num_fragments"] == 1
+    assert result["quotation_score"] == 1.0
+
+
+def test_trailing_separator_dropped():
+    ct = "the quick brown fox jumps over the lazy dog;"
+    result = score_corresponding(ct, _FRAGMENT_TARGET)
+    assert result["num_fragments"] == 1
+
+
+def test_empty_ct_returns_summarised_with_zero_fragments():
+    result = score_corresponding("", _FRAGMENT_TARGET)
+    assert result["verdict"] == "summarised"
+    assert result["num_fragments"] == 0
+
+
+def test_fixture_adb8892f_flips_to_pass():
+    # Previously a false positive (coded FAIL, human PASS) due to ellipsis-joined
+    # verbatim fragments. After the split-and-score change, the trace should PASS.
+    trace = _load_trace("adb8892f-9b5b-414e-852a-dec4e1e2bf64")
+    result = evaluate_trace(trace)
+    assert result["verdict"] == "PASS"
+
+
+def test_fixture_1a7dd4d4_flips_to_pass():
+    # Previously a false positive: 8 elements, 7 fully quoted, 1 ellipsis-joined
+    # element scored 0.66 as a whole; per-fragment min is >= threshold.
+    trace = _load_trace("1a7dd4d4-adb8-4b07-bc3c-0dfaab6516fe")
+    result = evaluate_trace(trace)
+    assert result["verdict"] == "PASS"

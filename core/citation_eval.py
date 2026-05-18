@@ -5,6 +5,8 @@ import unicodedata
 NGRAM_N = 5
 NGRAM_FALLBACK_N = 3
 THRESHOLD = 0.75
+FRAGMENT_SPLITTER = r"\s*(?:\.\.\.|…|;)\s*"
+_FRAGMENT_SPLIT_RE = re.compile(FRAGMENT_SPLITTER)
 
 
 def normalize(text: str) -> str:
@@ -12,6 +14,13 @@ def normalize(text: str) -> str:
     text = text.lower()
     text = re.sub(r"\s+", " ", text).strip()
     return text
+
+
+def _split_into_fragments(ct_norm: str) -> list[str]:
+    if not ct_norm:
+        return []
+    parts = [p for p in _FRAGMENT_SPLIT_RE.split(ct_norm) if p.strip()]
+    return parts if parts else [ct_norm]
 
 
 def _ngrams(tokens: list[str], n: int) -> list[tuple[str, ...]]:
@@ -63,6 +72,7 @@ def evaluate_trace(trace: dict) -> dict:
                 "ngram_ratio": score["ngram_ratio"],
                 "quotation_score": score["quotation_score"],
                 "verdict": score["verdict"],
+                "num_fragments": score.get("num_fragments", 1),
             }
         )
 
@@ -85,7 +95,7 @@ def evaluate_trace(trace: dict) -> dict:
         "num_quoted": num_quoted,
         "num_summarised": num_summarised,
         "per_element": per_element,
-        "config": {"ngram_n": NGRAM_N, "threshold": THRESHOLD},
+        "config": {"ngram_n": NGRAM_N, "threshold": THRESHOLD, "splitter": FRAGMENT_SPLITTER},
     }
 
 
@@ -98,14 +108,29 @@ def score_corresponding(ct: str, target_text: str) -> dict:
             "ngram_ratio": 0.0,
             "quotation_score": 0.0,
             "verdict": "summarised",
+            "num_fragments": 0,
         }
-    contiguous = _contiguous_ratio(ct_norm, target_norm)
-    ngram = _ngram_ratio(ct_norm, target_norm)
-    score = max(contiguous, ngram)
+
+    fragments = _split_into_fragments(ct_norm)
+    frag_results = []
+    for frag in fragments:
+        contiguous = _contiguous_ratio(frag, target_norm)
+        ngram = _ngram_ratio(frag, target_norm)
+        frag_results.append(
+            {
+                "contiguous_ratio": contiguous,
+                "ngram_ratio": ngram,
+                "quotation_score": max(contiguous, ngram),
+            }
+        )
+
+    worst = min(frag_results, key=lambda r: r["quotation_score"])
+    score = worst["quotation_score"]
     verdict = "quoted" if score >= THRESHOLD else "summarised"
     return {
-        "contiguous_ratio": contiguous,
-        "ngram_ratio": ngram,
+        "contiguous_ratio": worst["contiguous_ratio"],
+        "ngram_ratio": worst["ngram_ratio"],
         "quotation_score": score,
         "verdict": verdict,
+        "num_fragments": len(fragments),
     }
