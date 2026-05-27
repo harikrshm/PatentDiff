@@ -6,11 +6,13 @@ def classify_coded(verdict: str) -> int:
     return 1 if verdict == "FAIL" else 0
 
 
-def classify_human(failure_modes: Optional[Iterable[str]]) -> int:
-    """1 if the human tagged this trace with citation_text, else 0."""
+def classify_human(
+    failure_modes: Optional[Iterable[str]], failure_mode_key: str = "citation_text"
+) -> int:
+    """1 if the human tagged this trace with `failure_mode_key`, else 0."""
     if not failure_modes:
         return 0
-    return 1 if "citation_text" in failure_modes else 0
+    return 1 if failure_mode_key in failure_modes else 0
 
 
 def confusion(pairs: Iterable[tuple]) -> dict:

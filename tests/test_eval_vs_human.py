@@ -84,3 +84,24 @@ def test_tnr_normal():
 
 def test_tnr_zero_denominator_returns_none():
     assert tnr(tn=0, fp=0) is None
+
+
+def test_classify_human_with_phosita_key_positive():
+    assert classify_human(["absent_phosita_reasoning"], "absent_phosita_reasoning") == 1
+
+
+def test_classify_human_with_phosita_key_negative():
+    assert classify_human(["citation_text"], "absent_phosita_reasoning") == 0
+
+
+def test_classify_human_default_key_unchanged():
+    # Default key must still be citation_text so existing callers don't break.
+    assert classify_human(["citation_text"]) == 1
+    assert classify_human(["absent_phosita_reasoning"]) == 0
+
+
+def test_classify_human_multi_label_with_phosita_key():
+    assert classify_human(
+        ["citation_text", "absent_phosita_reasoning"],
+        "absent_phosita_reasoning",
+    ) == 1
