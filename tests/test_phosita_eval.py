@@ -110,3 +110,47 @@ def test_build_judge_prompt_handles_missing_overall_opinion():
     system, user = _build_judge_prompt(parsed)
     # Empty/missing overall_opinion should not crash; should be marked clearly.
     assert "(no overall opinion provided)" in user.lower() or "overall opinion" in user.lower()
+
+
+from types import SimpleNamespace
+
+from core.phosita_eval import _call_judge
+
+
+def _make_mock_client(content: str):
+    """Build a fake Groq-style client that returns the given string as content."""
+    client = MagicMock()
+    response = SimpleNamespace(
+        choices=[SimpleNamespace(message=SimpleNamespace(content=content))]
+    )
+    client.chat.completions.create.return_value = response
+    return client
+
+
+def test_call_judge_parses_valid_json():
+    client = _make_mock_client('{"verdict": "PASS", "comment": "Good reasoning."}')
+    parsed, raw = _call_judge(client, "system", "user")
+    assert parsed == {"verdict": "PASS", "comment": "Good reasoning."}
+    assert raw == '{"verdict": "PASS", "comment": "Good reasoning."}'
+
+
+def test_call_judge_raises_on_invalid_json():
+    client = _make_mock_client("not json at all")
+    with pytest.raises(ValueError):
+        _call_judge(client, "system", "user")
+
+
+def test_call_judge_passes_model_temperature_max_tokens():
+    client = _make_mock_client('{"verdict": "PASS", "comment": "ok"}')
+    _call_judge(client, "sys", "usr")
+    call_args = client.chat.completions.create.call_args
+    # Either positional or kwargs - assert via kwargs (Groq SDK uses kwargs).
+    kwargs = call_args.kwargs
+    assert kwargs["model"] == JUDGE_MODEL
+    assert kwargs["temperature"] == 0.2
+    assert kwargs["max_tokens"] == 1024
+    assert kwargs["response_format"] == {"type": "json_object"}
+    # Messages list contains the two prompts.
+    msgs = kwargs["messages"]
+    assert msgs[0] == {"role": "system", "content": "sys"}
+    assert msgs[1] == {"role": "user", "content": "usr"}

@@ -78,3 +78,26 @@ def _build_judge_prompt(parsed_output: dict) -> tuple[str, str]:
         f"{overall}"
     )
     return _SYSTEM_PROMPT, user_prompt
+
+
+def _call_judge(client: Any, system_prompt: str, user_prompt: str) -> tuple[dict, str]:
+    """Call the judge model and parse JSON. Returns (parsed_dict, raw_content).
+
+    Raises ValueError if the response is not valid JSON.
+    """
+    response = client.chat.completions.create(
+        model=JUDGE_MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=JUDGE_TEMPERATURE,
+        max_tokens=JUDGE_MAX_TOKENS,
+        response_format={"type": "json_object"},
+    )
+    raw = response.choices[0].message.content
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Judge returned non-JSON: {raw!r}") from e
+    return parsed, raw
