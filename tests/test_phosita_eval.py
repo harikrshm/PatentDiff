@@ -6,6 +6,7 @@ import pytest
 from core.phosita_eval import (
     PROMPT_VERSION,
     JUDGE_MODEL,
+    JUDGE_TEMPERATURE,
     _has_novel_elements,
 )
 
@@ -154,3 +155,80 @@ def test_call_judge_passes_model_temperature_max_tokens():
     msgs = kwargs["messages"]
     assert msgs[0] == {"role": "system", "content": "sys"}
     assert msgs[1] == {"role": "user", "content": "usr"}
+
+
+from core.phosita_eval import evaluate_trace
+
+
+def _trace_with(parsed_output):
+    return {"run_id": "test-rid", "parsed_output": parsed_output}
+
+
+def test_evaluate_trace_returns_none_when_parsed_output_missing():
+    assert evaluate_trace({"run_id": "x"}, MagicMock()) is None
+    assert evaluate_trace({"run_id": "x", "parsed_output": None}, MagicMock()) is None
+
+
+def test_evaluate_trace_pass_when_no_elements():
+    trace = _trace_with({"element_mappings": [], "overall_opinion": "ok"})
+    client = MagicMock()
+    result = evaluate_trace(trace, client)
+    assert result["verdict"] == "PASS"
+    assert "N/A" in result["comment"]
+    assert "no elements" in result["comment"].lower()
+    # Judge MUST NOT be called when short-circuiting.
+    client.chat.completions.create.assert_not_called()
+
+
+def test_evaluate_trace_pass_when_no_novel_elements():
+    trace = _trace_with({
+        "element_mappings": [
+            {"element_number": 1, "novelty": "Y", "inventive_step": "Y",
+             "verdict": "Y", "comment": "found"},
+            {"element_number": 2, "novelty": "Y", "inventive_step": "Y",
+             "verdict": "Y", "comment": "found"},
+        ],
+        "overall_opinion": "All elements disclosed in target.",
+    })
+    client = MagicMock()
+    result = evaluate_trace(trace, client)
+    assert result["verdict"] == "PASS"
+    assert "no novel elements" in result["comment"].lower()
+    client.chat.completions.create.assert_not_called()
+
+
+def test_evaluate_trace_calls_judge_when_novel_elements_present():
+    trace = _trace_with({
+        "element_mappings": [
+            {"element_number": 1, "novelty": "N", "inventive_step": "N",
+             "verdict": "N", "comment": "Novel, not obvious."},
+        ],
+        "overall_opinion": "Element 1 is novel; source patent is valid.",
+    })
+    client = _make_mock_client('{"verdict": "FAIL", "comment": "No PSA reasoning."}')
+    result = evaluate_trace(trace, client)
+    assert result["verdict"] == "FAIL"
+    assert result["comment"] == "No PSA reasoning."
+    assert result["run_id"] == "test-rid"
+    assert result["eval_name"] == "absent_phosita_reasoning"
+    assert result["judge_raw"] == '{"verdict": "FAIL", "comment": "No PSA reasoning."}'
+    assert result["config"] == {
+        "judge_model": JUDGE_MODEL,
+        "prompt_version": PROMPT_VERSION,
+        "temperature": JUDGE_TEMPERATURE,
+    }
+    client.chat.completions.create.assert_called_once()
+
+
+def test_evaluate_trace_pass_verdict_from_judge():
+    trace = _trace_with({
+        "element_mappings": [
+            {"element_number": 1, "novelty": "N", "inventive_step": "Y",
+             "verdict": "Y", "comment": "A PSA would find this obvious because..."},
+        ],
+        "overall_opinion": "Element 1 is novel but obvious; source patent invalid.",
+    })
+    client = _make_mock_client('{"verdict": "PASS", "comment": "PSA reasoning present."}')
+    result = evaluate_trace(trace, client)
+    assert result["verdict"] == "PASS"
+    assert result["comment"] == "PSA reasoning present."

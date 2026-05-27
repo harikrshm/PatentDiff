@@ -101,3 +101,67 @@ def _call_judge(client: Any, system_prompt: str, user_prompt: str) -> tuple[dict
     except json.JSONDecodeError as e:
         raise ValueError(f"Judge returned non-JSON: {raw!r}") from e
     return parsed, raw
+
+
+def evaluate_trace(trace: dict, client: Any) -> dict | None:
+    """Evaluate a single trace. Returns the verdict dict, or None on operational error."""
+    run_id = trace.get("run_id")
+    parsed = trace.get("parsed_output")
+    if not parsed:
+        print(f"phosita_eval: skipping {run_id}: no parsed_output", file=sys.stderr)
+        return None
+
+    mappings = parsed.get("element_mappings") or []
+    config = {
+        "judge_model": JUDGE_MODEL,
+        "prompt_version": PROMPT_VERSION,
+        "temperature": JUDGE_TEMPERATURE,
+    }
+
+    if not mappings:
+        return {
+            "run_id": run_id,
+            "eval_name": "absent_phosita_reasoning",
+            "verdict": "PASS",
+            "comment": "N/A: no elements analysed.",
+            "judge_raw": "",
+            "config": config,
+        }
+
+    if not _has_novel_elements(mappings):
+        return {
+            "run_id": run_id,
+            "eval_name": "absent_phosita_reasoning",
+            "verdict": "PASS",
+            "comment": "N/A: no novel elements; obviousness reasoning not required.",
+            "judge_raw": "",
+            "config": config,
+        }
+
+    system, user = _build_judge_prompt(parsed)
+    try:
+        parsed_judge, raw = _call_judge(client, system, user)
+    except ValueError as e:
+        print(f"phosita_eval: skipping {run_id}: {e}", file=sys.stderr)
+        return None
+    except Exception as e:
+        print(f"phosita_eval: skipping {run_id}: judge call failed: {e}", file=sys.stderr)
+        return None
+
+    verdict = parsed_judge.get("verdict")
+    comment = parsed_judge.get("comment", "")
+    if verdict not in ("PASS", "FAIL"):
+        print(
+            f"phosita_eval: skipping {run_id}: judge returned invalid verdict {verdict!r}",
+            file=sys.stderr,
+        )
+        return None
+
+    return {
+        "run_id": run_id,
+        "eval_name": "absent_phosita_reasoning",
+        "verdict": verdict,
+        "comment": comment,
+        "judge_raw": raw,
+        "config": config,
+    }
