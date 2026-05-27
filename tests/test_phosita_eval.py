@@ -279,3 +279,101 @@ def test_evaluate_trace_returns_none_on_invalid_verdict_string(capsys):
     assert result is None
     captured = capsys.readouterr()
     assert "MAYBE" in captured.err
+
+
+import subprocess
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _write_traces_jsonl(path: Path, traces: list[dict]):
+    with open(path, "w", encoding="utf-8") as f:
+        for t in traces:
+            f.write(json.dumps(t) + "\n")
+
+
+def test_runner_skips_traces_with_null_parsed_output(tmp_path, monkeypatch):
+    """The runner must skip traces whose parsed_output is null without crashing."""
+    traces_path = tmp_path / "traces.jsonl"
+    out_path = tmp_path / "phosita_eval_full.jsonl"
+    _write_traces_jsonl(traces_path, [
+        {"run_id": "skip-1", "parsed_output": None},
+        {"run_id": "skip-2"},  # no parsed_output key
+    ])
+    # No GROQ_API_KEY needed because no judge call happens for these short-circuits.
+    monkeypatch.setenv("GROQ_API_KEY", "fake-key-not-used")
+    result = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "run_phosita_eval.py"),
+         "--traces", str(traces_path),
+         "--out", str(out_path)],
+        capture_output=True, text=True, cwd=str(REPO_ROOT),
+    )
+    assert result.returncode == 0, f"runner failed: {result.stderr}"
+    # Output file may not exist if zero lines written - that's fine. If it exists, it's empty.
+    if out_path.exists():
+        assert out_path.read_text(encoding="utf-8").strip() == ""
+
+
+def test_runner_short_circuits_no_novel_elements(tmp_path, monkeypatch):
+    """Trace with all novelty=Y elements gets a PASS line written without judge call."""
+    traces_path = tmp_path / "traces.jsonl"
+    out_path = tmp_path / "phosita_eval_full.jsonl"
+    _write_traces_jsonl(traces_path, [
+        {
+            "run_id": "all-y",
+            "parsed_output": {
+                "element_mappings": [
+                    {"element_number": 1, "novelty": "Y", "inventive_step": "Y",
+                     "verdict": "Y", "comment": "found"},
+                ],
+                "overall_opinion": "All disclosed.",
+            },
+        },
+    ])
+    monkeypatch.setenv("GROQ_API_KEY", "fake-key-not-used")
+    result = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "run_phosita_eval.py"),
+         "--traces", str(traces_path),
+         "--out", str(out_path)],
+        capture_output=True, text=True, cwd=str(REPO_ROOT),
+    )
+    assert result.returncode == 0, f"runner failed: {result.stderr}"
+    lines = [json.loads(l) for l in out_path.read_text(encoding="utf-8").splitlines() if l.strip()]
+    assert len(lines) == 1
+    assert lines[0]["run_id"] == "all-y"
+    assert lines[0]["verdict"] == "PASS"
+    assert lines[0]["config"]["prompt_version"] == PROMPT_VERSION
+
+
+def test_runner_idempotent_cache_skips_already_evaluated(tmp_path, monkeypatch):
+    """Second run with same prompt_version does not re-evaluate."""
+    traces_path = tmp_path / "traces.jsonl"
+    out_path = tmp_path / "phosita_eval_full.jsonl"
+    _write_traces_jsonl(traces_path, [
+        {
+            "run_id": "all-y",
+            "parsed_output": {
+                "element_mappings": [
+                    {"element_number": 1, "novelty": "Y", "inventive_step": "Y",
+                     "verdict": "Y", "comment": "found"},
+                ],
+                "overall_opinion": "All disclosed.",
+            },
+        },
+    ])
+    monkeypatch.setenv("GROQ_API_KEY", "fake-key-not-used")
+    cmd = [sys.executable, str(REPO_ROOT / "scripts" / "run_phosita_eval.py"),
+           "--traces", str(traces_path),
+           "--out", str(out_path)]
+    # First run.
+    r1 = subprocess.run(cmd, capture_output=True, text=True, cwd=str(REPO_ROOT))
+    assert r1.returncode == 0
+    first_contents = out_path.read_text(encoding="utf-8")
+    # Second run on the same trace + version: file unchanged.
+    r2 = subprocess.run(cmd, capture_output=True, text=True, cwd=str(REPO_ROOT))
+    assert r2.returncode == 0
+    assert out_path.read_text(encoding="utf-8") == first_contents
+    # Stdout should report 0 newly evaluated, 1 cached.
+    assert "cached" in r2.stdout.lower() or "skipped" in r2.stdout.lower()
