@@ -232,3 +232,50 @@ def test_evaluate_trace_pass_verdict_from_judge():
     result = evaluate_trace(trace, client)
     assert result["verdict"] == "PASS"
     assert result["comment"] == "PSA reasoning present."
+
+
+def test_evaluate_trace_returns_none_on_invalid_json(capsys):
+    trace = _trace_with({
+        "element_mappings": [
+            {"element_number": 1, "novelty": "N", "inventive_step": "N",
+             "verdict": "N", "comment": "novel"},
+        ],
+        "overall_opinion": "valid",
+    })
+    client = _make_mock_client("definitely not json")
+    result = evaluate_trace(trace, client)
+    assert result is None
+    captured = capsys.readouterr()
+    assert "test-rid" in captured.err
+
+
+def test_evaluate_trace_returns_none_on_judge_exception(capsys):
+    trace = _trace_with({
+        "element_mappings": [
+            {"element_number": 1, "novelty": "N", "inventive_step": "N",
+             "verdict": "N", "comment": "novel"},
+        ],
+        "overall_opinion": "valid",
+    })
+    client = MagicMock()
+    client.chat.completions.create.side_effect = RuntimeError("network down")
+    result = evaluate_trace(trace, client)
+    assert result is None
+    captured = capsys.readouterr()
+    assert "test-rid" in captured.err
+    assert "network down" in captured.err
+
+
+def test_evaluate_trace_returns_none_on_invalid_verdict_string(capsys):
+    trace = _trace_with({
+        "element_mappings": [
+            {"element_number": 1, "novelty": "N", "inventive_step": "N",
+             "verdict": "N", "comment": "novel"},
+        ],
+        "overall_opinion": "valid",
+    })
+    client = _make_mock_client('{"verdict": "MAYBE", "comment": "unsure"}')
+    result = evaluate_trace(trace, client)
+    assert result is None
+    captured = capsys.readouterr()
+    assert "MAYBE" in captured.err
