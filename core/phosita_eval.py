@@ -17,3 +17,64 @@ JUDGE_MAX_TOKENS = 1024
 def _has_novel_elements(element_mappings: list[dict]) -> bool:
     """True if at least one element is marked novelty='N'."""
     return any(em.get("novelty") == "N" for em in element_mappings)
+
+
+_SYSTEM_PROMPT = """You are evaluating a patent obviousness analysis. The analysis was produced
+by an AI tool that assesses whether a source patent's independent claim is
+invalid given a target patent (prior art). For each claim element, the tool
+records novelty (Y/N) and inventive_step (Y/N), with a reasoning comment.
+The tool also writes an overall_opinion on the source patent's validity.
+
+Your job: judge whether the analysis contains genuine obviousness reasoning
+grounded in the person-of-ordinary-skill-in-the-art (PSA) standard.
+
+A PASS analysis:
+- The overall_opinion explicitly engages with WHY novel elements are
+  obvious or non-obvious to a PSA - it doesn't just state a conclusion.
+- The obviousness claims in the overall_opinion are supported by the
+  per-element comments (the elements actually contain the reasoning the
+  overall_opinion claims).
+
+A FAIL analysis (either pattern triggers FAIL):
+- The overall_opinion is silent on obviousness, or asserts non-obviousness
+  by default without engaging PSA reasoning ("all novel elements are
+  non-obvious", "the source patent is valid because elements are novel").
+- The overall_opinion claims obviousness reasoning that the element
+  comments don't actually support - hand-waving disconnected from the
+  per-element analysis.
+
+Focus only on elements where novelty=N (the obviousness question only
+applies to novel elements). Elements with novelty=Y are out of scope -
+they're already disclosed, so obviousness doesn't matter.
+
+Return ONLY valid JSON:
+{
+  "verdict": "PASS" or "FAIL",
+  "comment": "1-3 sentences explaining why. Cite specific elements or quote phrases from overall_opinion to justify."
+}"""
+
+
+def _build_judge_prompt(parsed_output: dict) -> tuple[str, str]:
+    """Return (system_prompt, user_prompt) for the judge call."""
+    mappings = parsed_output.get("element_mappings") or []
+    overall = parsed_output.get("overall_opinion") or "(no overall opinion provided)"
+
+    element_lines = []
+    for em in mappings:
+        element_lines.append(
+            f"Element {em.get('element_number')}:\n"
+            f"  novelty: {em.get('novelty')}\n"
+            f"  inventive_step: {em.get('inventive_step')}\n"
+            f"  verdict: {em.get('verdict')}\n"
+            f"  comment: {em.get('comment')}"
+        )
+    elements_block = "\n\n".join(element_lines) if element_lines else "(no element mappings)"
+
+    user_prompt = (
+        "ANALYSIS TO JUDGE:\n\n"
+        "Element mappings:\n"
+        f"{elements_block}\n\n"
+        "Overall opinion:\n"
+        f"{overall}"
+    )
+    return _SYSTEM_PROMPT, user_prompt
