@@ -61,7 +61,7 @@ Return ONLY valid JSON matching this exact schema — no markdown fences, no ext
   ],
   "overall_opinion": "Final validity assessment focusing on the core technical advancement elements"
 }"""
-L
+
 
 def build_user_prompt(
     source: PatentInput,
