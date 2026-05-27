@@ -37,59 +37,11 @@ def build_system_prompt() -> str:
 
 5. **Produce an overall opinion** on the source patent's validity. Focus your assessment on the **core technical advancement elements** — give less weight to routine pre-processing steps or standard output/display elements, and more weight to the main novel technical contribution. Base your overall opinion primarily on whether the key technical advancement elements are mapped as Y or N and explain your reasoning.
 
-## Citation Text — Verbatim Quoting Requirements
 
 For every element, `corresponding_text` MUST be either (a) exact verbatim
 text copied from the target patent's independent_claim or specification,
 or (b) the empty string "". Nothing else is acceptable.
 
-RULES
-- Copy verbatim. Character-for-character. Same words, same order, same
-  punctuation as the target patent.
-- Do NOT paraphrase, summarize, rephrase, or explain.
-- Do NOT add meta-narration: no "the patent describes…", "the reference
-  teaches…", "the target claim recites…", "Patent B discloses…".
-- Do NOT add inline source tags: no trailing "(Specification)",
-  "(independent claim)", "(see para 0618)", "(col. 5 lines 10-15)",
-  "(see Fig. 3)". The user already knows where you looked.
-- Do NOT wrap a quote in narration. If you want to cite something,
-  cite ONLY the quote.
-- If the element is clearly disclosed: quote the exact sentence(s).
-- If the element is NOT disclosed: set corresponding_text to "".
-- If you need to cite multiple non-adjacent passages from the same
-  patent, join them with " ... " (three dots) or "; " between the
-  verbatim fragments. Each fragment must independently be verbatim.
-
-EXAMPLES
-
-CORRECT (single verbatim sentence):
-  "a processor configured to receive search query input and store
-   said query in a persistent state database for subsequent retrieval"
-
-CORRECT (two non-adjacent verbatim fragments joined with ...):
-  "the cancellation channel is weighted ... scaled to the desired
-   target level"
-
-CORRECT (element not disclosed):
-  ""
-
-INCORRECT — paraphrase:
-  "The patent describes a system that stores queries for later use"
-
-INCORRECT — verbatim quote wrapped in narration:
-  "scaling of channels is described in the specification
-   (e.g., 'scaled to the desired target level')"
-  -> Should be just: "scaled to the desired target level"
-
-INCORRECT — trailing source tag:
-  "the diffusion model may be a text-guided diffusion model (Specification)"
-  -> Should be: "the diffusion model may be a text-guided diffusion model"
-
-INCORRECT — meta-narration with embedded paragraph reference:
-  "The specification describes low-light mode being activated when
-   ambient light is low (see §0618)."
-  -> Should be the actual quoted sentence from §0618, or "" if no
-   sentence cleanly maps.
 
 ## Output Format
 
@@ -100,7 +52,7 @@ Return ONLY valid JSON matching this exact schema — no markdown fences, no ext
     {
       "element_number": 1,
       "element_text": "the exact text of the claim element from the source patent",
-      "corresponding_text": "the EXACT verbatim text quoted from the target patent's independent_claim or specification — no paraphrase, no narration, no parenthetical citations — or empty string if not disclosed",
+      "corresponding_text": "the EXACT verbatim text quoted from the target patent's independent_claim or specification — no paraphrase, no narration, no parenthetical citations — or mark as not disclosed if not disclosed",
       "novelty": "Y or N",
       "inventive_step": "Y or N",
       "verdict": "Y or N",
@@ -109,7 +61,7 @@ Return ONLY valid JSON matching this exact schema — no markdown fences, no ext
   ],
   "overall_opinion": "Final validity assessment focusing on the core technical advancement elements"
 }"""
-
+L
 
 def build_user_prompt(
     source: PatentInput,

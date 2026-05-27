@@ -103,8 +103,11 @@ def main() -> int:
                 line = line.strip()
                 if not line:
                     continue
-                done_ids.add(json.loads(line)["run_id"])
-        print(f"Resume: {len(done_ids)} run_ids already in {args.out.name}, will skip")
+                d = json.loads(line)
+                # Only skip successfully-completed runs; retry failed ones.
+                if d.get("status") == "ok":
+                    done_ids.add(d["run_id"])
+        print(f"Resume: {len(done_ids)} ok run_ids already in {args.out.name}, will skip")
 
     out_mode = "a" if args.resume and args.out.exists() else "w"
 

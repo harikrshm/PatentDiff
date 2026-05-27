@@ -12,7 +12,17 @@
       "Bash(npm test *)",
       "Bash(pytest *)",
       "Bash(python3 *)",
-      "Bash(grep -E \"\\\\.py$|\\\\.json$|\\\\.jsonl$|\\\\.xlsx$\")"
+      "Bash(grep -E \"\\\\.py$|\\\\.json$|\\\\.jsonl$|\\\\.xlsx$\")",
+      "Skill(superpowers:brainstorming)",
+      "Skill(superpowers:test-driven-development)",
+      "Bash(streamlit run *)",
+      "Bash(curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:8501)",
+      "Bash(curl -sS http://localhost:8501/_stcore/health)",
+      "Bash(curl -sS http://localhost:8501/)",
+      "Bash(curl -sS -o /dev/null -w \"8502: HTTP %{http_code}\\\\n\" http://localhost:8502)",
+      "Bash(curl -sS http://localhost:8502/_stcore/health)",
+      "Skill(using-superpowers)",
+      "Bash(PYTHONIOENCODING=utf-8 python *)"
     ]
   }
 }

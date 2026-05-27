@@ -1,0 +1,23 @@
+ANNOTATIONS FILE VERIFICATION - 2026-05-15
+
+Fresh Annotations File (traces/traces_annotations.jsonl):
+- Total records: 3
+- Phase 3 records: 3
+- Valid JSON: 3/3
+- absent_phosita_reasoning occurrences: 2
+- citation_text occurrences: 1
+- Old failure mode IDs (failed_claim_construction, inconsistent_verdict, unnecessary_evaluation): 0
+- Status: VERIFIED
+
+Backup File (traces/traces_annotations.jsonl.backup.2026-05-15):
+- Total records: 22
+- Integrity: INTACT
+- Original data preserved: YES
+- Status: VERIFIED
+
+Test Annotations Structure:
+- Annotation 1: FAIL, absent_phosita_reasoning, reviewed=true
+- Annotation 2: FAIL, absent_phosita_reasoning + citation_text, reviewed=true
+- Annotation 3: PASS, no modes, reviewed=true
+
+All requirements MET - File structure is correct for Phase 3 re-annotation with 2-mode taxonomy.
