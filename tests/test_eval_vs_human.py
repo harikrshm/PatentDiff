@@ -105,3 +105,52 @@ def test_classify_human_multi_label_with_phosita_key():
         ["citation_text", "absent_phosita_reasoning"],
         "absent_phosita_reasoning",
     ) == 1
+
+
+import json
+
+
+def test_phosita_vs_human_cli_smoke(tmp_path):
+    """The runner produces a report and confusion matrix from synthetic inputs."""
+    eval_path = tmp_path / "phosita_eval_full.jsonl"
+    ann_path = tmp_path / "traces_annotations.jsonl"
+    report_path = tmp_path / "report.md"
+
+    with open(eval_path, "w", encoding="utf-8") as f:
+        # rid-1: coded FAIL
+        f.write(json.dumps({
+            "run_id": "rid-1", "verdict": "FAIL", "comment": "no reasoning",
+            "config": {"prompt_version": "v1", "judge_model": "qwen/qwen3-32b", "temperature": 0.2},
+        }) + "\n")
+        # rid-2: coded PASS
+        f.write(json.dumps({
+            "run_id": "rid-2", "verdict": "PASS", "comment": "good",
+            "config": {"prompt_version": "v1", "judge_model": "qwen/qwen3-32b", "temperature": 0.2},
+        }) + "\n")
+
+    with open(ann_path, "w", encoding="utf-8") as f:
+        # rid-1: human tagged phosita -> TP
+        f.write(json.dumps({
+            "run_id": "rid-1", "source": "human", "comment": "real annotation",
+            "failure_modes": ["absent_phosita_reasoning"],
+        }) + "\n")
+        # rid-2: human did NOT tag phosita -> TN
+        f.write(json.dumps({
+            "run_id": "rid-2", "source": "human", "comment": "real annotation",
+            "failure_modes": ["citation_text"],
+        }) + "\n")
+
+    import subprocess, sys as _sys
+    result = subprocess.run(
+        [_sys.executable, str(REPO_ROOT / "scripts" / "run_phosita_vs_human.py"),
+         "--eval", str(eval_path),
+         "--annotations", str(ann_path),
+         "--report", str(report_path)],
+        capture_output=True, text=True, cwd=str(REPO_ROOT),
+    )
+    assert result.returncode == 0, f"failed: {result.stderr}"
+    assert report_path.exists()
+    text = report_path.read_text(encoding="utf-8")
+    assert "Confusion matrix" in text
+    assert "absent_phosita_reasoning" in text
+    assert "TPR" in text and "TNR" in text
