@@ -74,6 +74,21 @@ def _build_judge_prompt(parsed_output: dict) -> tuple[str, str]:
     return _SYSTEM_PROMPT, user_prompt
 
 
+def _parse_judge_response(raw: str) -> dict:
+    """Parse and validate a raw judge response string. Raises ValueError on bad JSON
+    or missing opinion_check.has_psa_argument."""
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Judge returned non-JSON: {raw!r}") from e
+    opinion_check = parsed.get("opinion_check")
+    if not isinstance(opinion_check, dict) or not isinstance(
+        opinion_check.get("has_psa_argument"), bool
+    ):
+        raise ValueError(f"Judge response missing opinion_check.has_psa_argument: {raw!r}")
+    return parsed
+
+
 def _call_judge(client: Any, system_prompt: str, user_prompt: str) -> tuple[dict, str]:
     """Call the judge model and parse JSON. Returns (parsed_dict, raw_content).
 
@@ -90,14 +105,7 @@ def _call_judge(client: Any, system_prompt: str, user_prompt: str) -> tuple[dict
         response_format={"type": "json_object"},
     )
     raw = response.choices[0].message.content
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Judge returned non-JSON: {raw!r}") from e
-    opinion_check = parsed.get("opinion_check")
-    if not isinstance(opinion_check, dict) or "has_psa_argument" not in opinion_check:
-        raise ValueError(f"Judge response missing opinion_check.has_psa_argument: {raw!r}")
-    return parsed, raw
+    return _parse_judge_response(raw), raw
 
 
 async def _call_judge_async(client: Any, system_prompt: str, user_prompt: str) -> tuple[dict, str]:
@@ -113,14 +121,7 @@ async def _call_judge_async(client: Any, system_prompt: str, user_prompt: str) -
         response_format={"type": "json_object"},
     )
     raw = response.choices[0].message.content
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Judge returned non-JSON: {raw!r}") from e
-    opinion_check = parsed.get("opinion_check")
-    if not isinstance(opinion_check, dict) or "has_psa_argument" not in opinion_check:
-        raise ValueError(f"Judge response missing opinion_check.has_psa_argument: {raw!r}")
-    return parsed, raw
+    return _parse_judge_response(raw), raw
 
 
 def _short_circuit_result(run_id: str, comment: str) -> dict:
@@ -161,8 +162,14 @@ def _build_result(run_id: str, verdict: str, comment: str, raw: str, parsed_judg
     }
 
 
-def evaluate_trace(trace: dict, client: Any) -> dict | None:
-    """Evaluate a single trace. Returns the verdict dict, or None on operational error."""
+def _prepare_trace(trace: dict) -> dict | tuple[str, str, str] | None:
+    """Shared preamble for evaluate_trace and evaluate_trace_async.
+
+    Returns:
+    - None: trace should be skipped (already logged to stderr)
+    - dict: short-circuit PASS result (return directly, no judge call needed)
+    - (run_id, system, user): ready for judge call
+    """
     run_id = trace.get("run_id")
     parsed = trace.get("parsed_output")
     if not parsed:
@@ -178,6 +185,18 @@ def evaluate_trace(trace: dict, client: Any) -> dict | None:
         return _short_circuit_result(run_id, "N/A: no novel elements; obviousness reasoning not required.")
 
     system, user = _build_judge_prompt(parsed)
+    return run_id, system, user
+
+
+def evaluate_trace(trace: dict, client: Any) -> dict | None:
+    """Evaluate a single trace. Returns the verdict dict, or None on operational error."""
+    prep = _prepare_trace(trace)
+    if prep is None:
+        return None
+    if isinstance(prep, dict):
+        return prep
+    run_id, system, user = prep
+
     try:
         parsed_judge, raw = _call_judge(client, system, user)
     except ValueError as e:
@@ -201,21 +220,13 @@ def evaluate_trace(trace: dict, client: Any) -> dict | None:
 
 async def evaluate_trace_async(trace: dict, client: Any) -> dict | None:
     """Async version of evaluate_trace for concurrent runner use."""
-    run_id = trace.get("run_id")
-    parsed = trace.get("parsed_output")
-    if not parsed:
-        print(f"phosita_eval: skipping {run_id}: no parsed_output", file=sys.stderr)
+    prep = _prepare_trace(trace)
+    if prep is None:
         return None
+    if isinstance(prep, dict):
+        return prep
+    run_id, system, user = prep
 
-    mappings = parsed.get("element_mappings") or []
-
-    if not mappings:
-        return _short_circuit_result(run_id, "N/A: no elements analysed.")
-
-    if not _has_novel_elements(mappings):
-        return _short_circuit_result(run_id, "N/A: no novel elements; obviousness reasoning not required.")
-
-    system, user = _build_judge_prompt(parsed)
     try:
         parsed_judge, raw = await _call_judge_async(client, system, user)
     except ValueError as e:
