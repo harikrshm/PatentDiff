@@ -22,6 +22,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+from dotenv import load_dotenv
+load_dotenv(REPO_ROOT / ".env")
+
 from core.phosita_eval import (
     PROMPT_VERSION,
     evaluate_trace,
