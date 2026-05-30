@@ -181,7 +181,89 @@ def render_summary(df: pd.DataFrame) -> None:
 
 
 def render_heatmap(df: pd.DataFrame) -> None:
-    st.info("Heatmap coming in next step.")
+    """Tab 2: Colour-coded FAIL rate heatmap, relationship × claim profile."""
+    eval_choice = st.radio(
+        "Show eval:",
+        ["PHOSITA Reasoning", "Citation Text", "Both (either fails)"],
+        horizontal=True,
+    )
+
+    # Build a working copy with the profile label and a 'fail' boolean
+    work = df.copy()
+    work["profile"] = work["claim_type"] + " · " + work["claim_length"]
+
+    if eval_choice == "PHOSITA Reasoning":
+        scored = work[work["phosita_verdict"].isin(["PASS", "FAIL"])].copy()
+        scored["fail"] = scored["phosita_verdict"] == "FAIL"
+        label = "PHOSITA FAIL %"
+    elif eval_choice == "Citation Text":
+        scored = work[work["citation_verdict"].isin(["PASS", "FAIL"])].copy()
+        scored["fail"] = scored["citation_verdict"] == "FAIL"
+        label = "Citation FAIL %"
+    else:
+        mask = work["phosita_verdict"].isin(["PASS", "FAIL"]) | work["citation_verdict"].isin(["PASS", "FAIL"])
+        scored = work[mask].copy()
+        scored["fail"] = (scored["phosita_verdict"] == "FAIL") | (scored["citation_verdict"] == "FAIL")
+        label = "Either FAIL %"
+
+    # Exclude Unknown dimensions from heatmap
+    scored = scored[
+        (scored["relationship"] != "Unknown") & (scored["claim_type"] != "Unknown")
+    ]
+
+    if scored.empty:
+        st.warning("No data available for the selected eval and known dimensions.")
+        return
+
+    # Build pivot: rows = claim profile, columns = relationship
+    agg = scored.groupby(["profile", "relationship"])["fail"].agg(["mean", "count"])
+    agg["display"] = agg.apply(
+        lambda r: f"{r['mean']:.0%}  (n={int(r['count'])})"
+        if r["count"] >= 3
+        else f"n={int(r['count'])} ⚠",
+        axis=1,
+    )
+
+    REL_ORDER = [c for c in ["Anticipation", "Implicit", "Novel"] if c in agg.index.get_level_values("relationship")]
+    PROFILE_ORDER = ["Method · Short", "Method · Long", "System · Short", "System · Long"]
+    profile_order = [p for p in PROFILE_ORDER if p in agg.index.get_level_values("profile")]
+
+    pct_pivot = (
+        agg["mean"]
+        .unstack("relationship")
+        .reindex(index=profile_order, columns=REL_ORDER)
+    )
+    display_pivot = (
+        agg["display"]
+        .unstack("relationship")
+        .reindex(index=profile_order, columns=REL_ORDER)
+        .fillna("—")
+    )
+
+    st.subheader(f"Heatmap: {label} by Dimension")
+    styled = display_pivot.style.background_gradient(
+        gmap=pct_pivot,
+        cmap="RdYlGn_r",
+        vmin=0.0,
+        vmax=1.0,
+        axis=None,
+    )
+    st.dataframe(styled, use_container_width=True)
+
+    # Column averages as metric tiles
+    st.subheader("Average FAIL Rate by Prior Art Relationship")
+    cols = st.columns(len(REL_ORDER))
+    for col, rel in zip(cols, REL_ORDER):
+        rel_data = scored[scored["relationship"] == rel]
+        rate = rel_data["fail"].mean() if not rel_data.empty else 0.0
+        col.metric(rel, f"{rate:.0%}", f"n={len(rel_data)}")
+
+    st.caption(
+        "28 of 87 traces use human-verified dimensions · "
+        "Remaining 59 use inferred dimensions "
+        "(claim_type: 100% accurate, claim_length: 89%, relationship: ~61%) · "
+        "Cells with n<3 flagged with ⚠"
+    )
 
 
 def render_implications() -> None:
