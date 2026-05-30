@@ -12,7 +12,7 @@ from core.phosita_eval import (
 
 
 def test_constants_have_expected_values():
-    assert PROMPT_VERSION == "v1"
+    assert PROMPT_VERSION == "v2"
     assert JUDGE_MODEL == "qwen/qwen3-32b"
 
 
@@ -78,11 +78,9 @@ def test_build_judge_prompt_returns_system_and_user():
 
 def test_build_judge_prompt_system_defines_pass_and_fail():
     system, _ = _build_judge_prompt(_SAMPLE_PARSED)
-    # Both verdicts named in the rubric definition.
     assert "PASS" in system
     assert "FAIL" in system
-    # Scope filter on novelty=Y elements documented.
-    assert "novelty=Y" in system or "novelty = Y" in system
+    assert "has_psa_argument" in system
 
 
 def test_build_judge_prompt_system_requires_json_output():
@@ -90,20 +88,17 @@ def test_build_judge_prompt_system_requires_json_output():
     assert "JSON" in system
     assert '"verdict"' in system
     assert '"comment"' in system
+    assert '"opinion_check"' in system
 
 
-def test_build_judge_prompt_user_contains_overall_opinion():
+def test_build_judge_prompt_user_contains_only_overall_opinion():
     _, user = _build_judge_prompt(_SAMPLE_PARSED)
+    # Overall opinion must be present.
     assert "Source patent is valid because element 2 is novel." in user
-
-
-def test_build_judge_prompt_user_contains_element_data():
-    _, user = _build_judge_prompt(_SAMPLE_PARSED)
-    # Element-level details the judge needs.
-    assert "element_number" in user or "Element 1" in user or "1:" in user
-    assert "Not disclosed in target. Novel." in user  # element 2's comment
-    assert "novelty" in user.lower()
-    assert "inventive_step" in user.lower() or "inventive step" in user.lower()
+    # Element-level data must NOT be present in v2.
+    assert "Not disclosed in target. Novel." not in user
+    assert "element_number" not in user.lower()
+    assert "novelty" not in user.lower()
 
 
 def test_build_judge_prompt_handles_missing_overall_opinion():
@@ -129,10 +124,21 @@ def _make_mock_client(content: str):
 
 
 def test_call_judge_parses_valid_json():
-    client = _make_mock_client('{"verdict": "PASS", "comment": "Good reasoning."}')
-    parsed, raw = _call_judge(client, "system", "user")
-    assert parsed == {"verdict": "PASS", "comment": "Good reasoning."}
-    assert raw == '{"verdict": "PASS", "comment": "Good reasoning."}'
+    payload = {
+        "opinion_check": {
+            "uses_psa_vocabulary": False,
+            "has_psa_argument": False,
+            "note": "No PSA argument found.",
+        },
+        "verdict": "FAIL",
+        "comment": "No PSA reasoning present.",
+    }
+    raw = json.dumps(payload)
+    client = _make_mock_client(raw)
+    parsed, returned_raw = _call_judge(client, "system", "user")
+    assert parsed["verdict"] == "FAIL"
+    assert parsed["opinion_check"]["has_psa_argument"] is False
+    assert returned_raw == raw
 
 
 def test_call_judge_raises_on_invalid_json():
@@ -141,8 +147,20 @@ def test_call_judge_raises_on_invalid_json():
         _call_judge(client, "system", "user")
 
 
-def test_call_judge_passes_model_temperature_max_tokens():
+def test_call_judge_raises_when_opinion_check_missing():
+    # Old v1-style response without opinion_check must raise ValueError.
     client = _make_mock_client('{"verdict": "PASS", "comment": "ok"}')
+    with pytest.raises(ValueError, match="opinion_check"):
+        _call_judge(client, "system", "user")
+
+
+def test_call_judge_passes_model_temperature_max_tokens():
+    payload = {
+        "opinion_check": {"uses_psa_vocabulary": True, "has_psa_argument": True, "note": "ok"},
+        "verdict": "PASS",
+        "comment": "ok",
+    }
+    client = _make_mock_client(json.dumps(payload))
     _call_judge(client, "sys", "usr")
     call_args = client.chat.completions.create.call_args
     # Either positional or kwargs - assert via kwargs (Groq SDK uses kwargs).
@@ -205,18 +223,27 @@ def test_evaluate_trace_calls_judge_when_novel_elements_present():
         ],
         "overall_opinion": "Element 1 is novel; source patent is valid.",
     })
-    client = _make_mock_client('{"verdict": "FAIL", "comment": "No PSA reasoning."}')
+    payload = {
+        "opinion_check": {
+            "uses_psa_vocabulary": False,
+            "has_psa_argument": False,
+            "note": "Just a conclusion.",
+        },
+        "verdict": "FAIL",
+        "comment": "No PSA reasoning.",
+    }
+    client = _make_mock_client(json.dumps(payload))
     result = evaluate_trace(trace, client)
     assert result["verdict"] == "FAIL"
     assert result["comment"] == "No PSA reasoning."
     assert result["run_id"] == "test-rid"
     assert result["eval_name"] == "absent_phosita_reasoning"
-    assert result["judge_raw"] == '{"verdict": "FAIL", "comment": "No PSA reasoning."}'
     assert result["config"] == {
         "judge_model": JUDGE_MODEL,
         "prompt_version": PROMPT_VERSION,
         "temperature": JUDGE_TEMPERATURE,
     }
+    assert json.loads(result["judge_raw"])["opinion_check"]["has_psa_argument"] is False
     client.chat.completions.create.assert_called_once()
 
 
@@ -228,7 +255,16 @@ def test_evaluate_trace_pass_verdict_from_judge():
         ],
         "overall_opinion": "Element 1 is novel but obvious; source patent invalid.",
     })
-    client = _make_mock_client('{"verdict": "PASS", "comment": "PSA reasoning present."}')
+    payload = {
+        "opinion_check": {
+            "uses_psa_vocabulary": True,
+            "has_psa_argument": True,
+            "note": "Explains why PSA would not combine.",
+        },
+        "verdict": "PASS",
+        "comment": "PSA reasoning present.",
+    }
+    client = _make_mock_client(json.dumps(payload))
     result = evaluate_trace(trace, client)
     assert result["verdict"] == "PASS"
     assert result["comment"] == "PSA reasoning present."
@@ -274,11 +310,67 @@ def test_evaluate_trace_returns_none_on_invalid_verdict_string(capsys):
         ],
         "overall_opinion": "valid",
     })
-    client = _make_mock_client('{"verdict": "MAYBE", "comment": "unsure"}')
+    payload = {
+        "opinion_check": {
+            "uses_psa_vocabulary": False,
+            "has_psa_argument": False,
+            "note": "x",
+        },
+        "verdict": "MAYBE",
+        "comment": "unsure",
+    }
+    client = _make_mock_client(json.dumps(payload))
     result = evaluate_trace(trace, client)
     assert result is None
     captured = capsys.readouterr()
     assert "MAYBE" in captured.err
+
+
+def test_evaluate_trace_fail_when_no_psa_argument():
+    trace = _trace_with({
+        "element_mappings": [
+            {"element_number": 1, "novelty": "N", "inventive_step": "N",
+             "verdict": "N", "comment": "Not disclosed."},
+        ],
+        "overall_opinion": "Element 1 is novel and non-obvious.",
+    })
+    payload = {
+        "opinion_check": {
+            "uses_psa_vocabulary": True,
+            "has_psa_argument": False,
+            "note": "'novel and non-obvious' is a conclusion, not reasoning.",
+        },
+        "verdict": "FAIL",
+        "comment": "PSA vocabulary present but no argument given.",
+    }
+    client = _make_mock_client(json.dumps(payload))
+    result = evaluate_trace(trace, client)
+    assert result["verdict"] == "FAIL"
+
+
+def test_evaluate_trace_pass_when_psa_argument_present():
+    trace = _trace_with({
+        "element_mappings": [
+            {"element_number": 1, "novelty": "N", "inventive_step": "N",
+             "verdict": "N", "comment": "Not disclosed."},
+        ],
+        "overall_opinion": (
+            "The feedback loop mechanism is entirely absent from prior art; "
+            "a PSA cannot combine what does not exist."
+        ),
+    })
+    payload = {
+        "opinion_check": {
+            "uses_psa_vocabulary": False,
+            "has_psa_argument": True,
+            "note": "Complete technical absence documented — implicit PSA argument.",
+        },
+        "verdict": "PASS",
+        "comment": "Complete absence of mechanism is an implicit PSA argument.",
+    }
+    client = _make_mock_client(json.dumps(payload))
+    result = evaluate_trace(trace, client)
+    assert result["verdict"] == "PASS"
 
 
 import subprocess
