@@ -10,7 +10,11 @@ import re
 
 
 def infer_claim_type(trace: dict) -> str:
-    """Return 'Method', 'System', or 'Unknown' from the source independent claim."""
+    """Return 'Method', 'System', or 'Unknown' from the source independent claim.
+
+    Note: process-style method claims (e.g. "A process for...") are not
+    recognized and may be misclassified as 'Unknown'.
+    """
     raw = (
         ((trace.get("inputs") or {}).get("source_patent") or {})
         .get("independent_claim", "")
@@ -19,6 +23,7 @@ def infer_claim_type(trace: dict) -> str:
     claim = re.sub(r"^[\d\s.]+", "", raw).strip().lower()
     if not claim:
         return "Unknown"
+    # Only scan the claim preamble — keyword matches deeper in the body are unreliable.
     if re.search(r"\ba\s+(computer-implemented\s+)?method\b", claim[:80]):
         return "Method"
     if re.search(r"\bmethod\s+(for|comprising|performed|implemented)\b", claim[:80]):
@@ -47,7 +52,7 @@ def infer_relationship(trace: dict) -> str:
     mappings = ((trace.get("parsed_output") or {}).get("element_mappings") or [])
     if not mappings:
         return "Unknown"
-    n_y = sum(1 for e in mappings if e.get("novelty") == "Y")
+    n_y = sum(1 for e in mappings if (e or {}).get("novelty") == "Y")
     frac_y = n_y / len(mappings)
     if frac_y >= 0.60:
         return "Anticipation"
