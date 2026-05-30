@@ -114,7 +114,86 @@ def _load_data() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-# Minimal render to verify loader works
+def render_summary(df: pd.DataFrame) -> None:
+    """Tab 1: KPI metrics, co-occurrence table, highest-risk dimension preview."""
+    # KPIs
+    ph = df[df["phosita_verdict"].isin(["PASS", "FAIL"])]
+    ct = df[df["citation_verdict"].isin(["PASS", "FAIL"])]
+    both = df[
+        df["phosita_verdict"].isin(["PASS", "FAIL"]) &
+        df["citation_verdict"].isin(["PASS", "FAIL"])
+    ]
+
+    ph_rate = (ph["phosita_verdict"] == "FAIL").mean() if not ph.empty else 0.0
+    ct_rate = (ct["citation_verdict"] == "FAIL").mean() if not ct.empty else 0.0
+    either_rate = (
+        ((both["phosita_verdict"] == "FAIL") | (both["citation_verdict"] == "FAIL")).mean()
+        if not both.empty else 0.0
+    )
+    clean_rate = (
+        ((both["phosita_verdict"] == "PASS") & (both["citation_verdict"] == "PASS")).mean()
+        if not both.empty else 0.0
+    )
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("PHOSITA Reasoning Failures", f"{ph_rate:.0%}", f"n={len(ph)}")
+    c2.metric("Citation Text Failures", f"{ct_rate:.0%}", f"n={len(ct)}")
+    c3.metric("Either Failure Mode", f"{either_rate:.0%}", f"n={len(both)}")
+    c4.metric("Fully Clean (both pass)", f"{clean_rate:.0%}", f"n={len(both)}")
+
+    st.divider()
+
+    # Co-occurrence table
+    st.subheader("Failure Co-occurrence")
+    if both.empty:
+        st.info("No traces have both eval results.")
+    else:
+        ph_fail = both["phosita_verdict"] == "FAIL"
+        ct_fail = both["citation_verdict"] == "FAIL"
+        co = pd.DataFrame(
+            {
+                "PHOSITA PASS": [
+                    int((~ph_fail & ~ct_fail).sum()),
+                    int((~ph_fail & ct_fail).sum()),
+                ],
+                "PHOSITA FAIL": [
+                    int((ph_fail & ~ct_fail).sum()),
+                    int((ph_fail & ct_fail).sum()),
+                ],
+            },
+            index=["Citation PASS", "Citation FAIL"],
+        )
+        st.dataframe(co, use_container_width=False)
+        st.caption("Traces with both PHOSITA and citation eval results.")
+
+    st.divider()
+
+    # Highest/lowest risk relationship
+    st.subheader("Highest Risk Dimension (PHOSITA)")
+    rel_ph = ph[ph["relationship"] != "Unknown"]
+    if not rel_ph.empty:
+        rates = rel_ph.groupby("relationship")["phosita_verdict"].apply(
+            lambda s: (s == "FAIL").mean()
+        ).sort_values(ascending=False)
+        ca, cb = st.columns(2)
+        ca.metric(f"Worst: {rates.index[0]}", f"{rates.iloc[0]:.0%} FAIL rate")
+        cb.metric(f"Best: {rates.index[-1]}", f"{rates.iloc[-1]:.0%} FAIL rate")
+
+
+def render_heatmap(df: pd.DataFrame) -> None:
+    st.info("Heatmap coming in next step.")
+
+
+def render_implications() -> None:
+    st.info("PM Implications coming in next step.")
+
+
+# ── Entry point ───────────────────────────────────────────────────────────────
 df = _load_data()
-st.write(f"Loaded {len(df)} traces. Columns: {list(df.columns)}")
-st.dataframe(df.head(10))
+tab1, tab2, tab3 = st.tabs(["📊 Summary", "🔥 Error Heatmap", "📋 PM Implications"])
+with tab1:
+    render_summary(df)
+with tab2:
+    render_heatmap(df)
+with tab3:
+    render_implications()
