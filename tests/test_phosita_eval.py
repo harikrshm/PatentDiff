@@ -80,7 +80,6 @@ def test_build_judge_prompt_system_defines_pass_and_fail():
     system, _ = _build_judge_prompt(_SAMPLE_PARSED)
     assert "PASS" in system
     assert "FAIL" in system
-    assert "has_psa_argument" in system
 
 
 def test_build_judge_prompt_system_requires_json_output():
@@ -89,6 +88,7 @@ def test_build_judge_prompt_system_requires_json_output():
     assert '"verdict"' in system
     assert '"comment"' in system
     assert '"opinion_check"' in system
+    assert "has_psa_argument" in system
 
 
 def test_build_judge_prompt_user_contains_only_overall_opinion():
@@ -136,8 +136,7 @@ def test_call_judge_parses_valid_json():
     raw = json.dumps(payload)
     client = _make_mock_client(raw)
     parsed, returned_raw = _call_judge(client, "system", "user")
-    assert parsed["verdict"] == "FAIL"
-    assert parsed["opinion_check"]["has_psa_argument"] is False
+    assert parsed == payload
     assert returned_raw == raw
 
 
@@ -346,6 +345,7 @@ def test_evaluate_trace_fail_when_no_psa_argument():
     client = _make_mock_client(json.dumps(payload))
     result = evaluate_trace(trace, client)
     assert result["verdict"] == "FAIL"
+    assert result["comment"] == "PSA vocabulary present but no argument given."
 
 
 def test_evaluate_trace_pass_when_psa_argument_present():
@@ -371,6 +371,7 @@ def test_evaluate_trace_pass_when_psa_argument_present():
     client = _make_mock_client(json.dumps(payload))
     result = evaluate_trace(trace, client)
     assert result["verdict"] == "PASS"
+    assert result["comment"] == "Complete absence of mechanism is an implicit PSA argument."
 
 
 import subprocess
