@@ -6,3 +6,4 @@ traces/*.jsonl
 .venv/
 venv/
 .worktrees/
+.superpowers/
