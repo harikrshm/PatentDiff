@@ -12,7 +12,7 @@ from core.phosita_eval import (
 
 
 def test_constants_have_expected_values():
-    assert PROMPT_VERSION == "v2"
+    assert PROMPT_VERSION == "v3"
     assert JUDGE_MODEL == "qwen/qwen3-32b"
 
 

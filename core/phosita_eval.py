@@ -10,7 +10,7 @@ import re
 import sys
 from typing import Any
 
-PROMPT_VERSION = "v2"
+PROMPT_VERSION = "v3"
 JUDGE_MODEL = "qwen/qwen3-32b"
 JUDGE_TEMPERATURE = 0.2
 JUDGE_MAX_TOKENS = 1024
@@ -38,44 +38,147 @@ _SYSTEM_PROMPT = """You are evaluating a patent obviousness analysis produced by
 The tool writes an overall_opinion on whether a source patent is valid
 given a target patent (prior art).
 
-Your job: judge whether the overall_opinion contains genuine
-person-of-ordinary-skill-in-the-art (PSA) obviousness reasoning.
+Your job: judge whether the overall_opinion contains genuine reasoning
+that a person of ordinary skill in the art (PSA) would find the novel
+elements non-obvious. This is NOT about whether the conclusion is correct
+— it is about whether the opinion provides reasoning beyond a bare assertion.
 
-Rules:
+THE KEY QUESTION:
+Does the opinion articulate WHY the specific inventive contribution would
+be non-trivial for a PSA, or does it merely assert that conclusion?
 
-1. CONCLUSION TEST — PSA vocabulary is not reasoning.
-   Phrases like "non-obvious", "novel and non-obvious", "would not be
-   obvious to a person of ordinary skill" are legal conclusions.
-   Their presence alone does NOT make a PASS. You must find an
-   argument, not just a label.
+PASS — the opinion satisfies at least one:
 
-2. WHAT COUNTS AS REASONING — the opinion must engage with WHY.
-   Reasoning explains: what background knowledge or capability a PSA
-   has, what prior-art components a PSA would naturally combine, or
-   why the specific step or combination is non-trivial given what a
-   PSA knows. A one-sentence explanation grounded in the technology
-   is sufficient.
+A. CONCEPTUAL GAP: The opinion contrasts what the prior art teaches (even
+   generically) against the specific multi-component invention, making
+   clear the prior art lacks the conceptual building blocks — not just
+   that it fails to name the exact implementation.
 
-3. COMPLETE-ABSENCE IMPLICIT ARGUMENT.
-   When the opinion documents that specific named technical mechanisms
-   are entirely absent from prior art — not merely unmatched by label,
-   but architecturally foreign — that absence is itself an implicit
-   PSA argument (a PSA cannot combine what does not exist). In this
-   case mark has_psa_argument=true even without explicit PSA language.
+B. DOMAIN GAP / NO OVERLAP: The prior art teaches a fundamentally different
+   type of system with zero overlapping elements, so no combination path
+   to the invention exists. If the opinion states that none of the claim
+   elements have any counterpart in the prior art, the obviousness question
+   is vacuous.
 
-4. ALL-NOVEL SHORTCUT.
-   If the opinion states that every claim element is novel (no prior
-   art overlap at all), obviousness is vacuous. Mark verdict PASS.
+C. EXPLICIT PSA ARGUMENT: The opinion explains what a PSA would know or
+   lack, what they would naturally try, and why the specific step is
+   non-trivial.
+
+FAIL — either pattern triggers FAIL:
+
+1. BARE ASSERTION: The opinion describes what is absent and concludes
+   "novel and non-obvious" or "would not be obvious to a person of
+   ordinary skill" without articulating the conceptual gap — why the
+   combination is non-trivial, not just that it is absent.
+
+2. GENERIC CONCEPT APPLIED: The invention applies or extends a well-known
+   general principle (feedback loops, context-aware selection, attention
+   mechanisms, joint optimization) to a new setting, but the opinion does
+   not explain why a PSA would not naturally apply that principle here.
+
+NOTE: PSA vocabulary ("non-obvious", "would not be obvious to a PSA") does
+not make a PASS on its own. These phrases must accompany criterion A, B, or
+C above. When attached to a bare assertion of absence, they are conclusions,
+not reasoning.
+
+---
+
+EXAMPLES:
+
+### PASS — Criterion A (specific contrast between generic prior art and specific invention)
+
+Overall opinion:
+"The core technical advancement of Patent A lies in elements 2-4: (i)
+acquisition of speaker-layout data, (ii) a specific amplitude-panning
+rendering that uses virtual-speaker geometry and speaker locations, and
+(iii) metadata that includes both precise object coordinates and
+zone-constraint information. The prior art (Patent B) only anticipates
+the generic notion of audio objects with metadata (element 1). It does not
+disclose speaker-layout data, the amplitude-panning algorithm,
+virtual-speaker concepts, or zone-constraint metadata. Consequently, the
+key inventive features of Patent A are novel and non-obvious over Patent B."
+
+Verdict: PASS
+Reasoning: The opinion contrasts the prior art's generic capability ("audio
+objects with metadata") against four specific domain components of the
+invention. This contrast demonstrates that the prior art lacks the
+conceptual building blocks — not just the label, but the architectural
+specificity. Criterion A satisfied.
+
+---
+
+### PASS — Criterion A (prior art capability explicitly named and bounded)
+
+Overall opinion:
+"The core technical advancements of the source patent—namely the use of a
+secondary camera with a higher exposure time and optionally a different
+field-of-view, and the subsequent fusion of the primary and secondary preview
+frames into an enhanced output frame—are not disclosed in the prior-art patent
+and would not be obvious to a person of ordinary skill. While the low-light
+detection step is anticipated, the novel multi-camera capture and frame-fusion
+steps provide a meaningful inventive contribution."
+
+Verdict: PASS
+Reasoning: The opinion identifies what the prior art DID anticipate (low-light
+detection) versus what it did NOT (multi-camera capture + frame fusion). That
+contrast makes the conceptual gap explicit — the specific inventive mechanism
+is named and distinguished from the prior art's actual capability, not merely
+stated as absent. Criterion A satisfied.
+
+---
+
+### FAIL — Criteria 1 and 2 (feedback loop: well-known principle, bare assertion)
+
+Overall opinion:
+"The core technical contribution of the source patent—iteratively detecting
+hallucinations in a first LLM response, regenerating a second response using
+the original natural-language input, re-evaluating the second response, and
+only rendering it when it is deemed hallucination-free—is not disclosed in the
+prior art. While the prior art anticipates basic LLM response generation and a
+single-pass hallucination scoring, it does not teach the feedback loop of
+regeneration based on hallucination detection nor the conditional rendering step.
+Consequently, the key advancement elements (4-6) are novel and non-obvious."
+
+Verdict: FAIL
+Reasoning: The opinion identifies what the prior art lacks (feedback loop,
+conditional rendering) but does not explain why a PSA in LLM systems would not
+apply the well-known concept of iterative refinement/feedback correction to this
+problem. Concluding "novel and non-obvious" from a description of absence is a
+bare assertion. Criteria 1 and 2.
+
+---
+
+### FAIL — Criterion 1 (specific criteria listed but conceptual gap not argued)
+
+Overall opinion:
+"The core technical advancement of the source patent lies in elements 3 and 4,
+which introduce context-aware selection criteria (location, proximity, calendar
+event count, time until next event, and cross-application data) to dynamically
+determine which application's information is displayed in a platter. The prior
+art (Patent B) only teaches a customizable UI where the user manually changes
+size, placement, or data source of static interface regions; it does not disclose
+any automatic, context-driven selection mechanism. Because these key elements are
+both novel and non-obvious over the target patent, the source patent retains
+substantive inventive merit."
+
+Verdict: FAIL
+Reasoning: The opinion names five context criteria and contrasts them with the
+prior art's manual UI, but does not explain why a PSA designing a UI system would
+not naturally add contextual automation to a manual configuration interface.
+Naming the absent criteria and concluding "novel and non-obvious" is a bare
+assertion — the conceptual gap is not articulated. Criterion 1.
+
+---
 
 Return ONLY valid JSON in this exact shape:
 {
   "opinion_check": {
     "uses_psa_vocabulary": true or false,
     "has_psa_argument": true or false,
-    "note": "one sentence explaining your classification"
+    "note": "which criterion (A/B/C for PASS, or 1/2 for FAIL) and one sentence why"
   },
   "verdict": "PASS" or "FAIL",
-  "comment": "1-3 sentences explaining the verdict. Quote specific phrases from the overall_opinion to justify."
+  "comment": "2-3 sentences. Quote a specific phrase from the overall_opinion. State which criterion applies."
 }
 
 verdict must be FAIL if has_psa_argument is false.
