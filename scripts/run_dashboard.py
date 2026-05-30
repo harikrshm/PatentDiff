@@ -281,8 +281,15 @@ def render_implications() -> None:
 | **PHOSITA failures on Implicit prior art (73% FAIL)** | 🔴 P0 | Prompt iteration | 1–2 sprints |
 | **Citation text paraphrasing (45% FAIL)** | 🟠 P1 | Prompt fix *(v2 deployed — verify)* | Done |
 | **System claims fail harder than Method (60% vs 43%)** | 🔴 P1 | Architecture: claim-type routing | 2–4 sprints |
-| **Overall quality below production threshold (~38% clean)** | 🟣 P2 | Fine-tuning | 4–8 sprints |
+| **Overall quality below production threshold (~25% clean)** | 🟣 P2 | Fine-tuning | 4–8 sprints |
     """)
+
+    st.caption(
+        "Failure rates above are product judgement anchored on the 28 "
+        "human-annotated traces (the ground-truth subset). The live full-corpus "
+        "rates in the Summary and Heatmap tabs differ — see those tabs for "
+        "current automated numbers."
+    )
 
     with st.expander("What each fix type means"):
         st.markdown("""
