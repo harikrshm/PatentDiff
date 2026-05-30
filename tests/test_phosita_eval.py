@@ -42,6 +42,39 @@ def test_has_novel_elements_false_when_novelty_missing():
     assert _has_novel_elements(mappings) is False
 
 
+from core.phosita_eval import needs_judge_call
+
+
+def test_needs_judge_call_true_when_novel_elements():
+    trace = {
+        "parsed_output": {
+            "element_mappings": [{"element_number": 1, "novelty": "N"}],
+            "overall_opinion": "ok",
+        }
+    }
+    assert needs_judge_call(trace) is True
+
+
+def test_needs_judge_call_false_when_no_novel_elements():
+    trace = {
+        "parsed_output": {
+            "element_mappings": [{"element_number": 1, "novelty": "Y"}],
+            "overall_opinion": "ok",
+        }
+    }
+    assert needs_judge_call(trace) is False
+
+
+def test_needs_judge_call_false_when_no_parsed_output():
+    assert needs_judge_call({"run_id": "x"}) is False
+    assert needs_judge_call({"run_id": "x", "parsed_output": None}) is False
+
+
+def test_needs_judge_call_false_when_empty_mappings():
+    trace = {"parsed_output": {"element_mappings": [], "overall_opinion": "ok"}}
+    assert needs_judge_call(trace) is False
+
+
 from core.phosita_eval import _build_judge_prompt
 
 

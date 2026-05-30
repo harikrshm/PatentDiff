@@ -19,6 +19,19 @@ def _has_novel_elements(element_mappings: list[dict]) -> bool:
     return any(em.get("novelty") == "N" for em in element_mappings)
 
 
+def needs_judge_call(trace: dict) -> bool:
+    """True when this trace requires a judge API call to evaluate.
+
+    Returns False for traces that short-circuit: no parsed_output, no
+    element_mappings, or all elements have novelty='Y'.
+    """
+    parsed = trace.get("parsed_output")
+    if not parsed:
+        return False
+    mappings = parsed.get("element_mappings") or []
+    return bool(mappings) and _has_novel_elements(mappings)
+
+
 _SYSTEM_PROMPT = """You are evaluating a patent obviousness analysis produced by an AI tool.
 The tool writes an overall_opinion on whether a source patent is valid
 given a target patent (prior art).

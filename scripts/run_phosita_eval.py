@@ -24,9 +24,9 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from core.phosita_eval import (
     PROMPT_VERSION,
-    _has_novel_elements,
     evaluate_trace,
     evaluate_trace_async,
+    needs_judge_call,
 )
 
 DEFAULT_TRACES_PATH = REPO_ROOT / "traces" / "traces.jsonl"
@@ -53,6 +53,11 @@ def _load_cache(out_path: Path) -> set[tuple[str, str]]:
             if rid and ver:
                 cache.add((rid, ver))
     return cache
+
+
+async def _judge_one(trace: dict, sem: asyncio.Semaphore, client) -> dict | None:
+    async with sem:
+        return await evaluate_trace_async(trace, client)
 
 
 async def _run_async(traces_path: Path, output_path: Path) -> int:
@@ -84,11 +89,10 @@ async def _run_async(traces_path: Path, output_path: Path) -> int:
         if not trace.get("parsed_output"):
             skipped_no_parsed += 1
             continue
-        mappings = (trace.get("parsed_output") or {}).get("element_mappings") or []
-        if not mappings or not _has_novel_elements(mappings):
-            short_circuit_traces.append(trace)
-        else:
+        if needs_judge_call(trace):
             judge_traces.append(trace)
+        else:
+            short_circuit_traces.append(trace)
 
     for trace in short_circuit_traces:
         result = evaluate_trace(trace, None)
@@ -109,12 +113,9 @@ async def _run_async(traces_path: Path, output_path: Path) -> int:
         client = AsyncGroq(api_key=api_key)
         sem = asyncio.Semaphore(CONCURRENCY)
 
-        async def _one(trace: dict):
-            async with sem:
-                return await evaluate_trace_async(trace, client)
-
         results = await asyncio.gather(
-            *[_one(t) for t in judge_traces], return_exceptions=True
+            *[_judge_one(t, sem, client) for t in judge_traces],
+            return_exceptions=True,
         )
         for r in results:
             if isinstance(r, Exception):
