@@ -1,6 +1,6 @@
 """LLM-judge eval for the `absent_phosita_reasoning` failure mode.
 
-See docs/superpowers/specs/2026-05-27-phosita-llm-judge-design.md for design.
+See docs/superpowers/specs/2026-05-30-phosita-judge-v2-design.md for design.
 """
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import json
 import sys
 from typing import Any
 
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v2"
 JUDGE_MODEL = "qwen/qwen3-32b"
 JUDGE_TEMPERATURE = 0.2
 JUDGE_MAX_TOKENS = 1024
@@ -19,71 +19,65 @@ def _has_novel_elements(element_mappings: list[dict]) -> bool:
     return any(em.get("novelty") == "N" for em in element_mappings)
 
 
-_SYSTEM_PROMPT = """You are evaluating a patent obviousness analysis. The analysis was produced
-by an AI tool that assesses whether a source patent's independent claim is
-invalid given a target patent (prior art). For each claim element, the tool
-records novelty (Y/N) and inventive_step (Y/N), with a reasoning comment.
-The tool also writes an overall_opinion on the source patent's validity.
+_SYSTEM_PROMPT = """You are evaluating a patent obviousness analysis produced by an AI tool.
+The tool writes an overall_opinion on whether a source patent is valid
+given a target patent (prior art).
 
-Your job: judge whether the analysis contains genuine obviousness reasoning
-grounded in the person-of-ordinary-skill-in-the-art (PSA) standard.
+Your job: judge whether the overall_opinion contains genuine
+person-of-ordinary-skill-in-the-art (PSA) obviousness reasoning.
 
-A PASS analysis:
-- The overall_opinion explicitly engages with WHY novel elements are
-  obvious or non-obvious to a PSA - it doesn't just state a conclusion.
-- The obviousness claims in the overall_opinion are supported by the
-  per-element comments (the elements actually contain the reasoning the
-  overall_opinion claims).
+Rules:
 
-A FAIL analysis (either pattern triggers FAIL):
-- The overall_opinion is silent on obviousness, or asserts non-obviousness
-  by default without engaging PSA reasoning ("all novel elements are
-  non-obvious", "the source patent is valid because elements are novel").
-- The overall_opinion claims obviousness reasoning that the element
-  comments don't actually support - hand-waving disconnected from the
-  per-element analysis.
+1. CONCLUSION TEST — PSA vocabulary is not reasoning.
+   Phrases like "non-obvious", "novel and non-obvious", "would not be
+   obvious to a person of ordinary skill" are legal conclusions.
+   Their presence alone does NOT make a PASS. You must find an
+   argument, not just a label.
 
-Focus only on elements where novelty=N (the obviousness question only
-applies to novel elements). Elements with novelty=Y are out of scope -
-they're already disclosed, so obviousness doesn't matter.
+2. WHAT COUNTS AS REASONING — the opinion must engage with WHY.
+   Reasoning explains: what background knowledge or capability a PSA
+   has, what prior-art components a PSA would naturally combine, or
+   why the specific step or combination is non-trivial given what a
+   PSA knows. A one-sentence explanation grounded in the technology
+   is sufficient.
 
-Return ONLY valid JSON:
+3. COMPLETE-ABSENCE IMPLICIT ARGUMENT.
+   When the opinion documents that specific named technical mechanisms
+   are entirely absent from prior art — not merely unmatched by label,
+   but architecturally foreign — that absence is itself an implicit
+   PSA argument (a PSA cannot combine what does not exist). In this
+   case mark has_psa_argument=true even without explicit PSA language.
+
+4. ALL-NOVEL SHORTCUT.
+   If the opinion states that every claim element is novel (no prior
+   art overlap at all), obviousness is vacuous. Mark verdict PASS.
+
+Return ONLY valid JSON in this exact shape:
 {
+  "opinion_check": {
+    "uses_psa_vocabulary": true or false,
+    "has_psa_argument": true or false,
+    "note": "one sentence explaining your classification"
+  },
   "verdict": "PASS" or "FAIL",
-  "comment": "1-3 sentences explaining why. Cite specific elements or quote phrases from overall_opinion to justify."
-}"""
+  "comment": "1-3 sentences explaining the verdict. Quote specific phrases from the overall_opinion to justify."
+}
+
+verdict must be FAIL if has_psa_argument is false.
+verdict must be PASS if has_psa_argument is true."""
 
 
 def _build_judge_prompt(parsed_output: dict) -> tuple[str, str]:
     """Return (system_prompt, user_prompt) for the judge call."""
-    mappings = parsed_output.get("element_mappings") or []
     overall = parsed_output.get("overall_opinion") or "(no overall opinion provided)"
-
-    element_lines = []
-    for em in mappings:
-        element_lines.append(
-            f"Element {em.get('element_number')}:\n"
-            f"  novelty: {em.get('novelty')}\n"
-            f"  inventive_step: {em.get('inventive_step')}\n"
-            f"  verdict: {em.get('verdict')}\n"
-            f"  comment: {em.get('comment')}"
-        )
-    elements_block = "\n\n".join(element_lines) if element_lines else "(no element mappings)"
-
-    user_prompt = (
-        "ANALYSIS TO JUDGE:\n\n"
-        "Element mappings:\n"
-        f"{elements_block}\n\n"
-        "Overall opinion:\n"
-        f"{overall}"
-    )
+    user_prompt = f"Overall opinion:\n{overall}"
     return _SYSTEM_PROMPT, user_prompt
 
 
 def _call_judge(client: Any, system_prompt: str, user_prompt: str) -> tuple[dict, str]:
     """Call the judge model and parse JSON. Returns (parsed_dict, raw_content).
 
-    Raises ValueError if the response is not valid JSON.
+    Raises ValueError if the response is not valid JSON or opinion_check is missing.
     """
     response = client.chat.completions.create(
         model=JUDGE_MODEL,
@@ -100,7 +94,71 @@ def _call_judge(client: Any, system_prompt: str, user_prompt: str) -> tuple[dict
         parsed = json.loads(raw)
     except json.JSONDecodeError as e:
         raise ValueError(f"Judge returned non-JSON: {raw!r}") from e
+    opinion_check = parsed.get("opinion_check")
+    if not isinstance(opinion_check, dict) or "has_psa_argument" not in opinion_check:
+        raise ValueError(f"Judge response missing opinion_check.has_psa_argument: {raw!r}")
     return parsed, raw
+
+
+async def _call_judge_async(client: Any, system_prompt: str, user_prompt: str) -> tuple[dict, str]:
+    """Async version of _call_judge for use with AsyncGroq."""
+    response = await client.chat.completions.create(
+        model=JUDGE_MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=JUDGE_TEMPERATURE,
+        max_tokens=JUDGE_MAX_TOKENS,
+        response_format={"type": "json_object"},
+    )
+    raw = response.choices[0].message.content
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Judge returned non-JSON: {raw!r}") from e
+    opinion_check = parsed.get("opinion_check")
+    if not isinstance(opinion_check, dict) or "has_psa_argument" not in opinion_check:
+        raise ValueError(f"Judge response missing opinion_check.has_psa_argument: {raw!r}")
+    return parsed, raw
+
+
+def _short_circuit_result(run_id: str, comment: str) -> dict:
+    return {
+        "run_id": run_id,
+        "eval_name": "absent_phosita_reasoning",
+        "verdict": "PASS",
+        "comment": comment,
+        "judge_raw": "",
+        "config": {
+            "judge_model": JUDGE_MODEL,
+            "prompt_version": PROMPT_VERSION,
+            "temperature": JUDGE_TEMPERATURE,
+        },
+    }
+
+
+def _build_result(run_id: str, verdict: str, comment: str, raw: str, parsed_judge: dict) -> dict:
+    config = {
+        "judge_model": JUDGE_MODEL,
+        "prompt_version": PROMPT_VERSION,
+        "temperature": JUDGE_TEMPERATURE,
+    }
+    has_psa = parsed_judge.get("opinion_check", {}).get("has_psa_argument")
+    if (has_psa is False and verdict == "PASS") or (has_psa is True and verdict == "FAIL"):
+        print(
+            f"phosita_eval: {run_id}: warning: has_psa_argument={has_psa} "
+            f"inconsistent with verdict={verdict!r}; trusting verdict",
+            file=sys.stderr,
+        )
+    return {
+        "run_id": run_id,
+        "eval_name": "absent_phosita_reasoning",
+        "verdict": verdict,
+        "comment": comment,
+        "judge_raw": raw,
+        "config": config,
+    }
 
 
 def evaluate_trace(trace: dict, client: Any) -> dict | None:
@@ -112,31 +170,12 @@ def evaluate_trace(trace: dict, client: Any) -> dict | None:
         return None
 
     mappings = parsed.get("element_mappings") or []
-    config = {
-        "judge_model": JUDGE_MODEL,
-        "prompt_version": PROMPT_VERSION,
-        "temperature": JUDGE_TEMPERATURE,
-    }
 
     if not mappings:
-        return {
-            "run_id": run_id,
-            "eval_name": "absent_phosita_reasoning",
-            "verdict": "PASS",
-            "comment": "N/A: no elements analysed.",
-            "judge_raw": "",
-            "config": config,
-        }
+        return _short_circuit_result(run_id, "N/A: no elements analysed.")
 
     if not _has_novel_elements(mappings):
-        return {
-            "run_id": run_id,
-            "eval_name": "absent_phosita_reasoning",
-            "verdict": "PASS",
-            "comment": "N/A: no novel elements; obviousness reasoning not required.",
-            "judge_raw": "",
-            "config": config,
-        }
+        return _short_circuit_result(run_id, "N/A: no novel elements; obviousness reasoning not required.")
 
     system, user = _build_judge_prompt(parsed)
     try:
@@ -157,11 +196,42 @@ def evaluate_trace(trace: dict, client: Any) -> dict | None:
         )
         return None
 
-    return {
-        "run_id": run_id,
-        "eval_name": "absent_phosita_reasoning",
-        "verdict": verdict,
-        "comment": comment,
-        "judge_raw": raw,
-        "config": config,
-    }
+    return _build_result(run_id, verdict, comment, raw, parsed_judge)
+
+
+async def evaluate_trace_async(trace: dict, client: Any) -> dict | None:
+    """Async version of evaluate_trace for concurrent runner use."""
+    run_id = trace.get("run_id")
+    parsed = trace.get("parsed_output")
+    if not parsed:
+        print(f"phosita_eval: skipping {run_id}: no parsed_output", file=sys.stderr)
+        return None
+
+    mappings = parsed.get("element_mappings") or []
+
+    if not mappings:
+        return _short_circuit_result(run_id, "N/A: no elements analysed.")
+
+    if not _has_novel_elements(mappings):
+        return _short_circuit_result(run_id, "N/A: no novel elements; obviousness reasoning not required.")
+
+    system, user = _build_judge_prompt(parsed)
+    try:
+        parsed_judge, raw = await _call_judge_async(client, system, user)
+    except ValueError as e:
+        print(f"phosita_eval: skipping {run_id}: {e}", file=sys.stderr)
+        return None
+    except Exception as e:
+        print(f"phosita_eval: skipping {run_id}: judge call failed: {e}", file=sys.stderr)
+        return None
+
+    verdict = parsed_judge.get("verdict")
+    comment = parsed_judge.get("comment", "")
+    if verdict not in ("PASS", "FAIL"):
+        print(
+            f"phosita_eval: skipping {run_id}: judge returned invalid verdict {verdict!r}",
+            file=sys.stderr,
+        )
+        return None
+
+    return _build_result(run_id, verdict, comment, raw, parsed_judge)
