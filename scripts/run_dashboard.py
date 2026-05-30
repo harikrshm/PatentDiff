@@ -272,7 +272,65 @@ def render_heatmap(df: pd.DataFrame) -> None:
 
 
 def render_implications() -> None:
-    st.info("PM Implications coming in next step.")
+    """Tab 3: PM-facing priority matrix and action narrative (static content)."""
+    st.subheader("What to Do — Priority × Fix Type")
+
+    st.markdown("""
+| Issue | Priority | Fix Type | Effort |
+|---|---|---|---|
+| **PHOSITA failures on Implicit prior art (73% FAIL)** | 🔴 P0 | Prompt iteration | 1–2 sprints |
+| **Citation text paraphrasing (45% FAIL)** | 🟠 P1 | Prompt fix *(v2 deployed — verify)* | Done |
+| **System claims fail harder than Method (60% vs 43%)** | 🔴 P1 | Architecture: claim-type routing | 2–4 sprints |
+| **Overall quality below production threshold (~38% clean)** | 🟣 P2 | Fine-tuning | 4–8 sprints |
+    """)
+
+    with st.expander("What each fix type means"):
+        st.markdown("""
+**Prompt fix** — change the system prompt or output schema instruction.
+Reversible, fast, cheap. No model retraining. Results measurable within
+days by re-running the eval scripts.
+
+**Architecture change** — separate prompt paths or agents for different
+input types (e.g. Method vs System claims). Requires engineering work
+but no training data.
+
+**Fine-tuning** — train the model on high-quality labelled examples.
+Highest quality ceiling, highest cost and lead time. Do this after
+prompt fixes plateau.
+        """)
+
+    st.divider()
+
+    col_act, col_wait = st.columns(2)
+
+    with col_act:
+        st.subheader("Act now")
+        st.markdown("""
+1. **Monitor Implicit prior art cases** — consider adding a confidence
+   flag in the PatentDiff UI for outputs where prior art relationship
+   is Implicit. These have a 73% PHOSITA failure rate.
+
+2. **Verify the citation fix landed** — re-run `python scripts/run_citation_eval.py`
+   and `python scripts/run_eval_vs_human.py` after the v2 prompt is
+   deployed to production. The fix should lift citation TNR above 64%.
+
+3. **Spec a claim-type router** — route System claims through a separate
+   prompt that handles apparatus-style elements differently from method steps.
+   This alone could drop System claim FAIL rate from 60% toward the Method
+   baseline of 43%.
+        """)
+
+    with col_wait:
+        st.subheader("Wait on")
+        st.markdown("""
+- **Anticipation cases are performing well** (0–17% FAIL rate). Don't
+  change the prompt for these — over-engineering what works tends to
+  introduce regressions in other categories.
+
+- **Fine-tuning** — wait until prompt and architecture fixes have been
+  applied and have plateaued. Collect high-quality labelled examples in
+  parallel using the annotation tool so the dataset is ready when needed.
+        """)
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
