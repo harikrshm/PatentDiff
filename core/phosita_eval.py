@@ -4,7 +4,9 @@ See docs/superpowers/specs/2026-05-30-phosita-judge-v2-design.md for design.
 """
 from __future__ import annotations
 
+import asyncio
 import json
+import re
 import sys
 from typing import Any
 
@@ -121,20 +123,42 @@ def _call_judge(client: Any, system_prompt: str, user_prompt: str) -> tuple[dict
     return _parse_judge_response(raw), raw
 
 
+_RETRY_ATTEMPTS = 5
+
+
 async def _call_judge_async(client: Any, system_prompt: str, user_prompt: str) -> tuple[dict, str]:
-    """Async version of _call_judge for use with AsyncGroq."""
-    response = await client.chat.completions.create(
-        model=JUDGE_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=JUDGE_TEMPERATURE,
-        max_tokens=JUDGE_MAX_TOKENS,
-        response_format={"type": "json_object"},
-    )
-    raw = response.choices[0].message.content
-    return _parse_judge_response(raw), raw
+    """Async version of _call_judge for use with AsyncGroq.
+
+    Retries up to _RETRY_ATTEMPTS times on 429 rate-limit errors, waiting the
+    duration Groq suggests in the error message before each retry.
+    """
+    for attempt in range(_RETRY_ATTEMPTS):
+        try:
+            response = await client.chat.completions.create(
+                model=JUDGE_MODEL,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=JUDGE_TEMPERATURE,
+                max_tokens=JUDGE_MAX_TOKENS,
+                response_format={"type": "json_object"},
+            )
+            raw = response.choices[0].message.content
+            return _parse_judge_response(raw), raw
+        except Exception as e:
+            is_rate_limit = "429" in str(e) or "rate_limit_exceeded" in str(e)
+            if is_rate_limit and attempt < _RETRY_ATTEMPTS - 1:
+                match = re.search(r"try again in (\d+(?:\.\d+)?)s", str(e))
+                wait = float(match.group(1)) + 1.0 if match else 15.0
+                print(
+                    f"phosita_eval: 429 rate limit — retrying in {wait:.1f}s "
+                    f"(attempt {attempt + 1}/{_RETRY_ATTEMPTS})",
+                    file=sys.stderr,
+                )
+                await asyncio.sleep(wait)
+                continue
+            raise
 
 
 def _short_circuit_result(run_id: str, comment: str) -> dict:

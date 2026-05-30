@@ -34,7 +34,7 @@ from core.phosita_eval import (
 
 DEFAULT_TRACES_PATH = REPO_ROOT / "traces" / "traces.jsonl"
 DEFAULT_OUTPUT_PATH = REPO_ROOT / "traces" / "phosita_eval_full.jsonl"
-CONCURRENCY = 4
+CONCURRENCY = 2
 
 
 def _load_cache(out_path: Path) -> set[tuple[str, str]]:
