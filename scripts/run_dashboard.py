@@ -225,6 +225,9 @@ def render_heatmap(df: pd.DataFrame) -> None:
     )
 
     REL_ORDER = [c for c in ["Anticipation", "Implicit", "Novel"] if c in agg.index.get_level_values("relationship")]
+    if not REL_ORDER:
+        st.warning("No recognised prior-art relationships in the data.")
+        return
     PROFILE_ORDER = ["Method · Short", "Method · Long", "System · Short", "System · Long"]
     profile_order = [p for p in PROFILE_ORDER if p in agg.index.get_level_values("profile")]
 
@@ -258,9 +261,11 @@ def render_heatmap(df: pd.DataFrame) -> None:
         rate = rel_data["fail"].mean() if not rel_data.empty else 0.0
         col.metric(rel, f"{rate:.0%}", f"n={len(rel_data)}")
 
+    n_total = len(df)
+    n_human = int((df["dim_source"] == "human").sum())
     st.caption(
-        "28 of 87 traces use human-verified dimensions · "
-        "Remaining 59 use inferred dimensions "
+        f"{n_human} of {n_total} traces use human-verified dimensions · "
+        "Remaining use inferred dimensions "
         "(claim_type: 100% accurate, claim_length: 89%, relationship: ~61%) · "
         "Cells with n<3 flagged with ⚠"
     )
