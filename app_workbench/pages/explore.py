@@ -4,18 +4,21 @@ from __future__ import annotations
 from pathlib import Path
 
 import dash
+import dash_draggable
 import dash_pivottable
 from dash import Input, Output, callback, dcc, html
 
 from app_workbench.components import kpi_tile, evidence_note
 from core.diagnostics import dispersion_pp, relationship_gradient, evidence_note as build_note
 from core.workbench_data import list_trace_sets, load_merged
+from core.workbench_state import load_state, save_state
 
 dash.register_page(__name__, path="/", name="Explore")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TRACES_DIR = REPO_ROOT / "traces"
 ANNOTATIONS_PATH = TRACES_DIR / "traces_annotations.jsonl"
+STATE_DIR = TRACES_DIR / "workbench_state"
 
 
 def _trace_set_options():
@@ -28,39 +31,38 @@ def _load(active_name: str):
     return load_merged(ts, ANNOTATIONS_PATH)
 
 
-layout = html.Div(
-    [
-        html.Div(
-            [
-                html.Label("Active trace set:"),
-                dcc.Dropdown(
-                    id="corpus-selector",
-                    options=_trace_set_options(),
-                    value="live",
-                    clearable=False,
-                    style={"width": "240px"},
-                ),
-            ],
-            style={"display": "flex", "gap": "0.6rem", "alignItems": "center"},
-        ),
-        html.H3("How bad is it?"),
-        html.Div(id="kpi-row", style={"display": "flex", "gap": "0.8rem", "flexWrap": "wrap"}),
-        html.H3("Where does it fail? (drag dimensions onto Rows / Cols / Filters)"),
-        dcc.RadioItems(
-            id="pivot-eval",
-            options=[
-                {"label": "PHOSITA", "value": "phosita"},
-                {"label": "Citation", "value": "citation"},
-                {"label": "Either", "value": "either"},
-            ],
-            value="phosita",
-            inline=True,
-        ),
-        html.Div(id="pivot-container"),
-        html.H3("Shape read (hypothesis only — you assign the layer)"),
-        html.Div(id="shape-read"),
-    ]
-)
+layout = html.Div([
+    html.Div(
+        [
+            html.Label("Active trace set:"),
+            dcc.Dropdown(id="corpus-selector", options=_trace_set_options(),
+                         value="live", clearable=False, style={"width": "240px"}),
+        ],
+        style={"display": "flex", "gap": "0.6rem", "alignItems": "center"},
+    ),
+    dash_draggable.ResponsiveGridLayout(
+        id="explore-grid",
+        children=[
+            html.Div([html.H3("How bad is it?"),
+                      html.Div(id="kpi-row",
+                               style={"display": "flex", "gap": "0.8rem",
+                                      "flexWrap": "wrap"})],
+                     id="w-kpis"),
+            html.Div([html.H3("Where does it fail? (drag dims onto Rows/Cols/Filters)"),
+                      dcc.RadioItems(id="pivot-eval",
+                                     options=[{"label": "PHOSITA", "value": "phosita"},
+                                              {"label": "Citation", "value": "citation"},
+                                              {"label": "Either", "value": "either"}],
+                                     value="phosita", inline=True),
+                      html.Div(id="pivot-container")],
+                     id="w-pivot"),
+            html.Div([html.H3("Shape read (hypothesis only — you assign the layer)"),
+                      html.Div(id="shape-read")],
+                     id="w-shape"),
+        ],
+    ),
+    html.Div(id="layout-save-status", style={"display": "none"}),
+])
 
 
 @callback(Output("kpi-row", "children"), Input("corpus-selector", "value"))
@@ -149,3 +151,23 @@ def _render_shape_read(active_name: str, eval_name: str):
             style={"fontSize": "0.8rem", "color": "#555"},
         ),
     ])
+
+
+@callback(
+    Output("explore-grid", "layouts"),
+    Input("corpus-selector", "value"),  # fires on initial load
+)
+def _restore_layout(_):
+    saved = load_state(STATE_DIR, "layout")
+    return saved or dash.no_update
+
+
+@callback(
+    Output("layout-save-status", "children"),
+    Input("explore-grid", "layouts"),
+    prevent_initial_call=True,
+)
+def _save_layout(layouts):
+    if layouts:
+        save_state(STATE_DIR, "layout", layouts)
+    return ""
