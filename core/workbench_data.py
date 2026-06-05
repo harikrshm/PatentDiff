@@ -31,6 +31,7 @@ class TraceSet:
 
 
 def _iter_jsonl(path: Path):
+    """Yield parsed JSON objects from a JSONL file; skip blank/corrupt lines; empty if missing."""
     if not path.exists():
         return
     with open(path, encoding="utf-8") as f:
@@ -89,6 +90,7 @@ def load_merged(trace_set: TraceSet, annotations_path: Path) -> pd.DataFrame:
     dims = {rid: tag_trace(t) for rid, t in traces.items()}
 
     for ann in _iter_jsonl(annotations_path):
+        # annotations for run_ids absent from traces are skipped (no inferred base to override)
         if ann.get("phase") == 3 and ann.get("dimensions") and ann.get("run_id") in dims:
             rid = ann["run_id"]
             hd = ann["dimensions"]
@@ -124,4 +126,6 @@ def load_merged(trace_set: TraceSet, annotations_path: Path) -> pd.DataFrame:
             "phosita_verdict": phosita.get(rid),
             "citation_verdict": citation.get(rid),
         })
-    return pd.DataFrame(rows)
+    columns = ["run_id", "claim_type", "claim_length", "relationship",
+               "dim_source", "phosita_verdict", "citation_verdict"]
+    return pd.DataFrame(rows, columns=columns)

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from core.workbench_data import TraceSet, list_trace_sets, load_merged
+from core.workbench_data import TraceSet, list_trace_sets, load_merged, PHOSITA_PROMPT_VERSION
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
@@ -32,7 +32,7 @@ def test_load_merged_one_row_per_trace_with_human_override(tmp_path: Path):
     )
     _write_jsonl(
         tmp_path / "phosita_eval_full.jsonl",
-        [{"run_id": "r1", "verdict": "FAIL", "config": {"prompt_version": "v3"}}],
+        [{"run_id": "r1", "verdict": "FAIL", "config": {"prompt_version": PHOSITA_PROMPT_VERSION}}],
     )
     _write_jsonl(
         tmp_path / "citation_text_eval_full.jsonl",
@@ -80,3 +80,17 @@ def test_load_merged_filters_phosita_to_v3(tmp_path: Path):
     # v1 phosita verdict ignored; only citation present
     assert df.iloc[0]["phosita_verdict"] is None
     assert df.iloc[0]["citation_verdict"] == "PASS"
+
+
+def test_load_merged_empty_has_columns(tmp_path: Path):
+    (tmp_path / "traces.jsonl").write_text("", encoding="utf-8")
+    (tmp_path / "phosita_eval_full.jsonl").write_text("", encoding="utf-8")
+    (tmp_path / "citation_text_eval_full.jsonl").write_text("", encoding="utf-8")
+    ts = TraceSet("live", tmp_path / "traces.jsonl",
+                  tmp_path / "phosita_eval_full.jsonl",
+                  tmp_path / "citation_text_eval_full.jsonl")
+    df = load_merged(ts, annotations_path=tmp_path / "missing.jsonl")
+    assert len(df) == 0
+    assert list(df.columns) == ["run_id", "claim_type", "claim_length",
+                                "relationship", "dim_source",
+                                "phosita_verdict", "citation_verdict"]
