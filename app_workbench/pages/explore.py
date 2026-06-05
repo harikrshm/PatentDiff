@@ -7,7 +7,8 @@ import dash
 import dash_pivottable
 from dash import Input, Output, callback, dcc, html
 
-from app_workbench.components import kpi_tile
+from app_workbench.components import kpi_tile, evidence_note
+from core.diagnostics import dispersion_pp, relationship_gradient, evidence_note as build_note
 from core.workbench_data import list_trace_sets, load_merged
 
 dash.register_page(__name__, path="/", name="Explore")
@@ -56,6 +57,8 @@ layout = html.Div(
             inline=True,
         ),
         html.Div(id="pivot-container"),
+        html.H3("Shape read (hypothesis only — you assign the layer)"),
+        html.Div(id="shape-read"),
     ]
 )
 
@@ -124,3 +127,25 @@ def _render_pivot(active_name: str, eval_name: str):
         aggregatorName="Count as Fraction of Rows",
         rendererName="Heatmap",
     )
+
+
+@callback(
+    Output("shape-read", "children"),
+    Input("corpus-selector", "value"),
+    Input("pivot-eval", "value"),
+)
+def _render_shape_read(active_name: str, eval_name: str):
+    if eval_name == "either":
+        return html.Div("Select PHOSITA or Citation to read the failure shape.",
+                        style={"color": "#888"})
+    df = _load(active_name)
+    disp = dispersion_pp(df, eval_name)
+    grad = relationship_gradient(df, eval_name)
+    return html.Div([
+        evidence_note(build_note(disp, grad)),
+        html.Div(
+            f"Dispersion {disp:.0f}pp · gradient "
+            + " → ".join(f"{r} {grad.rates[r]:.0%}" for r in grad.rates),
+            style={"fontSize": "0.8rem", "color": "#555"},
+        ),
+    ])
