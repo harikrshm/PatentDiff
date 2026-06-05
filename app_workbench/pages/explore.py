@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import dash
+import dash_pivottable
 from dash import Input, Output, callback, dcc, html
 
 from app_workbench.components import kpi_tile
@@ -43,6 +44,18 @@ layout = html.Div(
         ),
         html.H3("How bad is it?"),
         html.Div(id="kpi-row", style={"display": "flex", "gap": "0.8rem", "flexWrap": "wrap"}),
+        html.H3("Where does it fail? (drag dimensions onto Rows / Cols / Filters)"),
+        dcc.RadioItems(
+            id="pivot-eval",
+            options=[
+                {"label": "PHOSITA", "value": "phosita"},
+                {"label": "Citation", "value": "citation"},
+                {"label": "Either", "value": "either"},
+            ],
+            value="phosita",
+            inline=True,
+        ),
+        html.Div(id="pivot-container"),
     ]
 )
 
@@ -68,3 +81,46 @@ def _render_kpis(active_name: str):
         kpi_tile("Either fails", f"{either:.0%}", f"n={len(both)}"),
         kpi_tile("Fully clean", f"{clean:.0%}", f"n={len(both)}"),
     ]
+
+
+def _fail_frame(df, eval_name: str):
+    """Long frame with one 'fail' label column per scored trace, for the pivot."""
+    work = df.copy()
+    if eval_name == "phosita":
+        scored = work[work["phosita_verdict"].isin(["PASS", "FAIL"])].copy()
+        scored["result"] = scored["phosita_verdict"]
+    elif eval_name == "citation":
+        scored = work[work["citation_verdict"].isin(["PASS", "FAIL"])].copy()
+        scored["result"] = scored["citation_verdict"]
+    else:
+        mask = (work["phosita_verdict"].isin(["PASS", "FAIL"])
+                | work["citation_verdict"].isin(["PASS", "FAIL"]))
+        scored = work[mask].copy()
+        scored["result"] = (
+            ((scored["phosita_verdict"] == "FAIL")
+             | (scored["citation_verdict"] == "FAIL"))
+            .map({True: "FAIL", False: "PASS"})
+        )
+    return scored[["claim_type", "claim_length", "relationship", "result"]]
+
+
+@callback(
+    Output("pivot-container", "children"),
+    Input("corpus-selector", "value"),
+    Input("pivot-eval", "value"),
+)
+def _render_pivot(active_name: str, eval_name: str):
+    df = _load(active_name)
+    scored = _fail_frame(df, eval_name)
+    scored = scored[(scored["claim_type"] != "Unknown")
+                    & (scored["relationship"] != "Unknown")]
+    data = [scored.columns.tolist()] + scored.values.tolist()
+    return dash_pivottable.PivotTable(
+        id="pivot-table",
+        data=data,
+        rows=["claim_type", "claim_length"],
+        cols=["relationship"],
+        vals=["result"],
+        aggregatorName="Count as Fraction of Rows",
+        rendererName="Heatmap",
+    )
