@@ -86,6 +86,30 @@ layout = html.Div(
                  "backgroundColor": "#ffebee"},
             ],
         ),
+        html.H3("Step 2 — Assign the architecture layer (you decide)"),
+        html.Div(
+            [
+                html.Div([
+                    html.Label(f"{mode} → layer"),
+                    dcc.RadioItems(
+                        id={"type": "layer", "mode": mode},
+                        options=[{"label": l, "value": l}
+                                 for l in ("L1", "L2", "L3")],
+                        inline=True,
+                    ),
+                ]) for mode in ("Absent PHOSITA", "Citation Text")
+            ],
+            style={"display": "flex", "gap": "2rem"},
+        ),
+        html.H3("Decision — why we fix in this order (your rationale)"),
+        dcc.Textarea(
+            id="decision-rationale",
+            placeholder="e.g. Citation is uniform → L1 verbatim instruction, "
+                        "nearly free, do first; PHOSITA Novel cluster likely L3, "
+                        "gate behind the prompt fix and re-measure.",
+            style={"width": "100%", "height": "120px"},
+        ),
+        html.Div(id="decision-saved-flag", style={"color": "#2e7d32"}),
     ]
 )
 
