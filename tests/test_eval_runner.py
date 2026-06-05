@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from core.eval_runner import build_eval_commands
+from core.eval_runner import build_eval_commands, eval_for_set
 from core.workbench_data import TraceSet
 
 
@@ -21,3 +21,9 @@ def test_build_eval_commands_targets_the_selected_set():
     assert str(ts.traces_path) in citation_cmd
     assert str(ts.citation_path) in citation_cmd
     assert str(ts.phosita_path) in phosita_cmd
+
+
+def test_eval_for_set_bogus_name_returns_guard_message(tmp_path: Path):
+    # Empty tmp_path has no phosita_eval_full.jsonl — no sets discovered.
+    result = eval_for_set("bogus-set", tmp_path)
+    assert result == "No such trace set."

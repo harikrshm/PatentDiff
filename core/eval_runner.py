@@ -30,6 +30,23 @@ def build_eval_commands(trace_set: TraceSet) -> list[list[str]]:
     ]
 
 
+def eval_for_set(active_name: str, traces_dir: Path) -> str:
+    """Resolve set name → TraceSet, run both evals, return status string.
+
+    Returns "No such trace set." if the name is not found (safe guard branch —
+    testable without any LLM calls or API keys).
+    """
+    from core.workbench_data import list_trace_sets  # local import avoids circular
+    sets = {s.name: s for s in list_trace_sets(traces_dir)}
+    ts = sets.get(active_name)
+    if ts is None:
+        return "No such trace set."
+    try:
+        return run_evals(ts)
+    except Exception as exc:
+        return f"Eval failed: {exc}"
+
+
 def run_evals(trace_set: TraceSet, set_status=None) -> str:
     """Run both evals sequentially; stream a short status via set_status(str).
 

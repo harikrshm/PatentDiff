@@ -10,6 +10,7 @@ from dash import Input, Output, callback, dcc, html
 
 from app_workbench.components import kpi_tile, evidence_note
 from core.diagnostics import dispersion_pp, relationship_gradient, evidence_note as build_note
+from core.eval_runner import eval_for_set
 from core.workbench_data import list_trace_sets, load_merged
 from core.workbench_state import load_state, save_state
 
@@ -37,6 +38,8 @@ layout = html.Div([
             html.Label("Active trace set:"),
             dcc.Dropdown(id="corpus-selector", options=_trace_set_options(),
                          value="live", clearable=False, style={"width": "240px"}),
+            html.Button("Run eval", id="run-eval-btn", n_clicks=0),
+            html.Span(id="run-eval-status", style={"fontSize": "0.8rem", "color": "#555"}),
         ],
         style={"display": "flex", "gap": "0.6rem", "alignItems": "center"},
     ),
@@ -171,3 +174,18 @@ def _save_layout(layouts):
     if layouts:
         save_state(STATE_DIR, "layout", layouts)
     return ""
+
+
+@callback(
+    Output("run-eval-status", "children"),
+    Input("run-eval-btn", "n_clicks"),
+    dash.State("corpus-selector", "value"),
+    background=True,
+    running=[(Output("run-eval-btn", "disabled"), True, False)],
+    prevent_initial_call=True,
+)
+def _run_eval(_n, active_name):
+    summary = eval_for_set(active_name, TRACES_DIR)
+    if summary == "No such trace set.":
+        return summary
+    return f"Done. {summary}"
