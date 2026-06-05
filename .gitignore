@@ -9,3 +9,4 @@ venv/
 .claude/worktrees/
 .dash_cache/
 .superpowers/
+traces/workbench_state/

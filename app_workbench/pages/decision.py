@@ -9,6 +9,7 @@ from dash import Input, Output, callback, dash_table, dcc, html
 from app_workbench.components import assumed_badge
 from core.priority import priority_table
 from core.workbench_data import list_trace_sets, load_merged
+from core.workbench_state import load_state, save_state
 
 dash.register_page(__name__, path="/decision", name="Decision")
 
@@ -16,6 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 TRACES_DIR = REPO_ROOT / "traces"
 ANNOTATIONS_PATH = TRACES_DIR / "traces_annotations.jsonl"
 TIERS = [{"label": t, "value": t} for t in ("High", "Med", "Low")]
+STATE_DIR = TRACES_DIR / "workbench_state"
 
 
 def _load(active_name: str):
@@ -29,20 +31,23 @@ CELLS = [(ct, rel) for ct in ("Method", "System")
 
 
 def _impact_control(mode: str, default: str):
+    saved = load_state(STATE_DIR, "priority_inputs").get("impact", {})
     return html.Div(
         [html.Label([f"Impact — {mode} ", assumed_badge()]),
          dcc.Dropdown(id={"type": "impact", "mode": mode}, options=TIERS,
-                      value=default, clearable=False, style={"width": "160px"})],
+                      value=saved.get(mode, default), clearable=False,
+                      style={"width": "160px"})],
     )
 
 
 def _exposure_control(ctype: str, rel: str):
+    saved = load_state(STATE_DIR, "priority_inputs").get("exposure", {})
     return html.Div(
         [html.Label([f"{ctype} × {rel} ", assumed_badge()],
                     style={"fontSize": "0.75rem"}),
          dcc.Dropdown(id={"type": "exposure", "cell": f"{ctype} × {rel}"},
-                      options=TIERS, value="Med", clearable=False,
-                      style={"width": "140px"})],
+                      options=TIERS, value=saved.get(f"{ctype} × {rel}", "Med"),
+                      clearable=False, style={"width": "140px"})],
     )
 
 
@@ -93,8 +98,9 @@ layout = html.Div(
                     html.Label(f"{mode} → layer"),
                     dcc.RadioItems(
                         id={"type": "layer", "mode": mode},
-                        options=[{"label": l, "value": l}
-                                 for l in ("L1", "L2", "L3")],
+                        options=[{"label": l, "value": l} for l in ("L1", "L2", "L3")],
+                        value=load_state(STATE_DIR, "priority_inputs")
+                              .get("layers", {}).get(mode),
                         inline=True,
                     ),
                 ]) for mode in ("Absent PHOSITA", "Citation Text")
@@ -107,6 +113,7 @@ layout = html.Div(
             placeholder="e.g. Citation is uniform → L1 verbatim instruction, "
                         "nearly free, do first; PHOSITA Novel cluster likely L3, "
                         "gate behind the prompt fix and re-measure.",
+            value=load_state(STATE_DIR, "priority_inputs").get("rationale", ""),
             style={"width": "100%", "height": "120px"},
         ),
         html.Div(id="decision-saved-flag", style={"color": "#2e7d32"}),
@@ -135,3 +142,26 @@ def _render_priority(active_name, impact_values, impact_ids, exp_values, exp_ids
     table["fail_pct"] = (table["fail_rate"] * 100).round(0).astype(int)
     return table[["failure_mode", "cell", "fail_pct", "n", "frequency_tier",
                   "impact_tier", "exposure_tier", "score"]].to_dict("records")
+
+
+@callback(
+    Output("decision-saved-flag", "children"),
+    Input({"type": "impact", "mode": dash.ALL}, "value"),
+    Input({"type": "impact", "mode": dash.ALL}, "id"),
+    Input({"type": "exposure", "cell": dash.ALL}, "value"),
+    Input({"type": "exposure", "cell": dash.ALL}, "id"),
+    Input({"type": "layer", "mode": dash.ALL}, "value"),
+    Input({"type": "layer", "mode": dash.ALL}, "id"),
+    Input("decision-rationale", "value"),
+    prevent_initial_call=True,
+)
+def _save_decision(impact_values, impact_ids, exp_values, exp_ids,
+                   layer_values, layer_ids, rationale):
+    data = {
+        "impact": {i["mode"]: v for i, v in zip(impact_ids, impact_values)},
+        "exposure": {i["cell"]: v for i, v in zip(exp_ids, exp_values)},
+        "layers": {i["mode"]: v for i, v in zip(layer_ids, layer_values)},
+        "rationale": rationale or "",
+    }
+    save_state(STATE_DIR, "priority_inputs", data)
+    return "Saved ✓"
