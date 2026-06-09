@@ -1,0 +1,917 @@
+/* ============================================================================
+   Eval Workbench — Design Tokens + Base Stylesheet
+   Philosophy: ANALYST CONSOLE / INSTRUMENT PANEL
+   (dense-but-calm, quiet chrome, data-forward; Linear × Bloomberg × Stripe)
+
+   Source of truth: .design/eval-workbench/DESIGN_TOKENS.css
+   Dash auto-serves any file in app_workbench/assets/.
+   Toggle dark via  <html data-theme="dark">  (control-bar light/dark switch).
+
+   THREE NON-NEGOTIABLE DISCIPLINES (from the brief):
+   1. The diverging data scale (--data-fail-*) means ONLY "FAIL rate".
+   2. Chrome / interactive / focus uses the indigo accent. Never red or green.
+   3. Machine voice (HYPOTHESIS) vs human voice (your call) differ in BOTH hue
+      (cool vs warm) and treatment, so the split survives grayscale.
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TOKENS · light (primary surface)
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  --color-bg-primary:        #F5F7FA;
+  --color-bg-secondary:      #FFFFFF;
+  --color-bg-tertiary:       #EDF1F5;
+  --color-bg-inverse:        #11151B;
+
+  --color-text-primary:      #1A2027;
+  --color-text-secondary:    #586374;
+  --color-text-tertiary:     #646F7E;  /* AA: 5.1 on white, 4.75 on canvas */
+  --color-text-inverse:      #F2F5F8;
+  --color-text-link:         var(--color-accent-primary);
+
+  --color-border-primary:    #DCE1E8;
+  --color-border-secondary:  #E9EDF2;
+  --color-border-focus:      var(--color-accent-primary);
+
+  --color-accent-primary:        #4F46E5;
+  --color-accent-primary-hover:  #4338CA;
+  --color-accent-primary-active: #3730A3;
+  --color-accent-secondary:      #6366F1;
+  --color-accent-subtle:         #EEF0FB;
+  /* Filled controls (buttons, selected pills): bg + the text color on it.
+     Separated from accent-primary so dark mode can darken the fill for AA
+     white-on-indigo contrast while keeping the lighter accent for links/focus. */
+  --accent-fill:        #4F46E5;
+  --accent-fill-hover:  #4338CA;
+  --on-accent:          #FFFFFF;
+
+  --color-status-success:    #0E8A7D;
+  --color-status-warning:    #B45309;
+  --color-status-error:      #C0392B;
+  --color-status-info:       #4F46E5;
+
+  --color-surface-overlay:   rgba(17, 21, 27, 0.45);
+
+  /* DATA · FAIL-rate diverging scale (RESERVED — heatmap only) */
+  --data-fail-0:    #C8E6DF;
+  --data-fail-25:   #86C5B6;
+  --data-fail-50:   #EAC36A;
+  --data-fail-75:   #DC8A52;
+  --data-fail-100:  #C0392B;
+  --data-good:      #0E8A7D;
+  --data-mid:       #C98A2B;
+  --data-bad:       #C0392B;
+  --data-flag:      var(--color-status-warning);
+  --data-cell-text-on-light: #1A2027;
+  --data-cell-text-on-dark:  #FFFFFF;
+
+  /* VOICE · the signature motif */
+  --voice-machine-bg:        #EEF0FB;
+  --voice-machine-border:    #4F46E5;
+  --voice-machine-text:      #312E81;
+  --voice-machine-label:     #4F46E5;
+  --voice-human-bg:          #FBF4E7;
+  --voice-human-border:      #B45309;
+  --voice-human-text:        #5C3D10;
+  --voice-human-label:       #B45309;
+
+  /* TYPOGRAPHY */
+  --font-family-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-family-body:    'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-family-mono:    'IBM Plex Mono', 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+
+  --font-size-xs:    11px;
+  --font-size-sm:    12px;
+  --font-size-base:  13px;
+  --font-size-md:    14px;
+  --font-size-lg:    16px;
+  --font-size-xl:    20px;
+  --font-size-2xl:   26px;
+  --font-size-3xl:   34px;
+  --font-size-4xl:   44px;
+
+  --font-weight-normal:   400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+
+  --line-height-tight:   1.2;
+  --line-height-normal:  1.5;
+  --line-height-relaxed: 1.65;
+
+  --letter-spacing-tight:  -0.01em;
+  --letter-spacing-normal:  0;
+  --letter-spacing-wide:    0.06em;
+
+  /* SPACING · 4px base */
+  --space-px:  1px;
+  --space-0:   0;
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-7:   32px;
+  --space-8:   40px;
+  --space-9:   48px;
+  --space-10:  64px;
+  --space-11:  80px;
+  --space-12:  96px;
+
+  /* LAYOUT */
+  --max-width-content:  72ch;
+  --max-width-wide:     1200px;
+  --max-width-page:     1440px;
+
+  --border-radius-sm:   4px;
+  --border-radius-md:   6px;
+  --border-radius-lg:   8px;
+  --border-radius-full: 999px;
+
+  --shadow-sm:    0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-md:    0 2px 8px rgba(16, 24, 40, 0.07);
+  --shadow-lg:    0 8px 24px rgba(16, 24, 40, 0.10);
+  --shadow-focus: 0 0 0 3px rgba(79, 70, 229, 0.35);
+
+  /* MOTION */
+  --duration-instant: 50ms;
+  --duration-fast:    150ms;
+  --duration-normal:  250ms;
+  --duration-slow:    400ms;
+  --duration-slower:  600ms;
+  --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-in:      cubic-bezier(0.4, 0, 1, 1);
+  --easing-out:     cubic-bezier(0, 0, 0.2, 1);
+  --easing-bounce:  cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* COMPONENT-LEVEL */
+  --control-bar-height:  56px;
+  --control-bar-bg:      rgba(255, 255, 255, 0.86);
+  --control-bar-border:  var(--color-border-primary);
+  --step-rail-width:     48px;
+  --kpi-tile-min-width:  168px;
+  --kpi-rule-width:      3px;
+  --section-gap:         var(--space-10);
+  --card-padding:        var(--space-5);
+  --focus-ring:          var(--shadow-focus);
+
+  --breakpoint-lg:  1024px;
+  --breakpoint-xl:  1280px;
+  --breakpoint-2xl: 1440px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TOKENS · dark (cool slate, not pure black; reduced contrast)
+   ───────────────────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --color-bg-primary:        #0E1116;
+  --color-bg-secondary:      #161A21;
+  --color-bg-tertiary:       #1D232C;
+  --color-bg-inverse:        #E6EAEF;
+
+  --color-text-primary:      #E6EAEF;
+  --color-text-secondary:    #9AA5B1;
+  --color-text-tertiary:     #7E8794;  /* AA: 5.2 on bg, 4.8 on card */
+  --color-text-inverse:      #11151B;
+
+  --color-border-primary:    #28303A;
+  --color-border-secondary:  #1F262E;
+
+  --color-accent-primary:        #7C74F0;
+  --color-accent-primary-hover:  #6D64ED;
+  --color-accent-primary-active: #5B52E0;
+  --color-accent-secondary:      #8B85F2;
+  --color-accent-subtle:         #1C1F3A;
+  --accent-fill:        #5B52E0;  /* darker so white text hits AA (5.6:1) */
+  --accent-fill-hover:  #4A41C9;
+  --on-accent:          #FFFFFF;
+
+  --color-status-success:    #2BB3A3;
+  --color-status-warning:    #E0A33E;
+  --color-status-error:      #E06A5C;
+  --color-status-info:       #7C74F0;
+
+  --color-surface-overlay:   rgba(0, 0, 0, 0.60);
+
+  --data-fail-0:    #1E3A36;
+  --data-fail-25:   #2F7A6E;
+  --data-fail-50:   #C99A3E;
+  --data-fail-75:   #CC744A;
+  --data-fail-100:  #D6473A;
+  --data-good:      #2BB3A3;
+  --data-mid:       #E0A33E;
+  --data-bad:       #E06A5C;
+  --data-cell-text-on-light: #0E1116;
+  --data-cell-text-on-dark:  #F4F6F8;
+
+  --voice-machine-bg:        #1A1D38;
+  --voice-machine-border:    #7C74F0;
+  --voice-machine-text:      #C7D2FE;
+  --voice-machine-label:     #9A93F5;
+  --voice-human-bg:          #2A2212;
+  --voice-human-border:      #D9A441;
+  --voice-human-text:        #F0DDB2;
+  --voice-human-label:       #E0A33E;
+
+  --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md:    0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-lg:    0 8px 28px rgba(0, 0, 0, 0.55);
+  --shadow-focus: 0 0 0 3px rgba(124, 116, 240, 0.45);
+
+  --control-bar-bg: rgba(22, 26, 33, 0.86);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg-primary:        #0E1116;
+    --color-bg-secondary:      #161A21;
+    --color-bg-tertiary:       #1D232C;
+    --color-bg-inverse:        #E6EAEF;
+    --color-text-primary:      #E6EAEF;
+    --color-text-secondary:    #9AA5B1;
+    --color-text-tertiary:     #7E8794;
+    --color-text-inverse:      #11151B;
+    --color-border-primary:    #28303A;
+    --color-border-secondary:  #1F262E;
+    --color-accent-primary:        #7C74F0;
+    --color-accent-primary-hover:  #6D64ED;
+    --color-accent-primary-active: #5B52E0;
+    --color-accent-secondary:      #8B85F2;
+    --color-accent-subtle:         #1C1F3A;
+    --accent-fill:        #5B52E0;
+    --accent-fill-hover:  #4A41C9;
+    --on-accent:          #FFFFFF;
+    --color-status-success:    #2BB3A3;
+    --color-status-warning:    #E0A33E;
+    --color-status-error:      #E06A5C;
+    --color-status-info:       #7C74F0;
+    --color-surface-overlay:   rgba(0, 0, 0, 0.60);
+    --data-fail-0:    #1E3A36;
+    --data-fail-25:   #2F7A6E;
+    --data-fail-50:   #C99A3E;
+    --data-fail-75:   #CC744A;
+    --data-fail-100:  #D6473A;
+    --data-good:      #2BB3A3;
+    --data-mid:       #E0A33E;
+    --data-bad:       #E06A5C;
+    --data-cell-text-on-light: #0E1116;
+    --data-cell-text-on-dark:  #F4F6F8;
+    --voice-machine-bg:        #1A1D38;
+    --voice-machine-border:    #7C74F0;
+    --voice-machine-text:      #C7D2FE;
+    --voice-machine-label:     #9A93F5;
+    --voice-human-bg:          #2A2212;
+    --voice-human-border:      #D9A441;
+    --voice-human-text:        #F0DDB2;
+    --voice-human-label:       #E0A33E;
+    --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-md:    0 2px 8px rgba(0, 0, 0, 0.45);
+    --shadow-lg:    0 8px 28px rgba(0, 0, 0, 0.55);
+    --shadow-focus: 0 0 0 3px rgba(124, 116, 240, 0.45);
+    --control-bar-bg: rgba(22, 26, 33, 0.86);
+  }
+}
+
+/* ============================================================================
+   BASE — wire tokens to real elements. Component classes live in their tasks.
+   ============================================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background var(--duration-normal) var(--easing-default),
+              color var(--duration-normal) var(--easing-default);
+}
+
+/* Headings — Inter, tight, graphite. Numerals elsewhere use mono. */
+h1, h2, h3, h4 {
+  font-family: var(--font-family-display);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-tight);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--space-2);
+}
+h1 { font-size: var(--font-size-xl); }
+h2 { font-size: var(--font-size-lg); }
+h3 { font-size: var(--font-size-md); }
+
+p { margin: 0 0 var(--space-3); max-width: var(--max-width-content); }
+
+a, .wb-link {
+  color: var(--color-text-link);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--easing-default);
+}
+a:hover, .wb-link:hover { color: var(--color-accent-primary-hover); }
+
+/* Every numeral in the app reads as an instrument: mono + tabular figures. */
+.wb-num, .wb-mono {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--letter-spacing-normal);
+}
+
+/* ALL-CAPS micro labels (step numbers, HYPOTHESIS tag, section kickers). */
+.wb-kicker {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* Focus — always the indigo chrome ring, NEVER data red/green. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--border-radius-sm);
+}
+/* Dash controls drop a default outline; replace with the token ring. */
+.Select-control:focus-within,
+input:focus-visible,
+textarea:focus-visible,
+button:focus-visible { box-shadow: var(--shadow-focus); }
+
+/* Shared layout primitives used by later component tasks. */
+.wb-page {
+  max-width: var(--max-width-page);
+  margin: 0 auto;
+  padding: 0 var(--space-6) var(--space-12);
+}
+.wb-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-lg);
+  padding: var(--card-padding);
+}
+.wb-divider { border: none; border-top: 1px solid var(--color-border-secondary); margin: var(--space-6) 0; }
+.wb-caption { font-size: var(--font-size-xs); color: var(--color-text-tertiary); line-height: var(--line-height-normal); }
+
+/* Quiet, on-brand scrollbar (WebKit). */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-primary);
+  border-radius: var(--border-radius-full);
+  border: 2px solid var(--color-bg-primary);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-tertiary); }
+
+/* Respect reduced-motion: drop transitions and smooth scroll. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================================
+   T2 · CONSOLE SHELL — control bar, step rail, sections
+   ============================================================================ */
+.wb-root { min-height: 100vh; }
+
+/* ── Sticky frosted control bar ──────────────────────────────────────────── */
+.wb-controlbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  height: var(--control-bar-height);
+  padding: 0 var(--space-6);
+  background: var(--control-bar-bg);
+  backdrop-filter: saturate(1.4) blur(10px);
+  -webkit-backdrop-filter: saturate(1.4) blur(10px);
+  border-bottom: 1px solid var(--control-bar-border);
+}
+.wb-controlbar__brand { display: flex; align-items: baseline; gap: var(--space-2); }
+.wb-controlbar__brand-strong {
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--color-text-primary);
+}
+.wb-controlbar__brand-sub {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+.wb-controlbar__group { display: flex; align-items: center; gap: var(--space-2); }
+.wb-controlbar__group--last { margin-left: auto; flex-direction: column; align-items: flex-start; gap: 0; }
+.wb-controlbar__status { font-size: var(--font-size-xs); color: var(--color-text-secondary); }
+.wb-controlbar__lastrun { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+
+/* Theme toggle — pill button, indigo on hover. */
+.wb-themetoggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px; height: 34px;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-full);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--easing-default),
+              color var(--duration-fast) var(--easing-default);
+}
+.wb-themetoggle:hover { border-color: var(--color-accent-primary); color: var(--color-accent-primary); }
+.wb-themetoggle__glyph { font-size: var(--font-size-lg); line-height: 1; }
+
+/* ── Shared control primitives (buttons, dropdown) ───────────────────────── */
+.wb-btn {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--easing-default),
+              border-color var(--duration-fast) var(--easing-default),
+              opacity var(--duration-fast) var(--easing-default);
+}
+.wb-btn--primary { background: var(--accent-fill); color: var(--on-accent); }
+.wb-btn--primary:hover { background: var(--accent-fill-hover); }
+.wb-btn--primary:active { background: var(--color-accent-primary-active); }
+.wb-btn:disabled { opacity: 0.55; cursor: progress; }
+
+.wb-dropdown--corpus { min-width: 180px; }
+/* Theme the react-select control Dash renders, to tokens. */
+.wb-dropdown .Select-control,
+.wb-dropdown .is-focused:not(.is-open) > .Select-control {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border-primary);
+  border-radius: var(--border-radius-sm);
+}
+/* Explicit keyboard focus ring — react-select's own focus style otherwise
+   masks the global :focus-visible token ring (review should-fix #1). */
+.wb-dropdown .Select.is-focused > .Select-control,
+.wb-dropdown .Select-control:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: var(--shadow-focus);
+}
+.wb-dropdown .Select-value-label,
+.wb-dropdown .Select-placeholder { color: var(--color-text-primary) !important; }
+.wb-dropdown .Select-menu-outer {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border-primary);
+  box-shadow: var(--shadow-md);
+}
+.wb-dropdown .VirtualizedSelectOption { background: var(--color-bg-secondary); color: var(--color-text-secondary); }
+.wb-dropdown .VirtualizedSelectFocusedOption { background: var(--color-accent-subtle); color: var(--color-text-primary); }
+
+/* ── Shell: step rail + main column ──────────────────────────────────────── */
+.wb-shell {
+  display: grid;
+  grid-template-columns: var(--step-rail-width) 1fr;
+  gap: var(--space-7);
+  align-items: start;
+  padding-top: var(--space-8);
+}
+
+.wb-rail {
+  position: sticky;
+  top: calc(var(--control-bar-height) + var(--space-6));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.wb-rail__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) 0;
+  color: var(--color-text-tertiary);
+  border-left: 2px solid var(--color-border-secondary);
+  transition: color var(--duration-fast) var(--easing-default),
+              border-color var(--duration-fast) var(--easing-default);
+}
+.wb-rail__step:hover { color: var(--color-text-secondary); }
+.wb-rail__num { font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
+.wb-rail__label {
+  font-size: 9px;
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.wb-rail__step.is-active {
+  color: var(--color-accent-primary);
+  border-left-color: var(--color-accent-primary);
+}
+
+/* ── Sections ────────────────────────────────────────────────────────────── */
+.wb-main { display: flex; flex-direction: column; gap: var(--section-gap); min-width: 0; }
+.wb-section { scroll-margin-top: calc(var(--control-bar-height) + var(--space-6)); }
+.wb-section__head { margin-bottom: var(--space-4); }
+.wb-section__kicker { color: var(--color-accent-primary); }
+.wb-section__title { font-size: var(--font-size-xl); margin: var(--space-1) 0 var(--space-1); }
+.wb-section__question { color: var(--color-text-secondary); font-size: var(--font-size-md); margin: 0; }
+
+.wb-placeholder {
+  border: 1px dashed var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-tertiary);
+}
+
+/* Empty / guard states — calm, consistent, explains why + next step. */
+.wb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+  padding: var(--space-9) var(--space-6);
+  border: 1px dashed var(--color-border-primary);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-bg-secondary);
+}
+.wb-empty__icon { font-size: var(--font-size-2xl); color: var(--color-text-tertiary); line-height: 1; }
+.wb-empty__title { font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+.wb-empty__detail { max-width: 46ch; }
+
+/* dcc.Loading — keep layout from collapsing; spinner uses indigo via prop. */
+.wb-loading { min-height: var(--space-9); }
+
+.wb-kpi-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+
+/* ============================================================================
+   T4 · §1 KPI TILES — mono numerals, left valence rule
+   ============================================================================ */
+.wb-kpi {
+  flex: 1 1 var(--kpi-tile-min-width);
+  min-width: var(--kpi-tile-min-width);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-left: var(--kpi-rule-width) solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+}
+.wb-kpi__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+.wb-kpi__value {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--color-text-primary);
+  margin: var(--space-2) 0 var(--space-1);
+}
+.wb-kpi__sub { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
+
+.wb-attribution {
+  margin-top: var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+.wb-attribution .wb-num { color: var(--color-text-secondary); }
+
+/* ============================================================================
+   T5 · §2 WHERE — segmented eval toggle, heatmap card, averages strip
+   ============================================================================ */
+.wb-where__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+/* Segmented control — radios styled as a connected button group (via :has). */
+.wb-segmented__items { display: inline-flex; gap: 0; }
+.wb-segmented__items label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-left-width: 0;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--easing-default),
+              color var(--duration-fast) var(--easing-default);
+}
+.wb-segmented__items label:first-of-type { border-left-width: 1px; border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm); }
+.wb-segmented__items label:last-of-type { border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0; }
+.wb-segmented__items label:hover { color: var(--color-text-primary); background: var(--color-bg-tertiary); }
+.wb-segmented__items input { position: absolute; opacity: 0; width: 0; height: 0; }
+.wb-segmented__items label:has(input:checked) {
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
+  color: var(--on-accent);
+}
+.wb-segmented__items label:has(input:focus-visible) { box-shadow: var(--shadow-focus); z-index: 1; }
+
+/* Heatmap card */
+.wb-heatmap-card { padding: var(--space-4); }
+
+/* Relationship averages strip */
+.wb-avg-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+.wb-avg-chip { display: inline-flex; align-items: baseline; gap: var(--space-2); }
+.wb-avg-chip__dot {
+  width: 8px; height: 8px; border-radius: var(--border-radius-full);
+  display: inline-block; align-self: center;
+}
+.wb-avg-chip__label { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+.wb-avg-chip__val { font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+.wb-avg-chip__n { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
+
+/* ============================================================================
+   T6 · §3 WHY — saved indicator + shape hint
+   ============================================================================ */
+.wb-saved {
+  display: inline-block;
+  margin-top: var(--space-1);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-family-mono);
+  color: var(--color-status-success);
+  transition: opacity var(--duration-normal) var(--easing-default);
+}
+.wb-shape-hint {
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--color-border-primary);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--border-radius-md);
+}
+
+/* ============================================================================
+   T7 · §4 PRIORITY — tier grids, themed table, inversion rollup
+   ============================================================================ */
+.wb-tier-grids { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-5); }
+.wb-tier-grids > * { flex: 1 1 320px; }
+
+.wb-tier-grid { display: grid; gap: var(--space-3); }
+.wb-tier-grid--impact { grid-template-columns: repeat(2, 1fr); }
+.wb-tier-grid--exposure { grid-template-columns: repeat(3, 1fr); }
+.wb-tier-cell { display: flex; flex-direction: column; gap: var(--space-1); }
+.wb-tier-cell__label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  display: inline-flex; align-items: center; gap: var(--space-1); flex-wrap: wrap;
+}
+.wb-dropdown--tier { min-width: 96px; }
+
+.wb-table-card { padding: var(--space-2) var(--space-2) 0; }
+/* DataTable sort arrows + cells inherit token fonts; keep header quiet. */
+.wb-table-card .dash-spreadsheet-container { border: none; }
+.wb-table-card .dash-header .column-header-name { font-weight: 600; }
+
+/* Inversion rollup */
+.wb-rollup { margin-top: var(--space-5); }
+.wb-rollup__inner {
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-4);
+  background: var(--color-bg-secondary);
+}
+.wb-rollup__lenses { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: var(--space-3) 0; }
+.wb-rollup__lens { display: flex; flex-direction: column; gap: var(--space-1); }
+.wb-rollup__leader {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.wb-rollup__note {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  border-top: 1px solid var(--color-border-secondary);
+  padding-top: var(--space-3);
+}
+
+@media (max-width: 1024px) {
+  .wb-tier-grid--exposure { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ============================================================================
+   T8 · §5 DECISION — mode cards, layer radio, ordered recommendation
+   ============================================================================ */
+.wb-decision-cards { display: flex; flex-wrap: wrap; gap: var(--space-4); }
+.wb-decision-card {
+  flex: 1 1 360px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-lg);
+  padding: var(--card-padding);
+}
+.wb-decision-card__mode { font-size: var(--font-size-md); margin-bottom: var(--space-3); }
+
+/* Layer radio — inline pills, indigo when chosen (via :has). */
+.wb-layer-radio { display: inline-flex; gap: var(--space-2); flex-wrap: wrap; }
+.wb-layer-radio label {
+  display: inline-flex; align-items: center;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--easing-default),
+              color var(--duration-fast) var(--easing-default);
+}
+.wb-layer-radio input { position: absolute; opacity: 0; width: 0; height: 0; }
+.wb-layer-radio label:hover { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+.wb-layer-radio label:has(input:checked) {
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
+  color: var(--on-accent);
+}
+.wb-layer-radio label:has(input:focus-visible) { box-shadow: var(--shadow-focus); }
+
+/* Ordered recommendation */
+.wb-reco { margin: var(--space-6) 0; }
+.wb-reco__list { list-style: none; margin: var(--space-3) 0 0; padding: 0; counter-reset: none; }
+.wb-reco__item {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+.wb-reco__rank {
+  flex: 0 0 auto;
+  width: 24px; height: 24px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--border-radius-full);
+  font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+.wb-reco__body { display: flex; flex-direction: column; gap: var(--space-1); }
+.wb-reco__mode { font-weight: var(--font-weight-semibold); color: var(--color-text-primary); margin-right: var(--space-2); }
+.wb-reco__layer {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  padding: 1px var(--space-2);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-primary);
+}
+.wb-reco__layer--unset {
+  background: transparent;
+  color: var(--color-status-warning);
+  border: 1px dashed var(--color-status-warning);
+}
+
+/* ============================================================================
+   T3 · VOICE MOTIF — machine HYPOTHESIS (filled/cool) vs human YOUR CALL
+   (outlined/warm). Hue AND treatment differ → survives grayscale.
+   ============================================================================ */
+.wb-voice {
+  border-radius: var(--border-radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin: var(--space-2) 0;
+}
+.wb-voice__tag {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+/* MACHINE — filled cool indigo, SOLID left rule, tag set in a filled chip. */
+.wb-voice--machine {
+  background: var(--voice-machine-bg);
+  border-left: 3px solid var(--voice-machine-border);
+  color: var(--voice-machine-text);
+}
+.wb-voice--machine .wb-voice__tag {
+  display: inline-block;
+  background: var(--voice-machine-border);
+  color: #fff;
+  padding: 1px var(--space-2);
+  border-radius: var(--border-radius-sm);
+  margin-right: var(--space-2);
+}
+.wb-voice__body { font-size: var(--font-size-md); line-height: var(--line-height-normal); }
+.wb-voice__meta {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* HUMAN — warm ochre, DASHED outline (not filled), editable affordance. */
+.wb-voice--human {
+  background: var(--voice-human-bg);
+  border: 1px dashed var(--voice-human-border);
+  border-left-width: 3px;
+  border-left-style: solid;
+  color: var(--voice-human-text);
+}
+.wb-voice__head { display: flex; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-2); }
+.wb-voice--human .wb-voice__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--voice-human-border);
+  color: var(--voice-human-label);
+  padding: 1px var(--space-2);
+  border-radius: var(--border-radius-sm);
+}
+.wb-voice--human .wb-voice__tag::before { content: "✎"; font-size: var(--font-size-sm); }
+.wb-voice__label { font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); color: var(--color-text-secondary); }
+.wb-voice__control { width: 100%; }
+.wb-voice__help { margin: var(--space-2) 0 0; }
+
+/* Inputs inside a voice block — token-themed text fields. */
+.wb-voice--human textarea,
+.wb-input--area {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-sm);
+  padding: var(--space-3);
+}
+.wb-voice--human textarea::placeholder { color: var(--color-text-tertiary); }
+
+/* ── ⚠ assumed badge — amber caution, never data red ─────────────────────── */
+.wb-badge-assumed {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-status-warning);
+  border: 1px solid var(--color-status-warning);
+  border-radius: var(--border-radius-sm);
+  padding: 0 var(--space-1);
+  cursor: help;
+  white-space: nowrap;
+}
+.wb-badge-assumed__text { letter-spacing: var(--letter-spacing-wide); text-transform: uppercase; }
+
+/* ── Responsive: laptop floor (~1024). No phone layout (out of scope). ────── */
+@media (max-width: 1024px) {
+  .wb-shell { grid-template-columns: 1fr; }
+  .wb-rail {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  .wb-rail__step { flex-direction: row; border-left: none; border-bottom: 2px solid var(--color-border-secondary); padding: var(--space-1) var(--space-2); }
+  .wb-rail__step.is-active { border-left: none; border-bottom-color: var(--color-accent-primary); }
+  .wb-rail__label { writing-mode: horizontal-tb; transform: none; }
+}
+
+/* ============================================================================
+   T12 · Responsive tuning — laptop floor (~1024). No phone layout (out of scope).
+   ============================================================================ */
+/* Control bar: keep it on one sticky row down to the laptop floor by shedding
+   non-essential chrome before it would wrap (wrapping breaks the fixed height). */
+@media (max-width: 1200px) {
+  .wb-controlbar { gap: var(--space-4); padding: 0 var(--space-4); }
+  .wb-controlbar__brand-sub { display: none; }
+}
+@media (max-width: 1024px) {
+  .wb-controlbar__brand-strong { display: none; }      /* logo text last to go */
+  .wb-page { padding-left: var(--space-4); padding-right: var(--space-4); }
+}
+
+/* Heatmap: shrink with the column, but scroll rather than over-squish. */
+.wb-heatmap-card { overflow-x: auto; }
+.wb-heatmap-card .js-plotly-plot { min-width: 460px; }
+
+/* Decision + tier cards already wrap via flex-basis; ensure single column
+   doesn't leave the layer radio cramped on the smallest laptops. */
+@media (max-width: 1024px) {
+  .wb-decision-card { flex-basis: 100%; }
+}

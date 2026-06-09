@@ -1,0 +1,309 @@
+/* ============================================================================
+   Eval Workbench — Design Tokens
+   Philosophy: ANALYST CONSOLE / INSTRUMENT PANEL
+   (dense-but-calm, quiet chrome, data-forward; Linear × Bloomberg × Stripe)
+
+   Derived from .design/eval-workbench/DESIGN_BRIEF.md.
+
+   Load order: drop this file in app_workbench/assets/ (Dash auto-serves it).
+   Toggle dark via  <html data-theme="dark">  (control-bar light/dark switch).
+   Honors system preference too, unless the user has explicitly chosen light.
+
+   THREE NON-NEGOTIABLE DISCIPLINES (from the brief):
+   1. The diverging data scale (--data-fail-*) means ONLY "FAIL rate". Never use
+      it for chrome, buttons, or status.
+   2. Chrome / interactive / focus uses the indigo accent (--color-accent-*).
+      Never red or green.
+   3. Machine voice (HYPOTHESIS) and human voice (your call) are tokenized
+      separately (--voice-machine-* vs --voice-human-*) and differ in BOTH hue
+      (cool vs warm) and treatment, so the distinction survives grayscale.
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ── COLOR · light (primary surface) ─────────────────────────────────── */
+  /* Backgrounds — cool "paper", not stark white. Cards lift off the page. */
+  --color-bg-primary:        #F5F7FA;  /* app canvas */
+  --color-bg-secondary:      #FFFFFF;  /* cards, tiles, table */
+  --color-bg-tertiary:       #EDF1F5;  /* wells, inputs, hover rows */
+  --color-bg-inverse:        #11151B;  /* tooltips, inverse chips */
+
+  /* Text — graphite, not pure black. Three quiet steps down. */
+  --color-text-primary:      #1A2027;
+  --color-text-secondary:    #586374;
+  --color-text-tertiary:     #8B95A3;  /* captions, placeholders, n-counts */
+  --color-text-inverse:      #F2F5F8;
+  --color-text-link:         var(--color-accent-primary);
+
+  /* Borders — hairlines do the structural work (few shadows). */
+  --color-border-primary:    #DCE1E8;
+  --color-border-secondary:  #E9EDF2;
+  --color-border-focus:      var(--color-accent-primary);
+
+  /* Accent — INDIGO. The only "interactive" hue. Chrome, links, focus, run. */
+  --color-accent-primary:        #4F46E5;
+  --color-accent-primary-hover:  #4338CA;
+  --color-accent-primary-active: #3730A3;
+  --color-accent-secondary:      #6366F1;
+  --color-accent-subtle:         #EEF0FB;  /* indigo wash for selected states */
+
+  /* Status — info=indigo, warning=amber (the ⚠ assumed badge).
+     success/error intentionally borrow the DATA hues (teal/red) because the
+     only pass/fail valence in this app IS data. Do not introduce a 4th green. */
+  --color-status-success:    #0E8A7D;  /* = data "good"  (teal) */
+  --color-status-warning:    #B45309;  /* ⚠ assumed, caution */
+  --color-status-error:      #C0392B;  /* = data "bad"   (red)  */
+  --color-status-info:       #4F46E5;
+
+  --color-surface-overlay:   rgba(17, 21, 27, 0.45);
+
+  /* ── DATA · FAIL-rate diverging scale (RESERVED — heatmap only) ───────── */
+  /* Colorblind-safe: cool teal (low fail / good) → amber (mid) → red (high /
+     bad). Avoids green entirely. % is ALWAYS printed in-cell so color is never
+     the sole signal. 5 stops; Plotly interpolates between them. */
+  --data-fail-0:    #C8E6DF;  /*   0% fail — pale teal, recedes */
+  --data-fail-25:   #86C5B6;  /*  25%      — teal */
+  --data-fail-50:   #EAC36A;  /*  50%      — amber (turning point) */
+  --data-fail-75:   #DC8A52;  /*  75%      — burnt amber */
+  --data-fail-100:  #C0392B;  /* 100% fail — red, alarms */
+  /* Anchor hues, for non-cell use (legend swatches, KPI valence rules): */
+  --data-good:      #0E8A7D;  /* deep teal */
+  --data-mid:       #C98A2B;  /* deep amber */
+  --data-bad:       #C0392B;  /* deep red  */
+  --data-flag:      var(--color-status-warning); /* n<3 low-confidence ⚠ */
+  --data-cell-text-on-light: #1A2027;  /* % text on pale cells */
+  --data-cell-text-on-dark:  #FFFFFF;  /* % text on red cells */
+
+  /* ── VOICE · the signature motif (machine vs human) ──────────────────── */
+  /* MACHINE voice — HYPOTHESIS. Cool/indigo, filled, mono label. "Computed." */
+  --voice-machine-bg:        #EEF0FB;
+  --voice-machine-border:    #4F46E5;
+  --voice-machine-text:      #312E81;
+  --voice-machine-label:     #4F46E5;
+  /* HUMAN voice — your call / rationale. Warm/ochre, outlined, editable feel. */
+  --voice-human-bg:          #FBF4E7;
+  --voice-human-border:      #B45309;
+  --voice-human-text:        #5C3D10;
+  --voice-human-label:       #B45309;
+
+  /* ── TYPOGRAPHY ──────────────────────────────────────────────────────── */
+  --font-family-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-family-body:    'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-family-mono:    'IBM Plex Mono', 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+
+  /* Dense base (13px) — analyst console reads tight. Mono carries the numbers. */
+  --font-size-xs:    11px;   /* micro-captions, n-counts, badge text */
+  --font-size-sm:    12px;   /* secondary labels, table cells */
+  --font-size-base:  13px;   /* body */
+  --font-size-md:    14px;   /* emphasized body, control labels */
+  --font-size-lg:    16px;   /* section sub-headers */
+  --font-size-xl:    20px;   /* section titles */
+  --font-size-2xl:   26px;   /* KPI numerals (mono) */
+  --font-size-3xl:   34px;   /* hero KPI / headline metric (mono) */
+  --font-size-4xl:   44px;   /* reserved — single dominant figure */
+
+  --font-weight-normal:   400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+
+  --line-height-tight:   1.2;   /* headings, KPI */
+  --line-height-normal:  1.5;   /* body */
+  --line-height-relaxed: 1.65;  /* prose blocks, rationale help */
+
+  --letter-spacing-tight:  -0.01em;  /* large display / KPI numerals */
+  --letter-spacing-normal:  0;
+  --letter-spacing-wide:    0.06em;   /* ALL-CAPS labels, HYPOTHESIS tag, step nums */
+
+  /* ── SPACING · 4px base (tight, Swiss-grid analyst rhythm) ───────────── */
+  --space-px:  1px;
+  --space-0:   0;
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-7:   32px;
+  --space-8:   40px;
+  --space-9:   48px;
+  --space-10:  64px;
+  --space-11:  80px;
+  --space-12:  96px;
+
+  /* ── LAYOUT ──────────────────────────────────────────────────────────── */
+  --max-width-content:  72ch;     /* prose / rationale help text */
+  --max-width-wide:     1200px;   /* heatmap + table comfortable width */
+  --max-width-page:     1440px;   /* console canvas cap */
+
+  --border-radius-sm:   4px;      /* inputs, chips, cells */
+  --border-radius-md:   6px;      /* cards, tiles, notes */
+  --border-radius-lg:   8px;      /* sections, panels */
+  --border-radius-full: 999px;    /* pills, the dark/light toggle */
+
+  /* Shadows — minimal in light; borders carry structure. */
+  --shadow-sm:    0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-md:    0 2px 8px rgba(16, 24, 40, 0.07);
+  --shadow-lg:    0 8px 24px rgba(16, 24, 40, 0.10);
+  --shadow-focus: 0 0 0 3px rgba(79, 70, 229, 0.35);   /* indigo focus ring */
+
+  /* ── MOTION ──────────────────────────────────────────────────────────── */
+  --duration-instant: 50ms;
+  --duration-fast:    150ms;
+  --duration-normal:  250ms;
+  --duration-slow:    400ms;
+  --duration-slower:  600ms;
+  --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-in:      cubic-bezier(0.4, 0, 1, 1);
+  --easing-out:     cubic-bezier(0, 0, 0.2, 1);
+  --easing-bounce:  cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── COMPONENT-LEVEL TOKENS ──────────────────────────────────────────── */
+  --control-bar-height:  56px;
+  --control-bar-bg:      rgba(255, 255, 255, 0.86);  /* sticky, frosted */
+  --control-bar-border:  var(--color-border-primary);
+  --step-rail-width:     48px;
+  --kpi-tile-min-width:  168px;
+  --kpi-rule-width:      3px;       /* left valence rule on KPI tiles */
+  --section-gap:         var(--space-10);
+  --card-padding:        var(--space-5);
+  --focus-ring:          var(--shadow-focus);
+}
+
+/* ── RESPONSIVE BREAKPOINTS (desktop-first; ~1024 is the laptop floor) ──── */
+/* Exposed as custom props for reference; media queries use the literals.
+   --breakpoint-lg 1024px  ·  --breakpoint-xl 1280px  ·  --breakpoint-2xl 1440px
+   No mobile/tablet layout — out of scope per brief. */
+:root {
+  --breakpoint-lg:  1024px;
+  --breakpoint-xl:  1280px;
+  --breakpoint-2xl: 1440px;
+}
+
+/* ============================================================================
+   DARK MODE — cool slate, not pure black. Reduced contrast (no #FFF on #000).
+   Manual: <html data-theme="dark">.  System: prefers-color-scheme below.
+   ============================================================================ */
+[data-theme="dark"] {
+  --color-bg-primary:        #0E1116;
+  --color-bg-secondary:      #161A21;
+  --color-bg-tertiary:       #1D232C;
+  --color-bg-inverse:        #E6EAEF;
+
+  --color-text-primary:      #E6EAEF;   /* soft off-white, not #FFF */
+  --color-text-secondary:    #9AA5B1;
+  --color-text-tertiary:     #6B7682;
+  --color-text-inverse:      #11151B;
+
+  --color-border-primary:    #28303A;
+  --color-border-secondary:  #1F262E;
+
+  /* Indigo lifts for contrast on dark; subtle wash deepens. */
+  --color-accent-primary:        #7C74F0;
+  --color-accent-primary-hover:  #6D64ED;
+  --color-accent-primary-active: #5B52E0;
+  --color-accent-secondary:      #8B85F2;
+  --color-accent-subtle:         #1C1F3A;
+
+  --color-status-success:    #2BB3A3;
+  --color-status-warning:    #E0A33E;
+  --color-status-error:      #E06A5C;
+  --color-status-info:       #7C74F0;
+
+  --color-surface-overlay:   rgba(0, 0, 0, 0.60);
+
+  /* Diverging scale on dark: low end mutes (no pale glow), high end softens. */
+  --data-fail-0:    #1E3A36;   /* muted deep teal, recedes on dark */
+  --data-fail-25:   #2F7A6E;
+  --data-fail-50:   #C99A3E;   /* amber holds */
+  --data-fail-75:   #CC744A;
+  --data-fail-100:  #D6473A;   /* red, slightly lifted for dark legibility */
+  --data-good:      #2BB3A3;
+  --data-mid:       #E0A33E;
+  --data-bad:       #E06A5C;
+  --data-cell-text-on-light: #0E1116;
+  --data-cell-text-on-dark:  #F4F6F8;
+
+  /* Voice motif — keep the cool/warm split, deepen for dark. */
+  --voice-machine-bg:        #1A1D38;
+  --voice-machine-border:    #7C74F0;
+  --voice-machine-text:      #C7D2FE;
+  --voice-machine-label:     #9A93F5;
+  --voice-human-bg:          #2A2212;
+  --voice-human-border:      #D9A441;
+  --voice-human-text:        #F0DDB2;
+  --voice-human-label:       #E0A33E;
+
+  /* Shadows: darker + softer in dark mode (not the light shadows). */
+  --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md:    0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-lg:    0 8px 28px rgba(0, 0, 0, 0.55);
+  --shadow-focus: 0 0 0 3px rgba(124, 116, 240, 0.45);
+
+  --control-bar-bg: rgba(22, 26, 33, 0.86);
+}
+
+/* System preference — applies dark unless the user explicitly chose light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg-primary:        #0E1116;
+    --color-bg-secondary:      #161A21;
+    --color-bg-tertiary:       #1D232C;
+    --color-bg-inverse:        #E6EAEF;
+    --color-text-primary:      #E6EAEF;
+    --color-text-secondary:    #9AA5B1;
+    --color-text-tertiary:     #6B7682;
+    --color-text-inverse:      #11151B;
+    --color-border-primary:    #28303A;
+    --color-border-secondary:  #1F262E;
+    --color-accent-primary:        #7C74F0;
+    --color-accent-primary-hover:  #6D64ED;
+    --color-accent-primary-active: #5B52E0;
+    --color-accent-secondary:      #8B85F2;
+    --color-accent-subtle:         #1C1F3A;
+    --color-status-success:    #2BB3A3;
+    --color-status-warning:    #E0A33E;
+    --color-status-error:      #E06A5C;
+    --color-status-info:       #7C74F0;
+    --color-surface-overlay:   rgba(0, 0, 0, 0.60);
+    --data-fail-0:    #1E3A36;
+    --data-fail-25:   #2F7A6E;
+    --data-fail-50:   #C99A3E;
+    --data-fail-75:   #CC744A;
+    --data-fail-100:  #D6473A;
+    --data-good:      #2BB3A3;
+    --data-mid:       #E0A33E;
+    --data-bad:       #E06A5C;
+    --data-cell-text-on-light: #0E1116;
+    --data-cell-text-on-dark:  #F4F6F8;
+    --voice-machine-bg:        #1A1D38;
+    --voice-machine-border:    #7C74F0;
+    --voice-machine-text:      #C7D2FE;
+    --voice-machine-label:     #9A93F5;
+    --voice-human-bg:          #2A2212;
+    --voice-human-border:      #D9A441;
+    --voice-human-text:        #F0DDB2;
+    --voice-human-label:       #E0A33E;
+    --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-md:    0 2px 8px rgba(0, 0, 0, 0.45);
+    --shadow-lg:    0 8px 28px rgba(0, 0, 0, 0.55);
+    --shadow-focus: 0 0 0 3px rgba(124, 116, 240, 0.45);
+    --control-bar-bg: rgba(22, 26, 33, 0.86);
+  }
+}
+
+/* ============================================================================
+   PLOTLY THEME REFERENCE (consumed in Phase 6 by a shared go.layout.Template)
+   Keep these in sync with the tokens above. The Python template should read:
+
+     paper_bgcolor / plot_bgcolor : --color-bg-secondary
+     font.family                  : 'IBM Plex Mono' (numerals) / 'Inter' (titles)
+     font.color                   : --color-text-secondary
+     gridcolor / zerolinecolor    : --color-border-secondary
+     colorway (categorical)       : indigo family — NEVER the data scale
+     FAIL-rate heatmap colorscale (the ONLY use of the diverging scale):
+       [[0.00, '#C8E6DF'], [0.25, '#86C5B6'], [0.50, '#EAC36A'],
+        [0.75, '#DC8A52'], [1.00, '#C0392B']]    (dark: see --data-fail-* above)
+     margins                      : multiples of --space-* (8/16/24)
+   ============================================================================ */

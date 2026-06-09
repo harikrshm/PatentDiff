@@ -6,4 +6,7 @@ traces/*.jsonl
 .venv/
 venv/
 .worktrees/
+.claude/worktrees/
+.dash_cache/
 .superpowers/
+traces/workbench_state/
