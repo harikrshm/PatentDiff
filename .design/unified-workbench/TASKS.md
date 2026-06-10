@@ -41,7 +41,7 @@ Date: 2026-06-10
   `--data-*` scale; overall opinion in serif; run metadata in a quiet `<details>`. _Modifies:
   `app_unified/pages/prototype.py` classNames + `uw-proto*` CSS. Done = `/` reads as a typeset patent
   memo whose output looks measured._
-- [ ] **T5 · Traces `/eval/traces` — reader + human-voice coder**: Memo three-pane: trace selector
+- [x] **T5 · Traces `/eval/traces` — reader + human-voice coder**: Memo three-pane: trace selector
   (memo "contents"), read-only **trace reader** (serif claims/spec/opinion on `--memo-surface`, hairline
   rules), and the **annotation form** as human-voice (segmented PASS/FAIL, taxonomy multiselect, comment
   textarea, reviewed, indigo Save, status). _Modifies: `app_unified/pages/eval_traces.py` + `uw-traces*`

@@ -82,7 +82,7 @@ def _trace_options() -> List[dict]:
 
 
 layout = html.Div(
-    className="uw-page uw-traces",
+    className="uw-page uw-page--memo uw-traces",
     children=[
         page_header("Traces — Error Analysis", "Browse traces and code failure modes."),
         dcc.Store(id="traces-phase", data=detect_phase(TAXONOMY_FILE)),
@@ -92,31 +92,42 @@ layout = html.Div(
                 html.Aside(
                     className="uw-traces__nav",
                     children=[
+                        html.Span("Contents", className="uw-kicker"),
                         html.Label("Trace", className="uw-label"),
                         dcc.Dropdown(id="traces-select", options=_trace_options(),
-                                     className="uw-dropdown"),
+                                     placeholder="Select a trace…",
+                                     className="uw-dropdown wb-dropdown"),
                     ],
                 ),
-                dcc.Loading(html.Section(id="traces-detail", className="uw-traces__detail"),
-                            type="dot"),
+                dcc.Loading(
+                    html.Section(
+                        id="traces-detail", className="uw-traces__detail",
+                        children=html.P("Select a trace to read.",
+                                        className="uw-traces__empty"),
+                    ),
+                    type="dot"),
                 html.Section(
-                    className="uw-traces__form",
+                    className="uw-traces__form uw-field--human",
                     children=[
+                        html.Span("Your reading", className="uw-field__voice"),
                         html.H2("Annotation", className="uw-traces__h2"),
                         html.Label("Verdict", className="uw-label"),
                         dcc.RadioItems(id="ann-verdict",
                                        options=[{"label": "PASS", "value": "PASS"},
                                                 {"label": "FAIL", "value": "FAIL"}],
-                                       value="PASS", className="uw-segmented__items"),
+                                       value="PASS",
+                                       className="uw-segmented__items wb-segmented__items"),
                         html.Label("Failure modes", className="uw-label"),
                         dcc.Dropdown(id="ann-modes", options=_taxonomy_options(),
-                                     multi=True, className="uw-dropdown"),
+                                     multi=True, placeholder="Tag failure modes…",
+                                     className="uw-dropdown wb-dropdown"),
                         html.Label("Comment", className="uw-label"),
-                        dcc.Textarea(id="ann-comment", className="uw-input--area",
+                        dcc.Textarea(id="ann-comment",
+                                     className="uw-input--area uw-traces__well",
                                      style={"height": "150px"}),
                         dcc.Checklist(id="ann-reviewed",
                                       options=[{"label": "Reviewed", "value": "yes"}],
-                                      value=[]),
+                                      value=[], className="uw-traces__reviewed"),
                         html.Button("Save", id="ann-save", n_clicks=0,
                                     className="uw-btn uw-btn--primary"),
                         html.Div(id="ann-status", className="uw-status",
@@ -130,29 +141,44 @@ layout = html.Div(
 
 
 # ── Callbacks ─────────────────────────────────────────────────────────────────
+def _meta_chip(label: str, value: str) -> html.Span:
+    return html.Span(className="uw-traces__chip", children=[
+        html.Span(f"{label} ", className="uw-traces__chip-label"),
+        html.Span(value, className="uw-num"),
+    ])
+
+
+def _patent_block(kicker: str, label: str, claim: str) -> list:
+    return [
+        html.H3(kicker, className="uw-traces__h3"),
+        html.P(label or "N/A", className="uw-traces__patentid uw-num"),
+        html.Div(claim or "—", className="uw-prose uw-traces__read"),
+    ]
+
+
 def _render_trace_detail(trace) -> html.Div:
     dims = trace.dimensions or {}
     src = trace.inputs.get("source_patent", {})
     tgt = trace.inputs.get("target_patent", {})
     children = [
-        html.H2("Trace", className="uw-traces__h2"),
-        html.P(f"Run ID: {trace.run_id[:12]}…  ·  Status: {trace.status}"),
-        html.P(f"Claim type: {dims.get('claim_type','N/A')}  ·  "
-               f"Length: {dims.get('claim_length','N/A')}  ·  "
-               f"Relationship: {dims.get('relationship','N/A')}"),
-        html.H3("Source Patent (A)"), html.P(src.get("label", "N/A")),
-        dcc.Textarea(value=src.get("independent_claim", ""), readOnly=True,
-                     className="uw-input--area", style={"height": "100px"}),
-        html.H3("Target Patent (B)"), html.P(tgt.get("label", "N/A")),
-        dcc.Textarea(value=tgt.get("independent_claim", ""), readOnly=True,
-                     className="uw-input--area", style={"height": "100px"}),
+        html.Span("Trace", className="uw-kicker"),
+        html.Div(className="uw-traces__meta", children=[
+            _meta_chip("ID", f"{trace.run_id[:12]}…"),
+            _meta_chip("Status", trace.status),
+            _meta_chip("Claim", dims.get("claim_type", "N/A")),
+            _meta_chip("Length", dims.get("claim_length", "N/A")),
+            _meta_chip("Relationship", dims.get("relationship", "N/A")),
+        ]),
+        *_patent_block("Source Patent (A)", src.get("label", "N/A"),
+                       src.get("independent_claim", "")),
+        *_patent_block("Target Patent (B)", tgt.get("label", "N/A"),
+                       tgt.get("independent_claim", "")),
     ]
     if trace.parsed_output:
-        children.append(html.H3("Overall Opinion"))
-        children.append(dcc.Textarea(value=trace.parsed_output.overall_opinion,
-                                     readOnly=True, className="uw-input--area",
-                                     style={"height": "120px"}))
-    return html.Div(children)
+        children.append(html.H3("Overall Opinion", className="uw-traces__h3"))
+        children.append(html.Div(trace.parsed_output.overall_opinion,
+                                 className="uw-prose uw-traces__read"))
+    return html.Div(className="uw-traces__reader", children=children)
 
 
 @callback(
@@ -171,7 +197,8 @@ def _select_trace(run_id, phase):
     traces = _load_traces()
     trace = traces.get(run_id)
     if trace is None:
-        return html.P("Trace not found."), "PASS", [], "", []
+        return (html.P("Trace not found.", className="uw-traces__empty"),
+                "PASS", [], "", [])
     prev = load_annotations(ANNOTATIONS_FILE).get(run_id)
     if prev is None:
         return _render_trace_detail(trace), "PASS", [], "", []
@@ -197,7 +224,8 @@ def _save(_n, run_id, verdict, modes, comment, reviewed, phase):
     modes = modes or []
     errors = validate_annotation(verdict, modes, comment or "")
     if errors:
-        return "❌ " + "; ".join(errors)
+        return html.Span("Couldn't save: " + "; ".join(errors),
+                         className="uw-status--error")
     traces = _load_traces()
     trace = traces.get(run_id)
     dimensions = trace.dimensions if trace else None
@@ -207,4 +235,4 @@ def _save(_n, run_id, verdict, modes, comment, reviewed, phase):
         comment=comment, reviewed=bool(reviewed), dimensions=dimensions,
     )
     persist_record(ANNOTATIONS_FILE, annotations)
-    return "✅ Annotation saved."
+    return html.Span("Annotation saved.", className="uw-status--ok")

@@ -490,6 +490,123 @@
   .uw-proto__grid { grid-template-columns: 1fr; }
 }
 
+/* ============================================================================
+   T5 · Traces (/eval/traces) — reader + human-voice coder
+   ----------------------------------------------------------------------------
+   Memo three-pane: contents (selector), trace reader (serif, the document
+   being judged), and the annotation form as a warm human-voice surface — the
+   act of writing on the document.
+   ============================================================================ */
+.uw-traces__grid {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr) 20rem;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+/* ---- Contents (selector) -------------------------------------------------- */
+.uw-traces__nav { display: flex; flex-direction: column; gap: var(--space-2); }
+.uw-traces__nav .uw-kicker { margin-bottom: var(--space-1); }
+
+/* ---- Trace reader (the document) ----------------------------------------- */
+.uw-traces__detail {
+  background: var(--memo-surface);
+  border: 1px solid var(--memo-border);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-6) var(--space-7);
+}
+.uw-traces__reader { display: flex; flex-direction: column; gap: var(--space-2); }
+.uw-traces__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--memo-rule);
+  margin-bottom: var(--space-2);
+}
+.uw-traces__chip { font-size: var(--font-size-xs); color: var(--memo-text-muted); }
+.uw-traces__chip-label {
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--memo-kicker);
+}
+.uw-traces__h3 {
+  margin: var(--space-4) 0 var(--space-1);
+  font-family: var(--font-family-memo);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--memo-text);
+}
+.uw-traces__patentid {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--memo-text-muted);
+}
+/* Read-only claim/spec/opinion: serif prose on paper, hairline framed, scrolls. */
+.uw-traces__read {
+  white-space: pre-wrap;
+  padding: var(--space-3) var(--space-4);
+  background: var(--memo-bg);
+  border-left: 2px solid var(--memo-rule);
+  border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+.uw-traces__empty {
+  color: var(--memo-text-muted);
+  font-style: italic;
+}
+
+/* ---- Annotation coder (human voice) -------------------------------------- */
+.uw-field--human {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-5) var(--space-6);
+  background: var(--voice-human-bg);
+  border: 1px solid var(--voice-human-border);
+  border-radius: var(--border-radius-md);
+}
+.uw-field__voice {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--voice-human-label);
+}
+.uw-field--human .uw-traces__h2 {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-family-memo);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--voice-human-text);
+}
+.uw-field--human .uw-label { color: var(--voice-human-label); margin-top: var(--space-2); }
+/* Comment well: write directly on the warm paper. */
+.uw-traces__well {
+  font-family: var(--font-family-memo);
+  font-size: var(--memo-reading-size);
+  line-height: var(--memo-reading-line-height);
+  color: var(--voice-human-text);
+  background: var(--memo-surface);
+  border-color: var(--voice-human-border);
+}
+.uw-traces__reviewed {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--voice-human-text);
+}
+.uw-traces__reviewed label { display: inline-flex; align-items: center; gap: var(--space-2); }
+.uw-field--human .uw-btn--primary { margin-top: var(--space-3); align-self: flex-start; }
+
+/* ---- Save status valence (paired with text, never color-only) ------------- */
+.uw-status--ok { color: var(--color-status-success); font-weight: var(--font-weight-medium); }
+.uw-status--error { color: var(--color-status-error); font-weight: var(--font-weight-medium); }
+
+@media (max-width: 1024px) {
+  .uw-traces__grid { grid-template-columns: 1fr; }
+}
+
 /* ---- Motion preference ---------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .uw-root *,
