@@ -1,0 +1,167 @@
+/* ============================================================================
+   Unified Workbench — uw-* base stylesheet  (Phase 6 · T1 Foundation)
+   ----------------------------------------------------------------------------
+   "Analyst's workbench": one token system, two registers (memo / instrument).
+   Consumes the canonical tokens defined in workbench.css. Everything is scoped
+   under uw-* so the Overview console (wb-*) is untouched.
+   Brief: .design/unified-workbench/DESIGN_BRIEF.md
+   ============================================================================ */
+
+/* ---- App root + base type ------------------------------------------------- */
+.uw-root {
+  font-family: var(--font-family-body);
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---- Page wrappers -------------------------------------------------------- */
+.uw-page { padding: var(--space-7) var(--space-8); }
+
+.uw-page__header { margin-bottom: var(--space-6); }
+.uw-page__title {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-tight);
+}
+.uw-page__subtitle {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+/* ---- Register surfaces ---------------------------------------------------- */
+/* MEMO — warm typeset document surface (Prototype, Traces). */
+.uw-page--memo {
+  background: var(--memo-bg);
+  color: var(--memo-text);
+}
+.uw-page--memo .uw-page__title {
+  font-family: var(--font-family-memo);
+  letter-spacing: 0;
+}
+/* Reading prose inside memo pages: refined serif, comfortable measure. */
+.uw-prose {
+  font-family: var(--font-family-memo);
+  font-size: var(--memo-reading-size);
+  line-height: var(--memo-reading-line-height);
+  color: var(--memo-text);
+  max-width: var(--memo-measure);
+}
+
+/* INSTRUMENT — cool data surface (Comparison; Overview keeps its own wb-*). */
+.uw-page--instrument { background: var(--color-bg-primary); }
+
+/* ---- Shared primitives ---------------------------------------------------- */
+.uw-kicker {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-tertiary);
+}
+
+.uw-label {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.uw-input,
+.uw-input--area {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  transition: border-color var(--duration-fast) var(--easing-default),
+              box-shadow var(--duration-fast) var(--easing-default);
+}
+.uw-input--area { resize: vertical; line-height: var(--line-height-normal); }
+.uw-input:focus,
+.uw-input--area:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: var(--focus-ring);
+}
+.uw-input::placeholder,
+.uw-input--area::placeholder { color: var(--color-text-tertiary); }
+
+.uw-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--easing-default),
+              border-color var(--duration-fast) var(--easing-default);
+}
+.uw-btn:hover { background: var(--color-bg-tertiary); }
+.uw-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.uw-btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+
+.uw-btn--primary {
+  color: var(--on-accent);
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
+}
+.uw-btn--primary:hover {
+  background: var(--accent-fill-hover);
+  border-color: var(--accent-fill-hover);
+}
+
+.uw-status {
+  margin-top: var(--space-2);
+  min-height: 1.25em;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Tabular mono numerals — the instrument readout default. */
+.uw-num {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Motion preference ---------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .uw-root *,
+  .uw-root *::before,
+  .uw-root *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ---- System-preference dark fallback for the unified-only tokens ----------
+   (When no explicit data-theme is set. The toggle path uses [data-theme].) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --sidebar-bg:             #161A20;
+    --sidebar-surface-hover:  #1C2128;
+    --sidebar-item-bg-active: rgba(99, 102, 241, 0.16);
+    --memo-bg:          #1C1A16;
+    --memo-surface:     #221F1A;
+    --memo-border:      #34302A;
+    --memo-rule:        #2A2620;
+    --memo-text:        #ECE6DC;
+    --memo-text-muted:  #B7AC98;
+    --memo-kicker:      #9A8B6E;
+  }
+}

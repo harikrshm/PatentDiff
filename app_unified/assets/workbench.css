@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap');
+
 /* ============================================================================
    Eval Workbench — Design Tokens + Base Stylesheet
    Philosophy: ANALYST CONSOLE / INSTRUMENT PANEL
@@ -161,6 +163,34 @@
   --breakpoint-lg:  1024px;
   --breakpoint-xl:  1280px;
   --breakpoint-2xl: 1440px;
+
+  /* ── UNIFIED APP · sidebar metrics (left nav + collapse) ─────────────────── */
+  --sidebar-width:            232px;
+  --sidebar-width-collapsed:  56px;
+  --sidebar-bg:               var(--color-bg-tertiary);
+  --sidebar-surface-hover:    var(--color-bg-secondary);
+  --sidebar-border:           var(--color-border-primary);
+  --sidebar-item-text:        var(--color-text-secondary);
+  --sidebar-item-text-active: var(--color-accent-primary);
+  --sidebar-item-bg-active:   var(--color-accent-subtle);
+  --sidebar-rail-active:      var(--color-accent-primary);
+  --sidebar-icon-size:        18px;
+  --sidebar-group-label:      var(--color-text-tertiary);
+  --sidebar-transition:       width var(--duration-normal) var(--easing-default);
+
+  /* ── UNIFIED APP · memo register (document surface, on the voice-human warmth) ── */
+  --memo-bg:          #FCF9F3;
+  --memo-surface:     #FFFDFA;
+  --memo-border:      #E7DECB;
+  --memo-rule:        #EFE7D6;
+  --memo-text:        var(--color-text-primary);
+  --memo-text-muted:  #6B5E47;
+  --memo-kicker:      #8A7A5C;
+  --memo-accent:      var(--color-accent-primary);
+  --font-family-memo: 'Source Serif 4', 'Newsreader', Georgia, 'Times New Roman', serif;
+  --memo-reading-size:        15px;
+  --memo-reading-line-height: 1.6;
+  --memo-measure:             68ch;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -222,6 +252,18 @@
   --shadow-focus: 0 0 0 3px rgba(124, 116, 240, 0.45);
 
   --control-bar-bg: rgba(22, 26, 33, 0.86);
+
+  /* ── UNIFIED APP · sidebar + memo (dark) — memo stays WARM vs the cool console ── */
+  --sidebar-bg:             #161A20;
+  --sidebar-surface-hover:  #1C2128;
+  --sidebar-item-bg-active: rgba(99, 102, 241, 0.16);
+  --memo-bg:          #1C1A16;
+  --memo-surface:     #221F1A;
+  --memo-border:      #34302A;
+  --memo-rule:        #2A2620;
+  --memo-text:        #ECE6DC;
+  --memo-text-muted:  #B7AC98;
+  --memo-kicker:      #9A8B6E;
 }
 
 @media (prefers-color-scheme: dark) {
