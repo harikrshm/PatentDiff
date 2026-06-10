@@ -10,7 +10,7 @@ app (``python -m app_unified.app``) is now the entry point.
 """
 from __future__ import annotations
 
-from dash import Input, Output, dash_table, dcc, html
+from dash import dash_table, dcc, html
 
 from app_workbench.components import assumed_badge, human_field
 from app_workbench.constants import DECISION_MODES, LAYER_OPTIONS
@@ -375,5 +375,5 @@ def build_console_body() -> html.Div:
     )
 
 
-# Register section callbacks against the global registry (after layout helpers exist).
+# Side-effect import — registers @callback decorators against the global Dash registry.
 from app_workbench import callbacks  # noqa: E402,F401
