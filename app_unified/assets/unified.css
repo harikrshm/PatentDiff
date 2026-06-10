@@ -696,6 +696,40 @@
   .uw-compare__flips { grid-template-columns: 1fr; }
 }
 
+/* ============================================================================
+   T8 · Interactive states — deliberate press feedback + calm empty readouts
+   ----------------------------------------------------------------------------
+   Hover / focus-visible / disabled / loading / empty are defined alongside each
+   component above; this block adds the :active press and the empty-state cards.
+   ============================================================================ */
+.uw-btn:active { background: var(--color-bg-tertiary); transform: translateY(0.5px); }
+.uw-btn--primary:active { background: var(--accent-fill-hover); transform: translateY(0.5px); }
+.uw-nav__item:active { background: var(--sidebar-item-bg-active); }
+.uw-themetoggle:active { transform: translateY(0.5px); }
+
+/* dcc.Loading dot tint → indigo chrome (never data colors). */
+.uw-page ._dash-loading,
+.uw-page .dash-spinner * { color: var(--color-accent-primary); }
+
+/* Calm empty / prompt readouts (Comparison no-data, Traces no-selection). */
+.uw-compare__empty {
+  padding: var(--space-7) var(--space-6);
+  background: var(--color-bg-secondary);
+  border: 1px dashed var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  text-align: center;
+}
+.uw-compare__empty-title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+.uw-compare__empty-hint {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
 /* ---- Motion preference ---------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .uw-root *,

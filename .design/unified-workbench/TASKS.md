@@ -61,7 +61,7 @@ Date: 2026-06-10
   left rail, no overlap), and the **global theme toggle recolors `uw-*` AND `wb-*`** (both read the same
   tokens). _Modifies: only glue/CSS adjacencies if needed. Done = `/eval` unchanged in feel; toggle flips
   the whole app, not just the console._
-- [ ] **T8 · Interactive states pass**: Hover/focus/active/disabled/loading across sidebar items,
+- [x] **T8 · Interactive states pass**: Hover/focus/active/disabled/loading across sidebar items,
   toolbar controls, segmented toggles, dropdowns, buttons; **empty/error states** for Comparison (missing
   eval file → calm empty readout) and Traces (no trace selected → prompt); Run-eval disabled+streaming
   styling. Covers: hover, focus-visible, active, disabled, loading, empty, error. _Modifies: CSS + minor

@@ -161,6 +161,10 @@ def _render(before_set, after_set, eval_kind):
     if not (before_set and after_set and eval_kind):
         return html.P("Pick two trace sets.", className="uw-compare__empty"), None, None
     r = build_comparison(TRACES_DIR, before_set, after_set, eval_kind)
+    # Calm empty readout when neither set has scored results (e.g. the eval file
+    # for these sets hasn't been generated yet) — rather than misleading 0% tiles.
+    if r["before_scored"] == 0 and r["after_scored"] == 0:
+        return _empty_readout(before_set, after_set, eval_kind), None, None
     delta = r["delta_pp"]
     valence = "up" if delta > 0 else "down" if delta < 0 else ""
     kpis = [
@@ -183,6 +187,16 @@ def _render(before_set, after_set, eval_kind):
         _flip_list("Regressed", "PASS → FAIL", "bad", regressed),
     ])
     return kpis, matrix, flipped
+
+
+def _empty_readout(before_set: str, after_set: str, eval_kind: str) -> html.Div:
+    return html.Div(className="uw-compare__empty", children=[
+        html.P(f"No {eval_kind} eval results for "
+               f"“{before_set}” → “{after_set}” yet.",
+               className="uw-compare__empty-title"),
+        html.P("Run the eval for these trace sets on Overview, then compare.",
+               className="uw-compare__empty-hint"),
+    ])
 
 
 def _flip_list(title: str, arrow: str, valence: str, ids: list) -> html.Div:
