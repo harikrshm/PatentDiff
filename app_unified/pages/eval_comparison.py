@@ -22,6 +22,8 @@ _EVAL_STEM = {"phosita": "phosita_eval_full", "citation": "citation_text_eval_fu
 
 def eval_path(base: Path, trace_set: str, eval_kind: str) -> Path:
     """Map (trace set, eval kind) → eval JSONL path (suffix convention)."""
+    if eval_kind not in _EVAL_STEM:
+        raise ValueError(f"unknown eval_kind {eval_kind!r}; expected one of {list(_EVAL_STEM)}")
     stem = _EVAL_STEM[eval_kind]
     if trace_set == "live":
         return base / f"{stem}.jsonl"
