@@ -2,7 +2,7 @@
 
 **Phase 1: Open Coding for Failure Mode Discovery**
 
-A Streamlit-based web application for systematically annotating PatentDiff traces to discover and label failure modes through qualitative coding analysis.
+A web application for systematically annotating PatentDiff traces to discover and label failure modes through qualitative coding analysis.
 
 ## Overview
 
@@ -19,10 +19,10 @@ This Phase 1 tool focuses on **failure mode discovery** without evaluating tool 
 ### Run the App
 
 ```bash
-python -m streamlit run app_annotation.py
+python -m app_unified.app   # then open http://127.0.0.1:8050/
 ```
 
-The app will open at `http://localhost:8501` with two views:
+Navigate to `/eval/traces` for the annotation tool. The app provides two views:
 1. **Annotation Interface** — Annotate individual traces
 2. **Analysis Dashboard** — View aggregate results
 
@@ -103,7 +103,7 @@ You can mark **PASS with failure modes** if minor issues don't affect overall co
 
 ```
 patentdiff/
-├── app_annotation.py          # Main Streamlit app
+├── app_unified/               # Unified Dash app (entry: python -m app_unified.app)
 ├── core/
 │   └── annotation.py          # Data model (AnnotationRecord)
 ├── traces.jsonl               # Input traces (read-only)
@@ -171,7 +171,7 @@ Phase 5: Scale Evaluation (Python Script)
 ## Technical Details
 
 ### Technology Stack
-- **Framework**: Streamlit 1.28+
+- **Framework**: Dash (via unified app, `python -m app_unified.app`)
 - **Data Model**: Pydantic BaseModel
 - **Persistence**: JSON Lines format (one JSON object per line)
 - **Storage**: traces_annotations.jsonl (created on first save)
@@ -208,9 +208,9 @@ Expected: 7 tests pass
 
 ### App won't start
 ```bash
-python -m streamlit run app_annotation.py
+python -m app_unified.app   # then open http://127.0.0.1:8050/
 ```
-(Not `python app_annotation.py`)
+Navigate to `/eval/traces` for the annotation interface.
 
 ### No traces loading
 Check that `traces.jsonl` exists in the project directory with valid JSON Lines format.
@@ -228,7 +228,7 @@ Use the scrollbar in the specification text area to view full text. Height is 25
 - ✅ Support simple PASS/FAIL quality assessment
 - ✅ Export results for Phase 2 clustering
 - ✅ All tests passing
-- ✅ Ready for Streamlit deployment
+- ✅ Available at `/eval/traces` in the unified Dash app
 
 ## Next Steps
 

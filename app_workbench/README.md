@@ -5,9 +5,9 @@ Interactive eval workbench: how-bad → where → why-layer → what-to-fix-firs
 ## Run
 
     pip install -r requirements.txt
-    python -m app_workbench.app
+    python -m app_unified.app   # then open http://127.0.0.1:8050/
 
-Open http://127.0.0.1:8050.
+Navigate to `/eval` for the eval workbench overview.
 
 ## Surfaces
 - **Explore** — corpus selector, Run-eval, KPI tiles, drag-drop pivot heatmap, shape-read hypothesis. Widgets are draggable/resizable; layout persists.

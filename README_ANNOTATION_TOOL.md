@@ -1,6 +1,6 @@
 # PatentDiff Annotation Tool
 
-A Streamlit-based tool for systematic error analysis of PatentDiff traces through structured annotation.
+A tool for systematic error analysis of PatentDiff traces through structured annotation.
 
 ## Overview
 
@@ -11,10 +11,10 @@ Supports two phases:
 ## Running the Tool
 
 ```bash
-streamlit run app_annotation.py
+python -m app_unified.app   # then open http://127.0.0.1:8050/
 ```
 
-Opens at http://localhost:8501
+Navigate to `/eval/traces` for the annotation interface.
 
 ## Features
 
@@ -45,7 +45,7 @@ Once failure_taxonomy.json exists:
 
 ## Files
 
-- `app_annotation.py` — Main Streamlit app
+- `app_unified/` — Unified Dash app (entry: `python -m app_unified.app`)
 - `core/annotation.py` — Data models and persistence
 - `core/trace_loader.py` — Trace loading
 - `traces/traces_annotations.jsonl` — Annotation storage
