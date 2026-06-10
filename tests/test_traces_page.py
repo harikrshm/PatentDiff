@@ -25,6 +25,16 @@ def test_validate_rejects_pass_with_modes():
     assert any("cannot have failure modes" in e for e in errs)
 
 
+def test_build_record_phase1_fail_uses_open_coded_modes():
+    rec = eval_traces.build_record(
+        run_id="r2", phase=1, verdict="FAIL",
+        failure_modes_ids=["hallucination"], comment="made up text",
+        reviewed=False, dimensions=None,
+    )
+    assert rec.open_coded_failure_modes == ["hallucination"]
+    assert rec.failure_modes is None
+
+
 def test_save_round_trip(tmp_path):
     path = tmp_path / "ann.jsonl"
     rec = eval_traces.build_record(

@@ -9,11 +9,11 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import dash
-from dash import Input, Output, State, callback, ctx, dcc, html, no_update
+from dash import Input, Output, State, callback, dcc, html, no_update
 
 from app_unified.components import page_header
 from core.annotation import (AnnotationRecord, detect_phase, load_annotations,
-                             load_taxonomy, parse_failure_modes, save_annotations)
+                             load_taxonomy, save_annotations)
 from core.trace_loader import load_traces
 
 dash.register_page(__name__, path="/eval/traces", name="Traces")
@@ -62,6 +62,10 @@ def _load_traces() -> dict:
     return {t.run_id: t for t in load_traces(TRACES_FILE)}
 
 
+# v1 scope: phase-1 free-text failure-mode entry from the original Streamlit tool is
+# intentionally dropped — this port uses the phase-3 taxonomy dropdown only. Deleting or
+# renaming failure_taxonomy.json makes detect_phase return 1 and empties the dropdown,
+# which would make FAIL annotation impossible, so the taxonomy file must exist.
 def _taxonomy_options() -> List[dict]:
     tax = load_taxonomy(TAXONOMY_FILE)
     return [{"label": c["name"], "value": c["id"]}
