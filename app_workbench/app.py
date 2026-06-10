@@ -355,11 +355,11 @@ def build_console_body() -> html.Div:
     """The console's scrolling narrative, minus the global stores/Location/theme
     toggle (the unified shell owns those)."""
     return html.Div(
-        className="wb-shell wb-page",
+        className="wb-root",
         children=[
             _control_bar(),
             html.Div(
-                className="wb-shell__body",
+                className="wb-shell wb-page",
                 children=[
                     _step_rail(),
                     html.Main(
