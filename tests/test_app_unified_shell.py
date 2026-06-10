@@ -28,3 +28,14 @@ def test_sidebar_marks_active_route():
     active = [c for c in traces_nav
              if getattr(c, "href", None) and "is-active" in c.className]
     assert [c.href for c in active] == ["/eval/traces"]
+
+
+def test_sidebar_collapses_only_on_overview():
+    from app_unified.app import _shell_state
+
+    # The Overview console (/eval exactly) collapses the sidebar to icons.
+    assert _shell_state("/eval")[1] == "uw-shell is-collapsed"
+    # Every other route — including eval sub-routes — keeps the full sidebar.
+    assert _shell_state("/")[1] == "uw-shell"
+    assert _shell_state("/eval/traces")[1] == "uw-shell"
+    assert _shell_state("/eval/comparison")[1] == "uw-shell"

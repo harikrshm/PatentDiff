@@ -51,22 +51,33 @@ def sidebar_nav(active_path: str | None) -> list:
 
 
 def sidebar() -> html.Aside:
-    """Persistent left sidebar: brand + primary nav."""
+    """Persistent left sidebar: brand + primary nav.
+
+    The <aside> reserves the layout footprint (full or, on /eval, collapsed
+    width); the inner __panel is the visual surface that overlays content when
+    hovered/focused while collapsed, so expanding never shifts the page (T3).
+    """
     return html.Aside(
         id="uw-sidebar",
         className="uw-sidebar",
         **{"aria-label": "Primary"},
-        children=[
-            html.Div(
-                className="uw-sidebar__brand",
-                children=[
-                    html.Span("PatentDiff", className="uw-sidebar__brand-strong"),
-                    html.Span("Workbench", className="uw-sidebar__brand-sub"),
-                ],
-            ),
-            html.Nav(id="uw-sidebar-nav", className="uw-nav",
-                     children=sidebar_nav("/")),
-        ],
+        children=html.Div(
+            className="uw-sidebar__panel",
+            children=[
+                html.Div(
+                    className="uw-sidebar__brand",
+                    children=[
+                        html.Span("PD", className="uw-sidebar__brand-mark",
+                                  **{"aria-hidden": "true"}),
+                        html.Span("PatentDiff",
+                                  className="uw-sidebar__brand-strong"),
+                        html.Span("Workbench", className="uw-sidebar__brand-sub"),
+                    ],
+                ),
+                html.Nav(id="uw-sidebar-nav", className="uw-nav",
+                         children=sidebar_nav("/")),
+            ],
+        ),
     )
 
 

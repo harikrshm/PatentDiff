@@ -164,18 +164,30 @@
 .uw-pagewrap { flex: 1 1 auto; min-width: 0; }
 
 /* ---- Sidebar -------------------------------------------------------------- */
+/* The <aside> only reserves the layout footprint; the inner __panel is the
+   visual surface so it can overlay content when expanded-on-hover (T3). */
 .uw-sidebar {
+  position: relative;
   flex: 0 0 var(--sidebar-width);
   width: var(--sidebar-width);
+  transition: var(--sidebar-transition);
+}
+
+.uw-sidebar__panel {
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 100%;                 /* tracks the aside footprint by default */
   display: flex;
   flex-direction: column;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
-  transition: var(--sidebar-transition);
-  overflow: hidden;            /* labels clip cleanly when collapsed (T3) */
+  overflow: hidden;            /* labels clip cleanly when collapsed */
+  transition: width var(--duration-normal) var(--easing-default),
+              box-shadow var(--duration-fast) var(--easing-default);
 }
 
 .uw-sidebar__brand {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -184,6 +196,18 @@
   padding: 0 var(--space-5);
   border-bottom: 1px solid var(--sidebar-border);
   white-space: nowrap;
+}
+/* Compact mark shown only in the collapsed icon rail. */
+.uw-sidebar__brand-mark {
+  display: none;
+  position: absolute;
+  left: var(--space-4);
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-md);
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--color-text-primary);
 }
 .uw-sidebar__brand-strong {
   font-weight: var(--font-weight-semibold);
@@ -262,6 +286,47 @@
   line-height: 1;
 }
 .uw-nav__label { overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Collapsed icon rail (T3) — active only on /eval via .is-collapsed ----
+   The aside footprint shrinks to the icon width so the console step-rail leads
+   the left edge. Labels stay in the DOM (opacity-hidden) so collapsed items keep
+   their accessible names. Hover / keyboard focus expands the panel as an overlay,
+   so content never shifts. */
+.uw-shell.is-collapsed .uw-sidebar {
+  flex-basis: var(--sidebar-width-collapsed);
+  width: var(--sidebar-width-collapsed);
+}
+
+.uw-shell.is-collapsed .uw-nav__label,
+.uw-shell.is-collapsed .uw-nav__group,
+.uw-shell.is-collapsed .uw-sidebar__brand-strong,
+.uw-shell.is-collapsed .uw-sidebar__brand-sub {
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--easing-default);
+}
+.uw-shell.is-collapsed .uw-sidebar__brand-mark { display: block; }
+
+/* Temporary expand on hover / focus-within: panel overlays content. */
+.uw-shell.is-collapsed .uw-sidebar:hover .uw-sidebar__panel,
+.uw-shell.is-collapsed .uw-sidebar:focus-within .uw-sidebar__panel {
+  width: var(--sidebar-width);
+  box-shadow: var(--shadow-lg);
+  z-index: 40;
+}
+.uw-shell.is-collapsed .uw-sidebar:hover .uw-nav__label,
+.uw-shell.is-collapsed .uw-sidebar:focus-within .uw-nav__label,
+.uw-shell.is-collapsed .uw-sidebar:hover .uw-nav__group,
+.uw-shell.is-collapsed .uw-sidebar:focus-within .uw-nav__group,
+.uw-shell.is-collapsed .uw-sidebar:hover .uw-sidebar__brand-strong,
+.uw-shell.is-collapsed .uw-sidebar:focus-within .uw-sidebar__brand-strong,
+.uw-shell.is-collapsed .uw-sidebar:hover .uw-sidebar__brand-sub,
+.uw-shell.is-collapsed .uw-sidebar:focus-within .uw-sidebar__brand-sub {
+  opacity: 1;
+}
+.uw-shell.is-collapsed .uw-sidebar:hover .uw-sidebar__brand-mark,
+.uw-shell.is-collapsed .uw-sidebar:focus-within .uw-sidebar__brand-mark {
+  display: none;
+}
 
 /* ---- Top contextual toolbar ---------------------------------------------- */
 .uw-toolbar {

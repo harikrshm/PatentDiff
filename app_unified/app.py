@@ -55,6 +55,7 @@ app.layout = html.Div(
         dcc.Store(id="theme", data="light"),     # app-global; console figures read it
         dcc.Store(id="data-version", data=0),     # console refresh signal
         html.Div(
+            id="uw-shell",
             className="uw-shell",
             children=[
                 sidebar(),
@@ -79,10 +80,18 @@ app.layout = html.Div(
 )
 
 
-# Re-render the sidebar nav with the active route marked.
-@app.callback(Output("uw-sidebar-nav", "children"), Input("url", "pathname"))
-def _sidebar_active(pathname: str):
-    return sidebar_nav(pathname)
+# Per-route shell state: mark the active nav item AND collapse the sidebar to an
+# icon rail on the Overview console (/eval only) so its own step-rail can lead the
+# left edge. Every other route shows the full labeled sidebar.
+@app.callback(
+    Output("uw-sidebar-nav", "children"),
+    Output("uw-shell", "className"),
+    Input("url", "pathname"),
+)
+def _shell_state(pathname: str):
+    collapsed = (pathname or "/") == "/eval"
+    shell_class = "uw-shell" + (" is-collapsed" if collapsed else "")
+    return sidebar_nav(pathname), shell_class
 
 
 # Theme toggle (clientside): flips <html data-theme>, persists, mirrors to `theme`

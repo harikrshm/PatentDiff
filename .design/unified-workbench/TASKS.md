@@ -26,7 +26,7 @@ Date: 2026-06-10
   pinned right). Per-route active state via the existing `url` pathname. _Modifies: `app_unified/app.py`,
   `components.py`. New `uw-sidebar*`, `uw-toolbar*` CSS. Done = Linear-style labeled sidebar + toolbar on
   every route; active item correct._
-- [ ] **T3 · Sidebar icon-collapse on `/eval`** _(riskiest interaction — do early)_: Collapsed
+- [x] **T3 · Sidebar icon-collapse on `/eval`** _(riskiest interaction — do early)_: Collapsed
   (`--sidebar-width-collapsed`) icon state + width transition; sidebar auto-collapses on `/eval` and
   expands on all other routes (extend the existing pathname callback to toggle a root class / `data-`
   attr; clientside or server). Hover/pin temporarily expands. Console step-rail must lead the left edge
