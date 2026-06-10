@@ -68,7 +68,7 @@ Date: 2026-06-10
   markup. Done = every interactive element has a deliberate state; nothing falls back to browser default._
 
 ## Responsive & Polish
-- [ ] **T9 · Dark-mode pass (both registers)**: Verify the warm brown-black memo dark vs the cool console
+- [x] **T9 · Dark-mode pass (both registers)**: Verify the warm brown-black memo dark vs the cool console
   dark, sidebar dark chrome, voice/data palettes, and that no `uw-*` surface is stranded light in dark
   mode. _Modifies: dark token usage / CSS. Breakpoints: n/a. Done = toggling dark looks intentional in
   every page, both registers._

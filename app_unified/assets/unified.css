@@ -730,6 +730,22 @@
   color: var(--color-text-tertiary);
 }
 
+/* ============================================================================
+   T9 · Dark-mode safety — keep dash_table chrome from stranding light
+   ----------------------------------------------------------------------------
+   Cells/headers are already transparent via the page style dicts; dash_table's
+   own container/inner can ship a white background, so neutralize it here so the
+   themed surface (memo paper / instrument card) shows through in both themes.
+   ============================================================================ */
+.uw-machine .dash-spreadsheet-container,
+.uw-machine .dash-spreadsheet-inner,
+.uw-machine .dash-spreadsheet,
+.uw-compare__matrix .dash-spreadsheet-container,
+.uw-compare__matrix .dash-spreadsheet-inner,
+.uw-compare__matrix .dash-spreadsheet {
+  background-color: transparent !important;
+}
+
 /* ---- Motion preference ---------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .uw-root *,
