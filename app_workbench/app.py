@@ -1,18 +1,16 @@
-"""PatentDiff Eval Workbench — analyst-console entry point.
+"""PatentDiff Eval Workbench — console layout builder.
 
-A single-page scrolling decision narrative (not a multipage app):
-    ① How bad → ② Where → ③ Why → ④ Priority → ⑤ Decision
-under a persistent control bar, with a step rail on the left.
+Exposes ``build_console_body()`` for use by the unified app's /eval page.
+The unified shell owns the global Dash instance, dcc.Location, dcc.Store
+(theme / data-version), and the theme-toggle button; this module must NOT
+duplicate any of those.
 
-Run with:
-    python -m app_workbench.app
+Previously run standalone with ``python -m app_workbench.app``; the unified
+app (``python -m app_unified.app``) is now the entry point.
 """
 from __future__ import annotations
 
-from pathlib import Path
-
-import diskcache
-from dash import DiskcacheManager, Dash, Input, Output, State, dash_table, dcc, html
+from dash import Input, Output, dash_table, dcc, html
 
 from app_workbench.components import assumed_badge, human_field
 from app_workbench.constants import DECISION_MODES, LAYER_OPTIONS
@@ -25,18 +23,6 @@ PRIORITY_CELLS = [(ct, rel) for ct in ("Method", "System")
                   for rel in ("Anticipation", "Implicit", "Novel")]
 TIER_OPTIONS = [{"label": t, "value": t} for t in ("High", "Med", "Low")]
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-CACHE_DIR = REPO_ROOT / ".dash_cache"
-
-background_callback_manager = DiskcacheManager(diskcache.Cache(str(CACHE_DIR)))
-
-app = Dash(
-    __name__,
-    background_callback_manager=background_callback_manager,
-    suppress_callback_exceptions=True,
-)
-app.title = "PatentDiff — Eval Workbench"
-
 # ── The five funnel steps: (anchor id, number, title, the question it answers) ──
 STEPS = [
     ("how-bad", "01", "How bad", "What's the headline failure magnitude?"),
@@ -48,7 +34,11 @@ STEPS = [
 
 
 def _control_bar() -> html.Header:
-    """Sticky, frosted chrome: corpus selector · run eval · last-run · theme."""
+    """Sticky, frosted chrome: corpus selector · run eval · last-run.
+
+    Note: the theme-toggle button is owned by the unified shell's appbar and
+    must NOT be duplicated here.
+    """
     return html.Header(
         className="wb-controlbar",
         children=[
@@ -90,15 +80,6 @@ def _control_bar() -> html.Header:
                     html.Span("Last run", className="wb-kicker"),
                     html.Span("—", id="last-run", className="wb-num wb-controlbar__lastrun"),
                 ],
-            ),
-            html.Button(
-                id="theme-toggle",
-                className="wb-themetoggle",
-                n_clicks=0,
-                title="Toggle light / dark",
-                **{"aria-label": "Toggle light or dark theme"},
-                children=html.Span("◐", className="wb-themetoggle__glyph",
-                                    **{"aria-hidden": "true"}),
             ),
         ],
     )
@@ -369,80 +350,30 @@ _SECTION_BODIES = {
     "decision": html.Div(id="decision-body", children=_decision_body()),
 }
 
-app.layout = html.Div(
-    className="wb-root",
-    children=[
-        dcc.Location(id="url"),
-        html.Div(id="url-writer-dummy", style={"display": "none"}),
-        dcc.Store(id="data-version", data=0),
-        dcc.Store(id="theme", data="light"),  # mirrors data-theme for server figures
-        _control_bar(),
-        html.Div(
-            className="wb-shell wb-page",
-            children=[
-                _step_rail(),
-                html.Main(
-                    className="wb-main",
-                    children=[
-                        _section(anchor, num, title, question, _SECTION_BODIES[anchor])
-                        for anchor, num, title, question in STEPS
-                    ],
-                ),
-            ],
-        ),
-    ],
-)
 
-# Reflect the current read in the address bar (shareable/bookmarkable), via
-# history.replaceState — a side-effect, so it never outputs url.search and thus
-# creates no callback dependency cycle with the server-side deep-link reader.
-app.clientside_callback(
-    """
-    function(set, ev) {
-        try {
-            var p = new URLSearchParams();
-            if (set) p.set('set', set);
-            if (ev) p.set('eval', ev);
-            var s = '?' + p.toString();
-            if (s !== window.location.search) {
-                window.history.replaceState(null, '', s);
-            }
-        } catch (e) {}
-        return '';
-    }
-    """,
-    Output("url-writer-dummy", "children"),
-    Input("corpus-selector", "value"),
-    Input("eval-toggle", "value"),
-)
+def build_console_body() -> html.Div:
+    """The console's scrolling narrative, minus the global stores/Location/theme
+    toggle (the unified shell owns those)."""
+    return html.Div(
+        className="wb-shell wb-page",
+        children=[
+            _control_bar(),
+            html.Div(
+                className="wb-shell__body",
+                children=[
+                    _step_rail(),
+                    html.Main(
+                        className="wb-main",
+                        children=[
+                            _section(anchor, num, title, question, _SECTION_BODIES[anchor])
+                            for anchor, num, title, question in STEPS
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
 
-# Theme toggle (clientside): flips <html data-theme>, persists to localStorage,
-# and mirrors the value into the `theme` Store so server-side Plotly figures can
-# recolor. On initial load (no click) it just reports the theme workbench.js set.
-app.clientside_callback(
-    """
-    function(n_clicks, current) {
-        var html = document.documentElement;
-        var present = html.getAttribute('data-theme');
-        if (!present) {
-            present = (window.matchMedia &&
-                window.matchMedia('(prefers-color-scheme: dark)').matches)
-                ? 'dark' : 'light';
-        }
-        if (!n_clicks) { return present; }       // initial load: report, don't flip
-        var next = present === 'dark' ? 'light' : 'dark';
-        html.setAttribute('data-theme', next);
-        try { localStorage.setItem('wb-theme', next); } catch (e) {}
-        return next;
-    }
-    """,
-    Output("theme", "data"),
-    Input("theme-toggle", "n_clicks"),
-    State("theme", "data"),
-)
 
-# Register section callbacks against the global registry (after app exists).
+# Register section callbacks against the global registry (after layout helpers exist).
 from app_workbench import callbacks  # noqa: E402,F401
-
-if __name__ == "__main__":
-    app.run(debug=True)
