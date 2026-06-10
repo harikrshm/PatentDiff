@@ -56,7 +56,7 @@ Date: 2026-06-10
   Comparison reads like the console's measurement surfaces, not a plain table._
 
 ## Integration & States
-- [ ] **T7 · Overview `/eval` integration check** _(no restyle)_: Verify the existing `wb-*` console
+- [x] **T7 · Overview `/eval` integration check** _(no restyle)_: Verify the existing `wb-*` console
   renders correctly inside the new shell, the sidebar-collapse coexists with the step-rail (no double
   left rail, no overlap), and the **global theme toggle recolors `uw-*` AND `wb-*`** (both read the same
   tokens). _Modifies: only glue/CSS adjacencies if needed. Done = `/eval` unchanged in feel; toggle flips

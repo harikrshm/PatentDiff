@@ -148,9 +148,13 @@
    ============================================================================ */
 
 /* ---- Shell layout --------------------------------------------------------- */
+/* The shell fills the viewport; uw-pagewrap is the scroll container. This keeps
+   the toolbar pinned AND lets the console's own sticky control bar stick just
+   beneath it (top:0 of the scroller) instead of colliding with the toolbar at
+   the viewport top (T7 integration). */
 .uw-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
   align-items: stretch;
 }
 
@@ -159,9 +163,10 @@
   flex-direction: column;
   flex: 1 1 auto;
   min-width: 0;                 /* let instrument tables scroll, not blow out */
+  min-height: 0;                /* let the page area below own the scroll */
 }
 
-.uw-pagewrap { flex: 1 1 auto; min-width: 0; }
+.uw-pagewrap { flex: 1 1 auto; min-width: 0; min-height: 0; overflow-y: auto; }
 
 /* ---- Sidebar -------------------------------------------------------------- */
 /* The <aside> only reserves the layout footprint; the inner __panel is the
