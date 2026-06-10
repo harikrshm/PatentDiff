@@ -1,0 +1,103 @@
+/* ============================================================================
+   Unified Workbench — Design Tokens (EXTENSION LAYER)
+   ----------------------------------------------------------------------------
+   Philosophy: "Analyst's workbench" — one token system, two registers
+   (memo / document  +  instrument / measurement). See DESIGN_BRIEF.md.
+
+   This file EXTENDS the canonical token set already defined in
+   `app_unified/assets/workbench.css` (:root + [data-theme="dark"]). It does NOT
+   re-declare the established tokens (colors, voice palette, data scale, type
+   ramp, spacing, radii, shadows, motion, --control-bar-*, --step-rail-width,
+   breakpoints) — those stay canonical there to avoid drift. It adds only the
+   THREE gaps the unified app needs: font loading, sidebar metrics, and
+   memo-register surface tokens. In the build (Phase 6) these are merged into the
+   live :root / [data-theme="dark"] and consumed by the new `uw-*` classes.
+
+   Register → token map (no new color language; both registers share tokens):
+     INSTRUMENT (Overview console, Comparison):
+       canvas  --color-bg-primary / -secondary   · numerals --font-family-mono
+       chrome  --color-accent-primary (indigo)    · data  --data-fail-* (reserved)
+     MEMO (Prototype, Traces):
+       canvas  --memo-bg / --memo-surface (warm)  · prose --font-family-memo
+       fields  --voice-human-* (editable wells)   · output --voice-machine-* (LLM)
+       chrome + data law: identical to instrument (indigo chrome, data scale)
+   ============================================================================ */
+
+/* ---- 1. FONT LOADING (gap: nothing is loaded today) -----------------------
+   Inter + IBM Plex Mono already named in the type ramp; Source Serif 4 is NEW,
+   used ONLY for memo-register reading prose (claim/spec body, trace reader) to
+   signal the document register against the instrument's Inter+mono.
+   For a networked local tool the CDN import is fine; self-host (woff2 +
+   @font-face) for offline/production robustness. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap');
+
+:root {
+  /* ---- 2. SIDEBAR METRICS (gap: persistent left sidebar + collapse) ------- */
+  --sidebar-width:            232px;   /* expanded, labeled */
+  --sidebar-width-collapsed:  56px;    /* icon strip (matches --control-bar-height) */
+  --sidebar-bg:               var(--color-bg-tertiary);   /* #EDF1F5 — chrome, a touch cooler than content */
+  --sidebar-surface-hover:    var(--color-bg-secondary);
+  --sidebar-border:           var(--color-border-primary);
+  --sidebar-item-text:        var(--color-text-secondary);
+  --sidebar-item-text-active: var(--color-accent-primary); /* indigo — chrome, never data */
+  --sidebar-item-bg-active:   var(--color-accent-subtle);  /* #EEF0FB */
+  --sidebar-rail-active:      var(--color-accent-primary); /* 2px left rail on active item */
+  --sidebar-icon-size:        18px;
+  --sidebar-group-label:      var(--color-text-tertiary);  /* "EVALUATION" kicker */
+  --sidebar-transition:       width var(--duration-normal) var(--easing-default);
+
+  /* Top contextual toolbar reuses the console chrome tokens (already canonical):
+     --control-bar-height, --control-bar-bg, --control-bar-border. No new tokens. */
+
+  /* ---- 3. MEMO REGISTER — document surface (gap: page-level warm paper) ----
+     Built ON the existing --voice-human-* warm palette but lighter, for whole
+     pages rather than small field wells. Field wells inside memo pages still use
+     --voice-human-* directly; the LLM report uses --voice-machine-*. */
+  --memo-bg:          #FCF9F3;  /* page canvas — subtle warm off-white */
+  --memo-surface:     #FFFDFA;  /* reader/cards — near-white warm */
+  --memo-border:      #E7DECB;  /* warm hairline rule (vs cool --color-border-primary) */
+  --memo-rule:        #EFE7D6;  /* faint warm divider */
+  --memo-text:        var(--color-text-primary);   /* #1A2027 — AA on warm paper */
+  --memo-text-muted:  #6B5E47;  /* warm muted (AA 4.7 on --memo-bg) */
+  --memo-kicker:      #8A7A5C;  /* mono uppercase labels in memo register */
+  --memo-accent:      var(--color-accent-primary); /* indigo action — shared chrome law */
+
+  --font-family-memo: 'Source Serif 4', 'Newsreader', Georgia, 'Times New Roman', serif;
+  --memo-reading-size:        15px;     /* claim/spec/opinion reading body */
+  --memo-reading-line-height: 1.6;
+  --memo-measure:             68ch;     /* max reading width for memo prose */
+}
+
+[data-theme="dark"] {
+  /* ---- Sidebar (dark) ---- */
+  --sidebar-bg:               #161A20;  /* cool chrome, distinct from console canvas */
+  --sidebar-surface-hover:    #1C2128;
+  --sidebar-border:           var(--color-border-primary);
+  --sidebar-item-bg-active:   rgba(99, 102, 241, 0.16);
+
+  /* ---- Memo register (dark) — WARM near-black, vs the instrument's cool #11151B ---- */
+  --memo-bg:          #1C1A16;  /* warm brown-black page */
+  --memo-surface:     #221F1A;  /* reader/cards */
+  --memo-border:      #34302A;  /* warm hairline */
+  --memo-rule:        #2A2620;
+  --memo-text:        #ECE6DC;  /* warm off-white text (softened, not pure white) */
+  --memo-text-muted:  #B7AC98;
+  --memo-kicker:      #9A8B6E;
+}
+
+/* System-preference dark, unless the user explicitly chose light (mirrors the
+   console's toggle contract; the live build keeps these in sync with workbench.css). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sidebar-bg:          #161A20;
+    --sidebar-surface-hover:#1C2128;
+    --sidebar-item-bg-active: rgba(99, 102, 241, 0.16);
+    --memo-bg:      #1C1A16;
+    --memo-surface: #221F1A;
+    --memo-border:  #34302A;
+    --memo-rule:    #2A2620;
+    --memo-text:    #ECE6DC;
+    --memo-text-muted: #B7AC98;
+    --memo-kicker:  #9A8B6E;
+  }
+}
