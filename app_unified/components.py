@@ -1,41 +1,71 @@
 # app_unified/components.py
-"""Shared chrome for the unified workbench shell."""
+"""Shared chrome for the unified workbench shell — left sidebar + page header.
+
+The persistent left sidebar is the single primary navigation. Active state is
+re-rendered per route by a callback in app.py (`sidebar_nav(pathname)`).
+"""
 from __future__ import annotations
 
 from dash import dcc, html
 
-# Top-level sections and the eval sub-views (label, href).
-TOP_NAV = [("PatentDiff", "/"), ("Evaluation", "/eval")]
-EVAL_SUBNAV = [
-    ("Overview", "/eval"),
-    ("Traces", "/eval/traces"),
-    ("Comparison", "/eval/comparison"),
+# (label, href, glyph). Glyphs are neutral geometric marks (not emoji) so they
+# read as instrument iconography and survive the icon-collapsed sidebar.
+PRIMARY = [("PatentDiff", "/", "⊟")]
+EVAL_GROUP = [
+    ("Overview", "/eval", "◉"),
+    ("Traces", "/eval/traces", "≣"),
+    ("Comparison", "/eval/comparison", "⇄"),
 ]
 
 
-def top_nav() -> html.Nav:
-    """Primary nav: PatentDiff | Evaluation."""
-    return html.Nav(
-        className="uw-topnav",
-        **{"aria-label": "Primary"},
+def _is_active(href: str, path: str) -> bool:
+    if href == "/":
+        return path == "/"
+    if href == "/eval":
+        return path == "/eval"           # exact — sub-routes own their own active
+    return path == href or path.startswith(href + "/")
+
+
+def _nav_item(label: str, href: str, glyph: str, active: bool) -> dcc.Link:
+    # NOTE: dcc.Link has a fixed prop list (no aria-* passthrough), so active
+    # state is conveyed structurally here (indigo rail + bg + text). Screen-reader
+    # aria-current is set in the T10 accessibility pass via a clientside attribute.
+    return dcc.Link(
+        href=href,
+        className="uw-nav__item" + (" is-active" if active else ""),
+        title=label,                      # tooltip when collapsed to icons (T3)
         children=[
-            dcc.Link(label, href=href, className="uw-topnav__link")
-            for label, href in TOP_NAV
+            html.Span(glyph, className="uw-nav__icon", **{"aria-hidden": "true"}),
+            html.Span(label, className="uw-nav__label"),
         ],
     )
 
 
-def eval_subnav(active: str) -> html.Nav:
-    """Secondary strip shown on /eval* routes; `active` is the current pathname."""
-    def cls(href: str) -> str:
-        is_active = active == href or (href != "/eval" and active.startswith(href))
-        return "uw-subnav__link" + (" is-active" if is_active else "")
+def sidebar_nav(active_path: str | None) -> list:
+    """Sidebar nav children with the current route marked active."""
+    path = active_path or "/"
+    items = [_nav_item(l, h, g, _is_active(h, path)) for l, h, g in PRIMARY]
+    items.append(html.Div("Evaluation", className="uw-nav__group"))
+    items += [_nav_item(l, h, g, _is_active(h, path)) for l, h, g in EVAL_GROUP]
+    return items
 
-    return html.Nav(
-        className="uw-subnav",
-        **{"aria-label": "Evaluation views"},
+
+def sidebar() -> html.Aside:
+    """Persistent left sidebar: brand + primary nav."""
+    return html.Aside(
+        id="uw-sidebar",
+        className="uw-sidebar",
+        **{"aria-label": "Primary"},
         children=[
-            dcc.Link(label, href=href, className=cls(href)) for label, href in EVAL_SUBNAV
+            html.Div(
+                className="uw-sidebar__brand",
+                children=[
+                    html.Span("PatentDiff", className="uw-sidebar__brand-strong"),
+                    html.Span("Workbench", className="uw-sidebar__brand-sub"),
+                ],
+            ),
+            html.Nav(id="uw-sidebar-nav", className="uw-nav",
+                     children=sidebar_nav("/")),
         ],
     )
 

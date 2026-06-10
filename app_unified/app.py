@@ -18,7 +18,7 @@ import diskcache
 from dash import (Dash, DiskcacheManager, Input, Output, State, dcc, html,
                   page_container)
 
-from app_unified.components import eval_subnav, top_nav
+from app_unified.components import sidebar, sidebar_nav
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CACHE_DIR = REPO_ROOT / ".dash_cache"
@@ -54,33 +54,35 @@ app.layout = html.Div(
         html.Div(id="url-writer-dummy", style={"display": "none"}),
         dcc.Store(id="theme", data="light"),     # app-global; console figures read it
         dcc.Store(id="data-version", data=0),     # console refresh signal
-        html.Header(
-            className="uw-appbar",
+        html.Div(
+            className="uw-shell",
             children=[
+                sidebar(),
                 html.Div(
-                    className="uw-appbar__brand",
+                    className="uw-content",
                     children=[
-                        html.Span("PatentDiff", className="uw-appbar__brand-strong"),
-                        html.Span("Workbench", className="uw-appbar__brand-sub"),
+                        html.Header(
+                            className="uw-toolbar",
+                            children=[
+                                # Page-contextual controls mount here per route.
+                                html.Div(id="uw-toolbar-context",
+                                         className="uw-toolbar__context"),
+                                _theme_toggle(),
+                            ],
+                        ),
+                        html.Main(className="uw-pagewrap", children=page_container),
                     ],
                 ),
-                top_nav(),
-                _theme_toggle(),
             ],
         ),
-        html.Div(id="uw-subnav-slot"),
-        html.Main(className="uw-pagewrap", children=page_container),
     ],
 )
 
 
-# Show the eval sub-nav only on /eval* routes.
-@app.callback(Output("uw-subnav-slot", "children"), Input("url", "pathname"))
-def _render_subnav(pathname: str):
-    pathname = pathname or "/"
-    if pathname == "/eval" or pathname.startswith("/eval/"):
-        return eval_subnav(pathname)
-    return None
+# Re-render the sidebar nav with the active route marked.
+@app.callback(Output("uw-sidebar-nav", "children"), Input("url", "pathname"))
+def _sidebar_active(pathname: str):
+    return sidebar_nav(pathname)
 
 
 # Theme toggle (clientside): flips <html data-theme>, persists, mirrors to `theme`

@@ -139,6 +139,171 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ============================================================================
+   T2 · App shell — persistent left sidebar + top contextual toolbar
+   ----------------------------------------------------------------------------
+   The frame that holds every route. Sidebar is the single primary nav; the
+   toolbar carries page-contextual controls with the theme toggle pinned right.
+   Width animates via --sidebar-transition so T3 can collapse it on /eval.
+   ============================================================================ */
+
+/* ---- Shell layout --------------------------------------------------------- */
+.uw-shell {
+  display: flex;
+  min-height: 100vh;
+  align-items: stretch;
+}
+
+.uw-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;                 /* let instrument tables scroll, not blow out */
+}
+
+.uw-pagewrap { flex: 1 1 auto; min-width: 0; }
+
+/* ---- Sidebar -------------------------------------------------------------- */
+.uw-sidebar {
+  flex: 0 0 var(--sidebar-width);
+  width: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  transition: var(--sidebar-transition);
+  overflow: hidden;            /* labels clip cleanly when collapsed (T3) */
+}
+
+.uw-sidebar__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  height: var(--control-bar-height);
+  justify-content: center;
+  padding: 0 var(--space-5);
+  border-bottom: 1px solid var(--sidebar-border);
+  white-space: nowrap;
+}
+.uw-sidebar__brand-strong {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-md);
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--color-text-primary);
+}
+.uw-sidebar__brand-sub {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--sidebar-group-label);
+}
+
+/* ---- Sidebar nav ---------------------------------------------------------- */
+.uw-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--space-3) var(--space-2);
+}
+
+.uw-nav__group {
+  margin: var(--space-4) var(--space-3) var(--space-1);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--sidebar-group-label);
+  white-space: nowrap;
+}
+
+.uw-nav__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--border-radius-md);
+  color: var(--sidebar-item-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--duration-fast) var(--easing-default),
+              color var(--duration-fast) var(--easing-default);
+}
+.uw-nav__item:hover { background: var(--sidebar-surface-hover); }
+.uw-nav__item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.uw-nav__item.is-active {
+  color: var(--sidebar-item-text-active);
+  background: var(--sidebar-item-bg-active);
+}
+/* Indigo active rail leading the left edge. */
+.uw-nav__item.is-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 1.25em;
+  border-radius: 0 var(--border-radius-full) var(--border-radius-full) 0;
+  background: var(--sidebar-rail-active);
+}
+
+.uw-nav__icon {
+  flex: 0 0 var(--sidebar-icon-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sidebar-icon-size);
+  font-size: var(--sidebar-icon-size);
+  line-height: 1;
+}
+.uw-nav__label { overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Top contextual toolbar ---------------------------------------------- */
+.uw-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--control-bar-height);
+  padding: 0 var(--space-6);
+  background: var(--control-bar-bg);
+  border-bottom: 1px solid var(--control-bar-border);
+  backdrop-filter: saturate(140%) blur(8px);
+}
+.uw-toolbar__context {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ---- Theme toggle (mirrors the console toggle on uw- chrome) -------------- */
+.uw-themetoggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px; height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-full);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--easing-default),
+              color var(--duration-fast) var(--easing-default);
+}
+.uw-themetoggle:hover { border-color: var(--color-accent-primary); color: var(--color-accent-primary); }
+.uw-themetoggle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.uw-themetoggle__glyph { font-size: var(--font-size-lg); line-height: 1; }
+
 /* ---- Motion preference ---------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .uw-root *,

@@ -19,7 +19,7 @@ Date: 2026-06-10
   surfaces, no raw browser defaults._
 
 ## Core UI
-- [ ] **T2 · App shell — left sidebar + top toolbar** _(highest visual priority; frames every page)_:
+- [x] **T2 · App shell — left sidebar + top toolbar** _(highest visual priority; frames every page)_:
   Replace the Spec-1 horizontal appbar + subnav-slot (in `app_unified/app.py` + `components.py`) with a
   **persistent left sidebar** (PatentDiff · Evaluation › Overview/Traces/Comparison; indigo active rail +
   `--sidebar-item-bg-active`) and a **top contextual toolbar** (reuses `--control-bar-*`; theme toggle
