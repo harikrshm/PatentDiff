@@ -29,8 +29,6 @@ def eval_subnav(active: str) -> html.Nav:
     """Secondary strip shown on /eval* routes; `active` is the current pathname."""
     def cls(href: str) -> str:
         is_active = active == href or (href != "/eval" and active.startswith(href))
-        if href == "/eval":
-            is_active = active == "/eval"
         return "uw-subnav__link" + (" is-active" if is_active else "")
 
     return html.Nav(

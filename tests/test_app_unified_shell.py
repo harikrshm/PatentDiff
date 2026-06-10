@@ -11,5 +11,6 @@ def test_shell_registers_all_four_routes():
 
 def test_shell_layout_has_nav_and_page_container():
     mod = importlib.import_module("app_unified.app")
-    from dash import page_container  # noqa: F401
-    assert mod.app.layout is not None
+    layout_str = str(mod.app.layout)
+    assert "uw-topnav" in layout_str        # top_nav() is present
+    assert "_pages_content" in layout_str   # page_container is present
