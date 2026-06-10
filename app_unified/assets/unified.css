@@ -369,6 +369,127 @@
 .uw-themetoggle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .uw-themetoggle__glyph { font-size: var(--font-size-lg); line-height: 1; }
 
+/* ============================================================================
+   T4 · Prototype (/) — memo form + machine-voice report
+   ----------------------------------------------------------------------------
+   The document bench: drafting two patents on warm paper, then the model's
+   reading rendered as a measured machine-voice readout below.
+   ============================================================================ */
+
+/* ---- Memo claim/spec form ------------------------------------------------- */
+.uw-proto__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-7);
+  margin-bottom: var(--space-6);
+}
+.uw-proto__col { display: flex; flex-direction: column; gap: var(--space-2); }
+.uw-proto__col .uw-kicker { margin-bottom: calc(-1 * var(--space-1)); }
+
+.uw-proto__coltitle {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-family-memo);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0;
+  color: var(--memo-text);
+}
+
+/* Patent ID reads as an identifier — mono, on the quieter memo surface. */
+.uw-proto__id {
+  font-family: var(--font-family-mono);
+  background: var(--memo-surface);
+  border-color: var(--memo-border);
+  color: var(--memo-text);
+  max-width: 18rem;
+}
+
+/* Claim / spec wells: warm human-voice paper, serif reading face. */
+.uw-proto__well {
+  font-family: var(--font-family-memo);
+  font-size: var(--memo-reading-size);
+  line-height: var(--memo-reading-line-height);
+  color: var(--voice-human-text);
+  background: var(--voice-human-bg);
+  border: 1px solid var(--voice-human-border);
+}
+.uw-proto__well::placeholder { color: var(--memo-text-muted); }
+.uw-proto__well:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: var(--focus-ring);
+}
+
+.uw-proto .uw-label { color: var(--memo-text-muted); }
+.uw-proto__analyze { margin-top: var(--space-2); }
+
+/* ---- Machine-voice report ------------------------------------------------- */
+.uw-machine {
+  margin-top: var(--space-6);
+  padding: var(--space-5) var(--space-6) var(--space-6);
+  background: var(--voice-machine-bg);
+  border-left: 3px solid var(--voice-machine-border);
+  border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+  color: var(--voice-machine-text);
+}
+.uw-machine__label {
+  display: block;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--voice-machine-label);
+}
+.uw-proto__h2 {
+  margin: var(--space-5) 0 var(--space-3);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--voice-machine-label);
+}
+.uw-proto__opinion {
+  margin: var(--space-3) 0 0;
+  color: var(--voice-machine-text);
+  max-width: var(--memo-measure);
+}
+/* DataTable inside the machine block: kill the default chrome, keep hairlines. */
+.uw-machine .dash-spreadsheet-container { border: none; }
+.uw-machine .dash-spreadsheet-container .dash-spreadsheet-inner table { border-collapse: collapse; }
+
+/* ---- Run metadata (quiet) ------------------------------------------------- */
+.uw-proto__meta { margin-top: var(--space-5); }
+.uw-proto__meta > summary {
+  cursor: pointer;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-tertiary);
+}
+.uw-proto__metagrid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-3) 0 0;
+}
+.uw-proto__metagrid dt {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-tertiary);
+}
+.uw-proto__metagrid dd {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Below ~1024 the two memo columns stack (instrument tables stay scrollable). */
+@media (max-width: 1024px) {
+  .uw-proto__grid { grid-template-columns: 1fr; }
+}
+
 /* ---- Motion preference ---------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .uw-root *,

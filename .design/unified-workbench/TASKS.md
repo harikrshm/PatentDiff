@@ -34,7 +34,7 @@ Date: 2026-06-10
   icons with no content jump; leaving restores it; collapsed items keep `aria-label`s._
 
 ## Memo register
-- [ ] **T4 · Prototype `/` — memo form + machine-voice report**: Style the two-column claim/spec form on
+- [x] **T4 · Prototype `/` — memo form + machine-voice report**: Style the two-column claim/spec form on
   the warm memo surface (`uw-page--memo`): serif reading inputs, `--voice-human-*` field wells, mono for
   the label/ID, single indigo **Analyze**. Render the result as **machine voice** (`--voice-machine-*`):
   element-mapping `dash_table` with mono numerals and Novelty/Inventive/Verdict tinted via the reserved

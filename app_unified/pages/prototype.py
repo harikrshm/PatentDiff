@@ -17,30 +17,37 @@ _EMPTY_LLM = {"raw_output": "", "model": "", "tokens_input": 0,
               "tokens_output": 0, "latency_ms": 0}
 
 
-def _patent_column(side: str, title: str) -> html.Div:
+def _patent_column(side: str, kicker: str, title: str) -> html.Div:
     return html.Div(
         className="uw-proto__col",
         children=[
+            html.Span(kicker, className="uw-kicker"),
             html.H2(title, className="uw-proto__coltitle"),
-            dcc.Input(id=f"label-{side}", type="text", placeholder="e.g., US10,123,456",
-                      className="uw-input"),
+            html.Label("Patent ID", className="uw-label",
+                       htmlFor=f"label-{side}"),
+            dcc.Input(id=f"label-{side}", type="text", placeholder="US10,123,456",
+                      className="uw-input uw-proto__id"),
             html.Label("Independent Claim", className="uw-label"),
-            dcc.Textarea(id=f"claim-{side}", className="uw-input--area", style={"height": "200px"}),
+            dcc.Textarea(id=f"claim-{side}",
+                         className="uw-input--area uw-proto__well",
+                         style={"height": "200px"}),
             html.Label("Specification Support", className="uw-label"),
-            dcc.Textarea(id=f"spec-{side}", className="uw-input--area", style={"height": "200px"}),
+            dcc.Textarea(id=f"spec-{side}",
+                         className="uw-input--area uw-proto__well",
+                         style={"height": "200px"}),
         ],
     )
 
 
 layout = html.Div(
-    className="uw-page uw-proto",
+    className="uw-page uw-page--memo uw-proto",
     children=[
         page_header("PatentDiff — Patent Claim Analysis"),
         html.Div(
             className="uw-proto__grid",
             children=[
-                _patent_column("a", "Patent A (Source)"),
-                _patent_column("b", "Patent B (Target / Prior Art)"),
+                _patent_column("a", "Source", "Patent A"),
+                _patent_column("b", "Target / Prior Art", "Patent B"),
             ],
         ),
         html.Button("Analyze", id="analyze-btn", n_clicks=0,
@@ -49,6 +56,56 @@ layout = html.Div(
                  **{"aria-live": "polite"}),
         dcc.Loading(html.Div(id="analyze-report"), type="dot"),
         html.Div(id="analyze-meta"),
+    ],
+)
+
+# Machine-voice readout theming for the element-mapping table. Only the Y pole
+# (the patentability-failure outcome) carries the reserved FAIL data tint, so
+# "colored == FAIL" stays literally true; N stays quiet. Values are paired with
+# the Y/N letter, so the signal survives grayscale. var() resolves per theme.
+_VERDICT_COLS = ["Novelty", "Inventive Step", "Verdict"]
+_TABLE_STYLE = dict(
+    style_as_list_view=True,
+    style_table={"overflowX": "auto"},
+    style_header={
+        "backgroundColor": "transparent",
+        "color": "var(--voice-machine-label)",
+        "fontFamily": "var(--font-family-mono)",
+        "fontSize": "11px",
+        "textTransform": "uppercase",
+        "letterSpacing": "0.06em",
+        "fontWeight": "600",
+        "border": "none",
+        "borderBottom": "1px solid var(--voice-machine-border)",
+        "padding": "8px 10px",
+        "textAlign": "left",
+    },
+    style_cell={
+        "fontFamily": "var(--font-family-body)",
+        "fontSize": "13px",
+        "color": "var(--voice-machine-text)",
+        "backgroundColor": "transparent",
+        "border": "none",
+        "borderBottom": "1px solid var(--memo-rule)",
+        "padding": "8px 10px",
+        "textAlign": "left",
+        "whiteSpace": "normal",
+        "height": "auto",
+        "verticalAlign": "top",
+    },
+    style_cell_conditional=(
+        [{"if": {"column_id": "Element #"},
+          "fontFamily": "var(--font-family-mono)",
+          "textAlign": "center", "width": "70px"}]
+        + [{"if": {"column_id": c},
+            "fontFamily": "var(--font-family-mono)",
+            "textAlign": "center", "width": "92px",
+            "color": "var(--color-text-tertiary)"} for c in _VERDICT_COLS]
+    ),
+    style_data_conditional=[
+        {"if": {"filter_query": f'{{{c}}} = "Y"', "column_id": c},
+         "backgroundColor": "var(--data-fail-100)",
+         "color": "#FFFFFF", "fontWeight": "600"} for c in _VERDICT_COLS
     ],
 )
 
@@ -93,32 +150,45 @@ def run_analysis(label_a, claim_a, spec_a, label_b, claim_b, spec_b):
         "Element #": em.element_number,
         "Patent A Element": em.element_text,
         "Patent B Corresponding Text": em.corresponding_text,
-        "Novelty": "✅" if em.novelty == "Y" else "❌",
-        "Inventive Step": "✅" if em.inventive_step == "Y" else "❌",
+        "Novelty": em.novelty,
+        "Inventive Step": em.inventive_step,
         "Verdict": em.verdict,
         "Comment": em.comment,
     } for em in report.element_mappings]
 
-    report_children = html.Div([
-        html.H2("Element Mapping", className="uw-proto__h2"),
-        dash_table.DataTable(
-            data=rows,
-            columns=[{"name": c, "id": c} for c in
-                     ["Element #", "Patent A Element", "Patent B Corresponding Text",
-                      "Novelty", "Inventive Step", "Verdict", "Comment"]],
-            style_table={"overflowX": "auto"}, style_cell={"textAlign": "left"},
-        ),
-        html.H2("Overall Opinion", className="uw-proto__h2"),
-        html.P(report.overall_opinion),
-    ])
-    meta_children = html.Details([
-        html.Summary("Run Metadata"),
-        html.P(f"Run ID: {trace['run_id']}"),
-        html.P(f"Model: {llm_response['model']}"),
-        html.P(f"Input tokens: {llm_response['tokens_input']}"),
-        html.P(f"Output tokens: {llm_response['tokens_output']}"),
-        html.P(f"Latency: {llm_response['latency_ms']}ms"),
-    ])
+    report_children = html.Div(
+        className="uw-machine uw-proto__report",
+        children=[
+            html.Span("Machine reading", className="uw-machine__label"),
+            html.H2("Element Mapping", className="uw-proto__h2"),
+            dash_table.DataTable(
+                data=rows,
+                columns=[{"name": c, "id": c} for c in
+                         ["Element #", "Patent A Element",
+                          "Patent B Corresponding Text",
+                          "Novelty", "Inventive Step", "Verdict", "Comment"]],
+                **_TABLE_STYLE,
+            ),
+            html.H2("Overall Opinion", className="uw-proto__h2"),
+            html.P(report.overall_opinion, className="uw-prose uw-proto__opinion"),
+        ],
+    )
+    meta_children = html.Details(
+        className="uw-proto__meta",
+        children=[
+            html.Summary("Run metadata"),
+            html.Dl(className="uw-proto__metagrid", children=[
+                html.Dt("Run ID"), html.Dd(trace["run_id"], className="uw-num"),
+                html.Dt("Model"), html.Dd(llm_response["model"], className="uw-num"),
+                html.Dt("Input tokens"),
+                html.Dd(str(llm_response["tokens_input"]), className="uw-num"),
+                html.Dt("Output tokens"),
+                html.Dd(str(llm_response["tokens_output"]), className="uw-num"),
+                html.Dt("Latency"),
+                html.Dd(f"{llm_response['latency_ms']}ms", className="uw-num"),
+            ]),
+        ],
+    )
     return "", report_children, meta_children
 
 
