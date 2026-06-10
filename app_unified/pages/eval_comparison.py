@@ -51,6 +51,8 @@ def build_comparison(base: Path, before_set: str, after_set: str,
     }
 
 
+_SET_OPTIONS = _set_options()  # scan trace sets once at import
+
 layout = html.Div(
     className="uw-page uw-compare",
     children=[
@@ -59,10 +61,10 @@ layout = html.Div(
             className="uw-compare__controls",
             children=[
                 html.Div([html.Label("Before (baseline)", className="uw-label"),
-                          dcc.Dropdown(id="cmp-before", options=_set_options(),
+                          dcc.Dropdown(id="cmp-before", options=_SET_OPTIONS,
                                        value="baseline", className="uw-dropdown")]),
                 html.Div([html.Label("After (experiment)", className="uw-label"),
-                          dcc.Dropdown(id="cmp-after", options=_set_options(),
+                          dcc.Dropdown(id="cmp-after", options=_SET_OPTIONS,
                                        value="live", className="uw-dropdown")]),
                 html.Div([html.Label("Eval", className="uw-label"),
                           dcc.RadioItems(id="cmp-eval",

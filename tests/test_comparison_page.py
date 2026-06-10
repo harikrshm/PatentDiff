@@ -8,6 +8,7 @@ def test_eval_path_live_vs_named():
     assert eval_comparison.eval_path(base, "live", "phosita").name == "phosita_eval_full.jsonl"
     assert eval_comparison.eval_path(base, "baseline", "phosita").name == "phosita_eval_full.baseline.jsonl"
     assert eval_comparison.eval_path(base, "baseline", "citation").name == "citation_text_eval_full.baseline.jsonl"
+    assert eval_comparison.eval_path(base, "live", "citation").name == "citation_text_eval_full.jsonl"
 
 
 def test_build_comparison_returns_kpis_and_matrix(tmp_path):
@@ -19,3 +20,4 @@ def test_build_comparison_returns_kpis_and_matrix(tmp_path):
     assert result["before_rate"] == 0.5
     assert result["after_rate"] == 1.0
     assert result["matrix"][("FAIL", "PASS")] == 1
+    assert result["buckets"][("FAIL", "PASS")] == ["r1"]
