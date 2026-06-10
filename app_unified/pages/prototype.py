@@ -72,12 +72,13 @@ def run_analysis(label_a, claim_a, spec_a, label_b, claim_b, spec_b):
     try:
         llm_response = call_groq(system_prompt, user_prompt)
         report = parse_llm_response(llm_response["raw_output"])
-        append_trace(build_trace_record(
+        trace = build_trace_record(
             source_patent=source, target_patent=target,
             system_prompt=system_prompt, user_prompt=user_prompt,
             llm_response=llm_response, parsed_output=report,
             status="success", error=None, truncation_warnings=truncation_warnings,
-        ))
+        )
+        append_trace(trace)
     except Exception as e:  # noqa: BLE001 — mirror app.py's broad guard
         append_trace(build_trace_record(
             source_patent=source, target_patent=target,
@@ -92,8 +93,8 @@ def run_analysis(label_a, claim_a, spec_a, label_b, claim_b, spec_b):
         "Element #": em.element_number,
         "Patent A Element": em.element_text,
         "Patent B Corresponding Text": em.corresponding_text,
-        "Novelty": "✅" if em.novelty else "❌",
-        "Inventive Step": "✅" if em.inventive_step else "❌",
+        "Novelty": "✅" if em.novelty == "Y" else "❌",
+        "Inventive Step": "✅" if em.inventive_step == "Y" else "❌",
         "Verdict": em.verdict,
         "Comment": em.comment,
     } for em in report.element_mappings]
@@ -112,6 +113,7 @@ def run_analysis(label_a, claim_a, spec_a, label_b, claim_b, spec_b):
     ])
     meta_children = html.Details([
         html.Summary("Run Metadata"),
+        html.P(f"Run ID: {trace['run_id']}"),
         html.P(f"Model: {llm_response['model']}"),
         html.P(f"Input tokens: {llm_response['tokens_input']}"),
         html.P(f"Output tokens: {llm_response['tokens_output']}"),

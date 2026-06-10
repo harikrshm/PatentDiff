@@ -3,7 +3,7 @@ from unittest.mock import patch
 from app_unified.pages import prototype
 
 
-def test_run_analysis_appends_trace_and_returns_report(tmp_path, monkeypatch):
+def test_run_analysis_appends_trace_and_returns_report():
     fake_llm = {
         "raw_output": "ELEMENT 1 ...", "model": "test-model",
         "tokens_input": 10, "tokens_output": 20, "latency_ms": 5,
@@ -25,6 +25,18 @@ def test_run_analysis_appends_trace_and_returns_report(tmp_path, monkeypatch):
     assert appended["trace"]["status"] == "success"
     assert appended["trace"]["inputs"]["source_patent"]["label"] == "US-A"
     assert status == ""  # no error banner
+
+
+def test_run_analysis_surfaces_error_on_llm_failure():
+    appended = {}
+    with patch.object(prototype, "call_groq", side_effect=RuntimeError("boom")), \
+         patch.object(prototype, "append_trace", side_effect=lambda t: appended.update(t)):
+        status, report, meta = prototype.run_analysis(
+            "US-A", "c", "s", "US-B", "c", "s",
+        )
+    assert "Analysis failed" in status
+    assert appended["status"] == "error"
+    assert report is None
 
 
 def test_run_analysis_rejects_missing_fields():
