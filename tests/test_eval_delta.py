@@ -1,4 +1,6 @@
-from core.eval_delta import EvalDelta, compute_delta
+from pathlib import Path
+
+from core.eval_delta import EvalDelta, compute_delta, load_verdict_map
 
 BEFORE = {"r1": "FAIL", "r2": "PASS", "r3": "FAIL", "r4": "PASS"}
 AFTER = {"r1": "PASS", "r2": "PASS", "r3": "FAIL", "r4": "MISSING"}
@@ -30,3 +32,20 @@ def test_run_id_filter_restricts():
     d = compute_delta(BEFORE, AFTER, run_ids={"r1"})
     assert sum(d.matrix.values()) == 1
     assert d.matrix[("FAIL", "PASS")] == 1
+
+
+def test_load_verdict_map_missing_file_returns_empty():
+    assert load_verdict_map(Path("does_not_exist_xyz.jsonl")) == {}
+
+
+def test_load_verdict_map_skips_records_without_run_id_or_verdict(tmp_path):
+    p = tmp_path / "e.jsonl"
+    p.write_text('{"run_id":"r1","verdict":"PASS"}\n{"verdict":"FAIL"}\n{"run_id":"r2"}\n')
+    assert load_verdict_map(p) == {"r1": "PASS"}
+
+
+def test_compute_delta_empty_inputs():
+    d = compute_delta({}, {})
+    assert d.delta_pp == 0.0
+    assert d.before_pass == 0 and d.after_pass == 0
+    assert sum(d.matrix.values()) == 0

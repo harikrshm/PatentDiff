@@ -56,12 +56,9 @@ def main() -> int:
         print(row)
     print()
 
-    # Reconstruct pass_count from rate * scored for display
-    pb = round(delta.before_rate * delta.before_scored)
-    pa = round(delta.after_rate * delta.after_scored)
     print(f"PASS rate among scored (PASS+FAIL):")
-    print(f"  before : {pb}/{delta.before_scored} = {100*delta.before_rate:.1f}%")
-    print(f"  after  : {pa}/{delta.after_scored} = {100*delta.after_rate:.1f}%")
+    print(f"  before : {delta.before_pass}/{delta.before_scored} = {100*delta.before_rate:.1f}%")
+    print(f"  after  : {delta.after_pass}/{delta.after_scored} = {100*delta.after_rate:.1f}%")
     print(f"  delta  : {delta.delta_pp:+.1f} pp")
     print()
 

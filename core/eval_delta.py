@@ -18,10 +18,12 @@ Transition = Tuple[str, str]
 
 @dataclass
 class EvalDelta:
-    matrix: Counter                                   # (before, after) -> count
+    matrix: Counter[Transition]                        # (before, after) -> count
     buckets: Dict[Transition, List[str]]              # (before, after) -> run_ids
     before_rate: float
     after_rate: float
+    before_pass: int
+    after_pass: int
     before_scored: int
     after_scored: int
 
@@ -47,11 +49,12 @@ def load_verdict_map(path: Path) -> Dict[str, str]:
     return out
 
 
-def _pass_rate(d: Dict[str, str]) -> Tuple[float, int]:
+def _pass_rate(d: Dict[str, str]) -> Tuple[float, int, int]:
     scored = [v for v in d.values() if v in ("PASS", "FAIL")]
     if not scored:
-        return 0.0, 0
-    return sum(v == "PASS" for v in scored) / len(scored), len(scored)
+        return 0.0, 0, 0
+    pc = sum(v == "PASS" for v in scored)
+    return pc / len(scored), pc, len(scored)
 
 
 def compute_delta(before: Dict[str, str], after: Dict[str, str],
@@ -72,8 +75,9 @@ def compute_delta(before: Dict[str, str], after: Dict[str, str],
         matrix[(b, a)] += 1
         buckets[(b, a)].append(rid)
 
-    br, bs = _pass_rate(before)
-    ar, as_ = _pass_rate(after)
+    br, bp, before_scored = _pass_rate(before)
+    ar, ap, after_scored = _pass_rate(after)
     return EvalDelta(matrix=matrix, buckets=dict(buckets),
                      before_rate=br, after_rate=ar,
-                     before_scored=bs, after_scored=as_)
+                     before_pass=bp, after_pass=ap,
+                     before_scored=before_scored, after_scored=after_scored)
