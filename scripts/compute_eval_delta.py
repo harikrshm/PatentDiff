@@ -13,25 +13,13 @@ For each run_id present in either file, classify the verdict transition
   - top run_ids in each transition bucket (for spot-checking)
 """
 import argparse
-import json
-from collections import Counter, defaultdict
+import sys
 from pathlib import Path
 
-VERDICTS = ["PASS", "FAIL", "NO_CITATIONS", "MISSING"]
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
 
-
-def load_eval(path: Path) -> dict[str, str]:
-    out: dict[str, str] = {}
-    if not path.exists():
-        return out
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            d = json.loads(line)
-            out[d["run_id"]] = d["verdict"]
-    return out
+from core.eval_delta import VERDICTS, compute_delta, load_verdict_map
 
 
 def main() -> int:
@@ -41,9 +29,10 @@ def main() -> int:
     parser.add_argument("--run-ids", type=Path, default=None, help="Optional: restrict comparison to run_ids in this file")
     args = parser.parse_args()
 
-    before = load_eval(args.before)
-    after = load_eval(args.after)
+    before = load_verdict_map(args.before)
+    after = load_verdict_map(args.after)
 
+    run_ids = None
     if args.run_ids:
         ids = set()
         with open(args.run_ids, encoding="utf-8") as f:
@@ -51,19 +40,9 @@ def main() -> int:
                 line = line.strip()
                 if line and not line.startswith("#"):
                     ids.add(line)
-        before = {k: v for k, v in before.items() if k in ids}
-        after = {k: v for k, v in after.items() if k in ids}
-        all_ids = ids
-    else:
-        all_ids = set(before) | set(after)
+        run_ids = ids
 
-    matrix: Counter[tuple[str, str]] = Counter()
-    buckets: dict[tuple[str, str], list[str]] = defaultdict(list)
-    for rid in sorted(all_ids):
-        b = before.get(rid, "MISSING")
-        a = after.get(rid, "MISSING")
-        matrix[(b, a)] += 1
-        buckets[(b, a)].append(rid)
+    delta = compute_delta(before, after, run_ids=run_ids)
 
     print("Transition matrix (rows=before, cols=after, cells=count)")
     print()
@@ -72,29 +51,24 @@ def main() -> int:
     for b in VERDICTS:
         row = f"{b:14}"
         for a in VERDICTS:
-            cnt = matrix[(b, a)]
+            cnt = delta.matrix[(b, a)]
             row += f" {cnt:>14}"
         print(row)
     print()
 
-    def pass_rate(d: dict[str, str]) -> tuple[float, int, int]:
-        scored = [v for v in d.values() if v in ("PASS", "FAIL")]
-        pass_count = sum(1 for v in scored if v == "PASS")
-        rate = pass_count / len(scored) if scored else 0.0
-        return rate, pass_count, len(scored)
-
-    rb, pb, sb = pass_rate(before)
-    ra, pa, sa = pass_rate(after)
+    # Reconstruct pass_count from rate * scored for display
+    pb = round(delta.before_rate * delta.before_scored)
+    pa = round(delta.after_rate * delta.after_scored)
     print(f"PASS rate among scored (PASS+FAIL):")
-    print(f"  before : {pb}/{sb} = {100*rb:.1f}%")
-    print(f"  after  : {pa}/{sa} = {100*ra:.1f}%")
-    print(f"  delta  : {100*(ra - rb):+.1f} pp")
+    print(f"  before : {pb}/{delta.before_scored} = {100*delta.before_rate:.1f}%")
+    print(f"  after  : {pa}/{delta.after_scored} = {100*delta.after_rate:.1f}%")
+    print(f"  delta  : {delta.delta_pp:+.1f} pp")
     print()
 
     print("Per-bucket run_ids (first 8 each, for spot-checking):")
     for b in VERDICTS:
         for a in VERDICTS:
-            ids_in_bucket = buckets[(b, a)]
+            ids_in_bucket = delta.buckets.get((b, a), [])
             if not ids_in_bucket:
                 continue
             sample = " ".join(rid[:8] for rid in ids_in_bucket[:8])
