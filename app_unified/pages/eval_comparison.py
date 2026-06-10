@@ -124,11 +124,14 @@ _MATRIX_STYLE = dict(
         "color": "var(--color-text-secondary)",
     }],
     style_data_conditional=[
+        # Low-alpha valence washes (regressed = red, fixed = teal) keep the mono
+        # numeral at full contrast in both themes; the number is the real signal.
         {"if": {"filter_query": '{before} = "PASS"', "column_id": "FAIL"},
-         "backgroundColor": "var(--data-fail-100)", "color": "#FFFFFF",
-         "fontWeight": "600"},
+         "backgroundColor": "rgba(192, 57, 43, 0.16)",
+         "color": "var(--color-text-primary)", "fontWeight": "600"},
         {"if": {"filter_query": '{before} = "FAIL"', "column_id": "PASS"},
-         "color": "var(--color-status-success)", "fontWeight": "600"},
+         "backgroundColor": "rgba(46, 160, 145, 0.20)",
+         "color": "var(--color-text-primary)", "fontWeight": "600"},
     ],
 )
 

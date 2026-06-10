@@ -72,7 +72,7 @@ Date: 2026-06-10
   dark, sidebar dark chrome, voice/data palettes, and that no `uw-*` surface is stranded light in dark
   mode. _Modifies: dark token usage / CSS. Breakpoints: n/a. Done = toggling dark looks intentional in
   every page, both registers._
-- [ ] **T10 · Responsive ~1024 + accessibility pass**: Below ~1024 the sidebar defaults to icons, memo
+- [x] **T10 · Responsive ~1024 + accessibility pass**: Below ~1024 the sidebar defaults to icons, memo
   two-column stacks, instrument tables stay horizontally scrollable (no phone layout). Accessibility:
   indigo focus rings everywhere (never data red/green), body/numeral contrast ≥ 4.5:1 and UI ≥ 3:1 in
   BOTH registers + themes (verify `--memo-text` on `--memo-bg`, `--voice-human-text` on

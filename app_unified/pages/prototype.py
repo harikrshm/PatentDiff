@@ -103,9 +103,12 @@ _TABLE_STYLE = dict(
             "color": "var(--color-text-tertiary)"} for c in _VERDICT_COLS]
     ),
     style_data_conditional=[
+        # Low-alpha FAIL wash so the cell text keeps full contrast in both themes
+        # (white-on-solid-red failed AA in dark). The Y letter carries the signal.
         {"if": {"filter_query": f'{{{c}}} = "Y"', "column_id": c},
-         "backgroundColor": "var(--data-fail-100)",
-         "color": "#FFFFFF", "fontWeight": "600"} for c in _VERDICT_COLS
+         "backgroundColor": "rgba(192, 57, 43, 0.16)",
+         "color": "var(--voice-machine-text)", "fontWeight": "600"}
+        for c in _VERDICT_COLS
     ],
 )
 

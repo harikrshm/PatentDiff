@@ -746,6 +746,61 @@
   background-color: transparent !important;
 }
 
+/* ============================================================================
+   T10 · Responsive (~1024) + accessibility
+   ----------------------------------------------------------------------------
+   Below ~1024 the sidebar defaults to its icon rail on every route (it expands
+   on hover/focus as an overlay, same as the /eval collapse). Memo columns and
+   instrument tables degrade via their own per-section queries above. Focus rings
+   everywhere use the indigo chrome accent (--focus-ring), never data colors.
+   ============================================================================ */
+@media (max-width: 1024px) {
+  .uw-shell .uw-sidebar {
+    flex-basis: var(--sidebar-width-collapsed);
+    width: var(--sidebar-width-collapsed);
+  }
+  .uw-shell .uw-nav__label,
+  .uw-shell .uw-nav__group,
+  .uw-shell .uw-sidebar__brand-strong,
+  .uw-shell .uw-sidebar__brand-sub {
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--easing-default);
+  }
+  .uw-shell .uw-sidebar__brand-mark { display: block; }
+
+  .uw-shell .uw-sidebar:hover .uw-sidebar__panel,
+  .uw-shell .uw-sidebar:focus-within .uw-sidebar__panel {
+    width: var(--sidebar-width);
+    box-shadow: var(--shadow-lg);
+    z-index: 40;
+  }
+  .uw-shell .uw-sidebar:hover .uw-nav__label,
+  .uw-shell .uw-sidebar:focus-within .uw-nav__label,
+  .uw-shell .uw-sidebar:hover .uw-nav__group,
+  .uw-shell .uw-sidebar:focus-within .uw-nav__group,
+  .uw-shell .uw-sidebar:hover .uw-sidebar__brand-strong,
+  .uw-shell .uw-sidebar:focus-within .uw-sidebar__brand-strong,
+  .uw-shell .uw-sidebar:hover .uw-sidebar__brand-sub,
+  .uw-shell .uw-sidebar:focus-within .uw-sidebar__brand-sub {
+    opacity: 1;
+  }
+  .uw-shell .uw-sidebar:hover .uw-sidebar__brand-mark,
+  .uw-shell .uw-sidebar:focus-within .uw-sidebar__brand-mark {
+    display: none;
+  }
+}
+
+/* Accessibility: a consistent indigo focus ring for natively-focusable controls
+   that don't already declare one (links, inputs, the reused dropdown/segmented
+   controls keep their own). Never uses data red/green. */
+.uw-root a:focus-visible,
+.uw-dropdown:focus-visible,
+.uw-traces__reviewed input:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--border-radius-sm);
+}
+
 /* ---- Motion preference ---------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .uw-root *,
