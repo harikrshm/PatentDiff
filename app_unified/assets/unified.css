@@ -607,6 +607,90 @@
   .uw-traces__grid { grid-template-columns: 1fr; }
 }
 
+/* ============================================================================
+   T6 · Comparison (/eval/comparison) — instrument surfaces
+   ----------------------------------------------------------------------------
+   The measurement bench: KPI tiles (console vocabulary), a themed transition
+   matrix, and flipped-trace lists — reads like the console's readouts.
+   ============================================================================ */
+.uw-compare__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  align-items: flex-end;
+  margin-bottom: var(--space-6);
+}
+.uw-compare__controls > div { display: flex; flex-direction: column; gap: var(--space-1); }
+
+.uw-compare__kpis { margin-bottom: var(--space-7); }
+.uw-compare__kpi .wb-kpi__value { font-family: var(--font-family-mono); }
+
+.uw-compare__h2 {
+  margin: var(--space-7) 0 var(--space-3);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-secondary);
+}
+
+/* Transition matrix — framed instrument card. */
+.uw-compare__matrix {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-4) var(--space-5);
+  display: inline-block;
+}
+.uw-compare__matrix .dash-spreadsheet-container { border: none; }
+
+/* Flipped-trace lists — two valence-ruled readouts. */
+.uw-compare__flips {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+.uw-compare__flip {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-left: var(--kpi-rule-width, 3px) solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-4);
+}
+.uw-compare__flip--ok { border-left-color: var(--color-status-success); }
+.uw-compare__flip--bad { border-left-color: var(--color-status-error); }
+.uw-compare__flip-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.uw-compare__flip-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.uw-compare__flip-arrow { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
+.uw-compare__flip-count {
+  margin-left: auto;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.uw-compare__flip-ids {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+  word-spacing: var(--space-1);
+  overflow-wrap: anywhere;
+}
+.uw-compare__empty { color: var(--color-text-secondary); }
+
+@media (max-width: 1024px) {
+  .uw-compare__flips { grid-template-columns: 1fr; }
+}
+
 /* ---- Motion preference ---------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .uw-root *,

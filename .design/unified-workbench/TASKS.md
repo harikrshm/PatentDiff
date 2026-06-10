@@ -48,7 +48,7 @@ Date: 2026-06-10
   CSS. Done = reading width is comfortable serif prose; the coder feels like writing on the document._
 
 ## Instrument register
-- [ ] **T6 · Comparison `/eval/comparison` — instrument surfaces**: Style v1 surfaces to the instrument
+- [x] **T6 · Comparison `/eval/comparison` — instrument surfaces**: Style v1 surfaces to the instrument
   register on `uw-page--instrument`: three **KPI tiles** (mono numerals, valence-tinted delta reusing the
   console KPI vocabulary), the **verdict transition matrix** as a themed `dash_table` (mono, hairline,
   `--data-*` tint on flips), and **flipped-trace** lists (mono run-ids). _Modifies:
