@@ -602,6 +602,8 @@
   color: var(--voice-human-text);
 }
 .uw-traces__reviewed label { display: inline-flex; align-items: center; gap: var(--space-2); }
+/* Indigo chrome accent — never a data color — on the reviewed checkbox. */
+.uw-traces__reviewed input[type="checkbox"] { accent-color: var(--color-accent-primary); }
 .uw-field--human .uw-btn--primary { margin-top: var(--space-3); align-self: flex-start; }
 
 /* ---- Save status valence (paired with text, never color-only) ------------- */
@@ -628,6 +630,10 @@
 .uw-compare__controls > div { display: flex; flex-direction: column; gap: var(--space-1); }
 
 .uw-compare__kpis { margin-bottom: var(--space-7); }
+/* The console builds KPI parts as blocks; here they're spans, so stack them. */
+.uw-compare__kpi .wb-kpi__label,
+.uw-compare__kpi .wb-kpi__value,
+.uw-compare__kpi .wb-kpi__sub { display: block; }
 .uw-compare__kpi .wb-kpi__value { font-family: var(--font-family-mono); }
 
 .uw-compare__h2 {

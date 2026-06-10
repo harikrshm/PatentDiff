@@ -80,6 +80,6 @@ Date: 2026-06-10
   icons. Breakpoints: 1024, 1280, 1440. _Done = the brief's responsive + a11y requirements all hold._
 
 ## Review
-- [ ] **Design review**: Run `/design-review` against the brief — screenshots at 1280/1440 (+ ~1024
+- [x] **Design review**: Run `/design-review` against the brief — screenshots at 1280/1440 (+ ~1024
   degrade) and dark mode for all four routes; check the register hand-off (memo↔instrument feels like one
   app), color-as-data discipline, and the sidebar-collapse behavior on `/eval`.
