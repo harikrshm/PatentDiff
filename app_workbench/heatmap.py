@@ -133,8 +133,9 @@ def dim_heatmap_figure(piv: DimPivot, *, dark: bool = False) -> go.Figure:
         z=z, x=piv.cols, y=y, zmin=0.0, zmax=1.0,
         colorscale=fail_colorscale(dark), xgap=3, ygap=3, customdata=n,
         hovertemplate="%{y} · %{x}<br>FAIL %{z:.0%}<br>n=%{customdata}<extra></extra>",
-        colorbar=dict(title=dict(text="FAIL %", side="right"),
-                      tickformat=".0%", thickness=10, outlinewidth=0, len=0.9),
+        # No colorbar: every cell prints % + n and the avg chips carry column
+        # rates, so the legend is redundant — and it overflowed the card at 1280.
+        showscale=False,
     ))
 
     annotations = []

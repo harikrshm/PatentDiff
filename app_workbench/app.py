@@ -140,7 +140,11 @@ def _block3_heatmap() -> list:
             _dim("heat-row", "Rows", "claim_type"),
             _dim("heat-col", "Columns", "relationship"),
         ]),
-        _loading(html.Div(id="heatmap-container", className="wb-card wb-heatmap-card")),
+        _loading(dcc.Graph(
+            id="heatmap",
+            config={"displayModeBar": False, "responsive": True},
+            style={"height": "300px"})),
+        html.Div(id="heatmap-avg", className="uw-dash__heat-avg"),
     ]
 
 

@@ -98,15 +98,23 @@ def render_fm_chart(active_name: str, _v, theme):
 
 
 # ── §2 Where — custom themed heatmap + relationship averages ─────────────────
-_DIM_SOURCE_CAPTION = (
-    "Known dimensions only (Unknown excluded). Human-verified dimensions override "
-    "inferred ones; inferred accuracy ≈ claim_type 100% · claim_length 89% · "
-    "relationship 61%. Cells with n<3 flagged ⚠ (low confidence)."
-)
+_DIM_SOURCE_CAPTION = "Known dimensions only · cells with n<3 flagged ⚠ (low confidence)."
+
+
+def _heatmap_empty_fig(msg: str, dark: bool) -> go.Figure:
+    fig = go.Figure()
+    fig.add_annotation(text=msg, showarrow=False,
+                       font=dict(color="#E6EAEF" if dark else "#1A2027", size=13))
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                      height=300, margin=dict(l=8, r=8, t=8, b=8))
+    return fig
 
 
 @callback(
-    Output("heatmap-container", "children"),
+    Output("heatmap", "figure"),
+    Output("heatmap-avg", "children"),
     Input("corpus-selector", "value"),
     Input("eval-toggle", "value"),
     Input("heat-row", "value"),
@@ -115,28 +123,20 @@ _DIM_SOURCE_CAPTION = (
     Input("data-version", "data"),
 )
 def render_heatmap(active_name, eval_name, row_dim, col_dim, theme=None, _v=None):
+    dark = theme == "dark"
     if row_dim == col_dim:
-        return empty_state("Pick two different dimensions",
-                           "Rows and columns must differ to build a heatmap.")
+        return _heatmap_empty_fig("Pick two different dimensions", dark), ""
     df = load(active_name)
     if df.empty:
-        return empty_state(
-            "No eval results for this trace set",
-            "Nothing to chart yet — switch sets or run the eval above.",
-        )
+        return (_heatmap_empty_fig("No eval results for this set", dark),
+                html.P("Switch sets or run the eval above.", className="wb-caption"))
 
     piv = dim_pivot(df, eval_name, row_dim, col_dim)
     if all(c == 0 for c in piv.col_n.values()):
-        return empty_state(
-            "No traces with known dimensions",
-            "Every scored trace here is Unknown on the chosen dimensions. "
-            "Pick other dimensions or another set.",
-        )
+        return (_heatmap_empty_fig("No traces with known dimensions", dark),
+                html.P("Pick other dimensions or another set.", className="wb-caption"))
 
-    dark = theme == "dark"
-    graph = dcc.Graph(id="heatmap", figure=dim_heatmap_figure(piv, dark=dark),
-                      config=_GRAPH_CONFIG)
-
+    fig = dim_heatmap_figure(piv, dark=dark)
     col_label = DIM_LABELS.get(col_dim, col_dim).lower()
     avg_chips = html.Div(
         className="wb-avg-strip",
@@ -154,9 +154,8 @@ def render_heatmap(active_name, eval_name, row_dim, col_dim, theme=None, _v=None
             for cv in piv.cols
         ],
     )
-
     caption = html.P(_DIM_SOURCE_CAPTION, className="wb-caption")
-    return [graph, avg_chips, caption]
+    return fig, [avg_chips, caption]
 
 
 # ── Block 4 · Eval score vs KPI target ───────────────────────────────────────

@@ -87,7 +87,7 @@ Date: 2026-06-11
   requirements hold._
 
 ## Review
-- [ ] **Design review**: Run `/design-review` against the brief — screenshots at
+- [x] **Design review**: Run `/design-review` against the brief — screenshots at
   1280/1440 (+ ~1024) and dark mode of `/eval`; check "show, don't conclude"
   (no machine insight), color-as-data discipline, the 6-block read-at-a-glance,
   and that selecting a set never triggers an eval run.
