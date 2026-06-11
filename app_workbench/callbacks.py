@@ -9,8 +9,15 @@ import uuid
 from datetime import datetime
 from urllib.parse import parse_qs
 
+from pathlib import Path
+
 import pandas as pd
+import plotly.graph_objects as go
 from dash import ALL, Input, Output, State, callback, ctx, dcc, html, no_update
+
+from core.failure_modes import UNTAGGED_LABEL, failure_mode_breakdown
+
+_TRACES_DIR = Path(__file__).resolve().parents[1] / "traces"
 
 from app_workbench.components import (empty_state, human_field, kpi_tile,
                                        machine_note, valence_var)
@@ -35,63 +42,57 @@ def _rate(series: pd.Series, fail_value: str = "FAIL") -> float:
     return (series == fail_value).mean() if not series.empty else 0.0
 
 
-# ── §1 How bad — KPI tiles + attribution ─────────────────────────────────────
+# ── Block 2 · Eval summary — failure-mode share of FAILs (whole set) ─────────
+_FM_RED = "rgba(192, 57, 43, 0.55)"        # FAIL valence (counts of failures)
+_FM_GRAY = "rgba(127, 135, 148, 0.45)"     # untagged — neutral, not on the data axis
+
+
+def _fm_figure(rows: list, theme: str) -> go.Figure:
+    """Horizontal bar chart of failure-mode share of FAILs. Transparent bg so the
+    card surface shows through in both themes; mono font; FAIL-tinted bars."""
+    dark = theme == "dark"
+    fg = "#E6EAEF" if dark else "#1A2027"
+    grid = "rgba(255,255,255,0.08)" if dark else "rgba(0,0,0,0.07)"
+    fig = go.Figure()
+    if not rows:
+        fig.add_annotation(text="No FAILs to break down for this set",
+                           showarrow=False, font=dict(color=fg, size=13))
+        fig.update_xaxes(visible=False)
+        fig.update_yaxes(visible=False)
+    else:
+        labels = [r[0] for r in rows][::-1]   # largest on top
+        vals = [r[1] for r in rows][::-1]
+        colors = [_FM_GRAY if l == UNTAGGED_LABEL else _FM_RED for l in labels]
+        fig.add_bar(x=vals, y=labels, orientation="h", marker_color=colors,
+                    text=vals, textposition="outside",
+                    hovertemplate="%{y}: %{x}<extra></extra>")
+        hi = max(vals)
+        fig.update_xaxes(showgrid=True, gridcolor=grid, zeroline=False,
+                         range=[0, hi * 1.15])   # headroom for outside labels
+        fig.update_yaxes(showgrid=False, automargin=True)
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=fg, family="'IBM Plex Mono','JetBrains Mono',monospace",
+                  size=12),
+        margin=dict(l=8, r=36, t=8, b=8), height=232, showlegend=False, bargap=0.4,
+    )
+    return fig
+
+
 @callback(
-    Output("kpi-row", "children"),
+    Output("fm-chart", "figure"),
+    Output("fm-caption", "children"),
     Input("corpus-selector", "value"),
     Input("data-version", "data"),
+    Input("theme", "data"),
 )
-def render_kpis(active_name: str, _v=None):
-    df = load(active_name)
-    if df.empty:
-        return empty_state(
-            "No eval results for this trace set",
-            "This set has no PHOSITA or citation verdicts yet. Switch sets, "
-            "or run the eval from the control bar above.",
-        )
-
-    ph = df[df["phosita_verdict"].isin(["PASS", "FAIL"])]
-    ct = df[df["citation_verdict"].isin(["PASS", "FAIL"])]
-    both = df[df["phosita_verdict"].isin(["PASS", "FAIL"])
-              & df["citation_verdict"].isin(["PASS", "FAIL"])]
-
-    ph_rate = _rate(ph["phosita_verdict"])
-    ct_rate = _rate(ct["citation_verdict"])
-    either = (((both["phosita_verdict"] == "FAIL")
-               | (both["citation_verdict"] == "FAIL")).mean()
-              if not both.empty else 0.0)
-    clean = (((both["phosita_verdict"] == "PASS")
-              & (both["citation_verdict"] == "PASS")).mean()
-             if not both.empty else 0.0)
-
-    tiles = html.Div(
-        className="wb-kpi-row",
-        children=[
-            kpi_tile("PHOSITA reasoning FAIL", f"{ph_rate:.0%}", f"n={len(ph)}", rate=ph_rate),
-            kpi_tile("Citation text FAIL", f"{ct_rate:.0%}", f"n={len(ct)}", rate=ct_rate),
-            kpi_tile("Either fails", f"{either:.0%}", f"n={len(both)}", rate=either),
-            # Neutral rule: "clean" is the one good metric — keep the red/amber
-            # valence strictly on the failure tiles so red always = more failure.
-            kpi_tile("Fully clean", f"{clean:.0%}", f"n={len(both)}"),
-        ],
-    )
-
-    n_human = int((df["dim_source"] == "human").sum())
-    attribution = html.Div(
-        className="wb-attribution",
-        children=[
-            "Trace set ",
-            html.Span(active_name, className="wb-num"),
-            " · PHOSITA ",
-            html.Span(PHOSITA_PROMPT_VERSION, className="wb-num"),
-            " · ",
-            html.Span(str(len(df)), className="wb-num"),
-            " traces with ≥1 eval result · ",
-            html.Span(str(n_human), className="wb-num"),
-            " human-verified dimensions",
-        ],
-    )
-    return [tiles, attribution]
+def render_fm_chart(active_name: str, _v, theme):
+    set_name = active_name or "live"
+    rows = failure_mode_breakdown(_TRACES_DIR, set_name)
+    total = sum(c for _, c in rows)
+    caption = (f"share of FAILs · set {set_name} · {total} FAILs" if rows
+               else f"set {set_name} — no FAILs")
+    return _fm_figure(rows, theme or "light"), caption
 
 
 # ── §2 Where — custom themed heatmap + relationship averages ─────────────────

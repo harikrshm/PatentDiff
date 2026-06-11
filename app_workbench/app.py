@@ -104,10 +104,16 @@ def _block1_trace_properties() -> list:
     ]
 
 
-def _block2_eval_summary() -> html.Div:
-    """Interim: the existing 'how bad' KPI row (render_kpis). T3 replaces this
-    with the failure-mode share-of-FAILs bar chart."""
-    return _loading(html.Div(id="kpi-row"))
+def _block2_eval_summary() -> list:
+    """Failure-mode share-of-FAILs bar chart across the whole set (render_fm_chart)."""
+    return [
+        _loading(dcc.Graph(
+            id="fm-chart",
+            config={"displayModeBar": False, "responsive": True},
+            style={"height": "232px"},
+        )),
+        html.P(id="fm-caption", className="wb-caption"),
+    ]
 
 
 def _block3_heatmap() -> list:
