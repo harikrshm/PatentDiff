@@ -939,6 +939,54 @@
   .uw-dash__block--wide { grid-column: auto; }
 }
 
+/* ============================================================================
+   Review (/eval/review) — trace coverage / review progress (instrument)
+   ============================================================================ */
+.uw-review__card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  padding: var(--card-padding);
+  margin-bottom: var(--space-6);
+  max-width: 48rem;
+}
+.uw-review__head { display: flex; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-3); }
+.uw-review__headline {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--color-text-primary);
+}
+.uw-review__headline-sub { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+.uw-review__pct {
+  margin-left: auto;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent-primary);
+}
+.uw-review__stats { display: flex; flex-wrap: wrap; gap: var(--space-7); margin-top: var(--space-5); }
+.uw-review__stat { display: flex; flex-direction: column; gap: var(--space-1); }
+.uw-review__stat-val { font-size: var(--font-size-2xl); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+.uw-review__stat-label {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-tertiary);
+}
+.uw-review__left { max-width: 48rem; }
+.uw-review__left-head { display: flex; align-items: baseline; gap: var(--space-3); margin-bottom: var(--space-3); }
+.uw-review__left-head .uw-num { margin-left: auto; color: var(--color-text-secondary); font-size: var(--font-size-sm); }
+.uw-review__chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.uw-review__chip {
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+.uw-review__more { font-size: var(--font-size-xs); color: var(--color-text-tertiary); align-self: center; }
+.uw-review__done { color: var(--color-status-success); font-weight: var(--font-weight-medium); }
+
 /* ---- Motion preference ---------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .uw-root *,

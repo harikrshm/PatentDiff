@@ -14,6 +14,7 @@ PRIMARY = [("PatentDiff", "/", "⊟")]
 EVAL_GROUP = [
     ("Dashboard", "/eval", "◉"),
     ("Traces", "/eval/traces", "≣"),
+    ("Review", "/eval/review", "✓"),
     ("Comparison", "/eval/comparison", "⇄"),
 ]
 
