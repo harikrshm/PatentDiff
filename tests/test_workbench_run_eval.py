@@ -48,3 +48,29 @@ def test_run_eval_runs_on_real_click():
         cb.run_evals, cb.resolve_set_strict = orig_run, orig_resolve
     assert len(calls) == 1                 # the eval actually ran
     assert out[1] == 5                     # data-version bumped from 4 -> 5
+
+
+def test_run_eval_records_history_on_real_click():
+    import types
+
+    captured = {}
+    fake_set = types.SimpleNamespace(name="live",
+                                     phosita_path="phosita.jsonl",
+                                     citation_path="citation.jsonl")
+    orig = (cb.run_evals, cb.resolve_set_strict, cb.load_verdict_map,
+            cb._pass_rate, cb.append_run)
+    cb.run_evals = lambda *a, **k: "ok"
+    cb.resolve_set_strict = lambda _n: fake_set
+    cb.load_verdict_map = lambda _p: {"r": "PASS"}
+    cb._pass_rate = lambda _m: (1.0, 1, 1)
+    cb.append_run = lambda recs, **k: captured.setdefault("recs", recs)
+    try:
+        cb.run_eval(lambda *_: None, 1, "live", 0)
+    finally:
+        (cb.run_evals, cb.resolve_set_strict, cb.load_verdict_map,
+         cb._pass_rate, cb.append_run) = orig
+
+    recs = captured["recs"]
+    assert {r.eval_kind for r in recs} == {"phosita", "citation"}
+    assert len({r.run_id for r in recs}) == 1          # one run group
+    assert all(r.trace_set == "live" and r.pass_rate == 1.0 for r in recs)

@@ -5,6 +5,7 @@ against the global registry. One block per funnel section.
 """
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 from urllib.parse import parse_qs
 
@@ -16,6 +17,8 @@ from app_workbench.components import (empty_state, human_field, kpi_tile,
 from app_workbench.constants import (DECISION_MODES, LAYER_LABEL, LAYER_RANK,
                                      MODE_EVAL)
 from app_workbench.data import load, resolve_set_strict, trace_set_options
+from core.eval_delta import _pass_rate, load_verdict_map
+from core.eval_history import PROMPT_VERSIONS, HistoryRecord, append_run
 from core.eval_runner import run_evals
 from app_workbench.heatmap import REL_ORDER, fail_pivot, heatmap_figure
 from app_workbench.state import (get_annotation, get_priority_inputs,
@@ -464,6 +467,19 @@ def run_eval(set_progress, _n_clicks, active_name, version):
     except Exception as exc:  # surface failure without crashing the UI
         set_progress([f"⚠ Eval failed: {exc}"])
         return no_update, no_update
+
+    # Record this real run's PASS-rates to the dated history (ruler unchanged).
+    rid = uuid.uuid4().hex[:8]
+    now_iso = datetime.now().isoformat(timespec="seconds")
+    recs = []
+    for kind, p in (("phosita", ts_set.phosita_path),
+                    ("citation", ts_set.citation_path)):
+        rate, _pass, scored = _pass_rate(load_verdict_map(p))
+        recs.append(HistoryRecord(
+            timestamp=now_iso, eval_kind=kind, trace_set=ts_set.name,
+            pass_rate=rate, scored=scored,
+            prompt_version=PROMPT_VERSIONS.get(kind), run_id=rid))
+    append_run(recs)
 
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
     set_progress([f"Done · {stamp}"])
