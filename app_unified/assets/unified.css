@@ -844,6 +844,16 @@
   font-family: var(--font-family-mono);
 }
 
+/* Block 3 — heatmap dimension controls */
+.uw-dash__heat-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: flex-end;
+  margin-bottom: var(--space-4);
+}
+.uw-dash__dim { display: flex; flex-direction: column; gap: var(--space-1); min-width: 8.5rem; }
+
 /* Block 1 — trace properties / run UI (static, not a header) */
 .uw-dash__field { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
 .uw-dash__run { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); flex-wrap: wrap; }

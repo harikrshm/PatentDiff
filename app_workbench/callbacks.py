@@ -28,7 +28,7 @@ from core.eval_delta import _pass_rate, load_verdict_map
 from core.eval_history import (PROMPT_VERSIONS, HistoryRecord, append_run,
                                history_for)
 from core.eval_runner import run_evals
-from app_workbench.heatmap import REL_ORDER, fail_pivot, heatmap_figure
+from app_workbench.heatmap import DIM_LABELS, dim_heatmap_figure, dim_pivot
 from app_workbench.state import (get_annotation, get_priority_inputs,
                                  set_annotation, update_priority_inputs)
 from core.diagnostics import dispersion_pp, evidence_note, relationship_gradient
@@ -107,10 +107,15 @@ _DIM_SOURCE_CAPTION = (
     Output("heatmap-container", "children"),
     Input("corpus-selector", "value"),
     Input("eval-toggle", "value"),
+    Input("heat-row", "value"),
+    Input("heat-col", "value"),
     Input("theme", "data"),
     Input("data-version", "data"),
 )
-def render_heatmap(active_name: str, eval_name: str, theme=None, _v=None):
+def render_heatmap(active_name, eval_name, row_dim, col_dim, theme=None, _v=None):
+    if row_dim == col_dim:
+        return empty_state("Pick two different dimensions",
+                           "Rows and columns must differ to build a heatmap.")
     df = load(active_name)
     if df.empty:
         return empty_state(
@@ -118,32 +123,33 @@ def render_heatmap(active_name: str, eval_name: str, theme=None, _v=None):
             "Nothing to chart yet — switch sets or run the eval above.",
         )
 
-    piv = fail_pivot(df, eval_name)
+    piv = dim_pivot(df, eval_name, row_dim, col_dim)
     if all(c == 0 for c in piv.col_n.values()):
         return empty_state(
             "No traces with known dimensions",
-            "Every scored trace here is Unknown on claim type or relationship, "
-            "so the grid can't be built. Tag dimensions or pick another set.",
+            "Every scored trace here is Unknown on the chosen dimensions. "
+            "Pick other dimensions or another set.",
         )
 
     dark = theme == "dark"
-    graph = dcc.Graph(id="heatmap", figure=heatmap_figure(piv, dark=dark),
+    graph = dcc.Graph(id="heatmap", figure=dim_heatmap_figure(piv, dark=dark),
                       config=_GRAPH_CONFIG)
 
+    col_label = DIM_LABELS.get(col_dim, col_dim).lower()
     avg_chips = html.Div(
         className="wb-avg-strip",
-        children=[html.Span("Avg by relationship", className="wb-kicker")] + [
+        children=[html.Span(f"Avg by {col_label}", className="wb-kicker")] + [
             html.Div(
                 className="wb-avg-chip",
                 children=[
                     html.Span(className="wb-avg-chip__dot",
-                              style={"background": valence_var(piv.col_avg[rel])}),
-                    html.Span(rel, className="wb-avg-chip__label"),
-                    html.Span(f"{piv.col_avg[rel]:.0%}", className="wb-avg-chip__val wb-num"),
-                    html.Span(f"n={piv.col_n[rel]}", className="wb-avg-chip__n wb-num"),
+                              style={"background": valence_var(piv.col_avg[cv])}),
+                    html.Span(cv, className="wb-avg-chip__label"),
+                    html.Span(f"{piv.col_avg[cv]:.0%}", className="wb-avg-chip__val wb-num"),
+                    html.Span(f"n={piv.col_n[cv]}", className="wb-avg-chip__n wb-num"),
                 ],
             )
-            for rel in REL_ORDER
+            for cv in piv.cols
         ],
     )
 

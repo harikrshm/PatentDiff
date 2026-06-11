@@ -116,13 +116,29 @@ def _block2_eval_summary() -> list:
     ]
 
 
+_DIM_OPTIONS = [
+    {"label": "Claim type", "value": "claim_type"},
+    {"label": "Claim length", "value": "claim_length"},
+    {"label": "Relationship", "value": "relationship"},
+]
+
+
 def _block3_heatmap() -> list:
-    """Dimension heatmap. T4 adds the row/col dimension dropdowns; for now it
-    keeps the eval toggle + the existing heatmap container."""
+    """Dimension heatmap with selectable row/col dimensions + the eval toggle."""
+    def _dim(id_, label, default):
+        return html.Div(className="uw-dash__dim", children=[
+            html.Label(label, className="wb-kicker", htmlFor=id_),
+            dcc.Dropdown(id=id_, options=_DIM_OPTIONS, value=default,
+                         clearable=False, className="wb-dropdown wb-dropdown--tier"),
+        ])
     return [
-        html.Div(className="uw-dash__field", children=[
-            html.Span("Show eval", className="wb-kicker"),
-            _eval_toggle(),
+        html.Div(className="uw-dash__heat-controls", children=[
+            html.Div(className="uw-dash__field", children=[
+                html.Span("Show eval", className="wb-kicker"),
+                _eval_toggle(),
+            ]),
+            _dim("heat-row", "Rows", "claim_type"),
+            _dim("heat-col", "Columns", "relationship"),
         ]),
         _loading(html.Div(id="heatmap-container", className="wb-card wb-heatmap-card")),
     ]
