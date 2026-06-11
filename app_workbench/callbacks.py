@@ -18,7 +18,8 @@ from app_workbench.constants import (DECISION_MODES, LAYER_LABEL, LAYER_RANK,
                                      MODE_EVAL)
 from app_workbench.data import load, resolve_set_strict, trace_set_options
 from core.eval_delta import _pass_rate, load_verdict_map
-from core.eval_history import PROMPT_VERSIONS, HistoryRecord, append_run
+from core.eval_history import (PROMPT_VERSIONS, HistoryRecord, append_run,
+                               history_for)
 from core.eval_runner import run_evals
 from app_workbench.heatmap import REL_ORDER, fail_pivot, heatmap_figure
 from app_workbench.state import (get_annotation, get_priority_inputs,
@@ -159,15 +160,46 @@ _VALID_EVALS = {"phosita", "citation", "either"}
     Input("url", "search"),
 )
 def apply_deep_link(search: str):
-    """Restore a shared link's trace set + eval view. Guarded so it never loops:
-    invalid/missing params return no_update, leaving the control untouched."""
+    """Restore a shared link's trace set + eval view, else fall back to the
+    defaults. url.search is the only input and never changes when the controls
+    do, so this can't loop. Returning concrete values (not no_update) on load is
+    deliberate: corpus-selector.value is the input every block reads, so it must
+    be *set* on load to trigger them (an unchanged input never fires its
+    dependents)."""
     params = parse_qs((search or "").lstrip("?"))
     want_set = (params.get("set") or [None])[0]
     want_eval = (params.get("eval") or [None])[0]
     names = {o["value"] for o in trace_set_options()}
-    out_set = want_set if want_set in names else no_update
-    out_eval = want_eval if want_eval in _VALID_EVALS else no_update
+    out_set = want_set if want_set in names else "live"
+    out_eval = want_eval if want_eval in _VALID_EVALS else "phosita"
     return out_set, out_eval
+
+
+# ── Block 1 · Trace properties — per-eval run metadata from history ──────────
+@callback(
+    Output("trace-meta", "children"),
+    Input("corpus-selector", "value"),
+    Input("data-version", "data"),
+)
+def render_trace_meta(active_name: str, _v=None):
+    """Latest recorded PASS-rate, n, and prompt version per eval kind for the
+    active set (from core.eval_history). No eval runs here — display only."""
+    set_name = active_name or "live"
+    rows = []
+    for kind in ("phosita", "citation"):
+        h = history_for(kind, trace_set=set_name)
+        if h:
+            rows.append((kind, h[-1]))
+    if not rows:
+        return html.Span("No eval runs recorded for this set yet.",
+                         className="wb-caption")
+    out = []
+    for kind, rec in rows:
+        pv = f" · {rec.prompt_version}" if rec.prompt_version else ""
+        out.append(html.Span(kind.capitalize(), className="uw-dash__meta-k"))
+        out.append(html.Span(f"{rec.pass_rate * 100:.0f}% PASS · n={rec.scored}{pv}",
+                             className="uw-num"))
+    return out
 
 
 # ── T10 · Run eval — background job, live status, refresh on completion ───────
