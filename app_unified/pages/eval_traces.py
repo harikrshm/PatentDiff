@@ -109,7 +109,6 @@ layout = html.Div(
                 html.Section(
                     className="uw-traces__form uw-field--human",
                     children=[
-                        html.Span("Your reading", className="uw-field__voice"),
                         html.H2("Annotation", className="uw-traces__h2"),
                         html.Label("Verdict", className="uw-label"),
                         dcc.RadioItems(id="ann-verdict",
@@ -156,6 +155,38 @@ def _patent_block(kicker: str, label: str, claim: str) -> list:
     ]
 
 
+def _verdict_block(parsed, status: str) -> html.Div:
+    """PatentDiff's output up front: 'Mapped X of N' + per-element Mapped Y/N.
+    Mapped = novelty (the element is found in the prior art). When there's no
+    parsed output (e.g. status=error) show a calm note, not silence."""
+    if parsed is None:
+        return html.Div(className="uw-traces__verdict uw-traces__verdict--empty",
+                        children=[
+            html.Span("Tool verdict", className="uw-kicker"),
+            html.P(f"No tool output — status: {status}.", className="uw-traces__empty"),
+        ])
+    ems = parsed.element_mappings
+    mapped = sum(1 for em in ems if em.novelty)
+    chips = [
+        html.Span(
+            className="uw-traces__vchip" + (" is-mapped" if em.novelty else ""),
+            children=[
+                html.Span(f"{em.element_number}", className="uw-traces__vnum uw-num"),
+                html.Span("Mapped Y" if em.novelty else "Mapped N",
+                          className="uw-traces__vlabel"),
+            ],
+        ) for em in ems
+    ]
+    return html.Div(className="uw-traces__verdict", children=[
+        html.Div(className="uw-traces__verdict-head", children=[
+            html.Span("Tool verdict", className="uw-kicker"),
+            html.Span(f"Mapped {mapped} of {len(ems)}",
+                      className="uw-traces__vsummary uw-num"),
+        ]),
+        html.Div(className="uw-traces__vchips", children=chips),
+    ])
+
+
 def _render_trace_detail(trace) -> html.Div:
     dims = trace.dimensions or {}
     src = trace.inputs.get("source_patent", {})
@@ -169,15 +200,17 @@ def _render_trace_detail(trace) -> html.Div:
             _meta_chip("Length", dims.get("claim_length", "N/A")),
             _meta_chip("Relationship", dims.get("relationship", "N/A")),
         ]),
-        *_patent_block("Source Patent (A)", src.get("label", "N/A"),
-                       src.get("independent_claim", "")),
-        *_patent_block("Target Patent (B)", tgt.get("label", "N/A"),
-                       tgt.get("independent_claim", "")),
+        # Decision first: the tool's verdict + opinion, then the claims for context.
+        _verdict_block(trace.parsed_output, trace.status),
     ]
-    if trace.parsed_output:
+    if trace.parsed_output and trace.parsed_output.overall_opinion:
         children.append(html.H3("Overall Opinion", className="uw-traces__h3"))
         children.append(html.Div(trace.parsed_output.overall_opinion,
                                  className="uw-prose uw-traces__read"))
+    children += _patent_block("Source Patent (A)", src.get("label", "N/A"),
+                              src.get("independent_claim", ""))
+    children += _patent_block("Target Patent (B)", tgt.get("label", "N/A"),
+                              tgt.get("independent_claim", ""))
     return html.Div(className="uw-traces__reader", children=children)
 
 
