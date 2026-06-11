@@ -844,6 +844,27 @@
   font-family: var(--font-family-mono);
 }
 
+/* Block 4 — eval score vs KPI target (current fill + target marker + gap) */
+.uw-kt { margin-bottom: var(--space-5); }
+.uw-kt:last-child { margin-bottom: 0; }
+.uw-kt__head { display: flex; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-2); }
+.uw-kt__label { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+.uw-kt__cur { margin-left: auto; font-size: var(--font-size-2xl); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+.uw-kt__n { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
+.uw-kt__bar {
+  position: relative;
+  height: 8px;
+  border-radius: var(--border-radius-full);
+  background: var(--color-bg-tertiary);
+}
+.uw-kt__fill { height: 100%; border-radius: var(--border-radius-full); background: var(--color-accent-primary); }
+.uw-kt__marker { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--color-text-primary); transform: translateX(-1px); }
+.uw-kt__sub { display: flex; gap: var(--space-3); margin-top: var(--space-2); font-size: var(--font-size-xs); }
+.uw-kt__target { color: var(--color-text-secondary); }
+.uw-kt__gap--ok { color: var(--color-status-success); font-weight: var(--font-weight-semibold); }
+.uw-kt__gap--bad { color: var(--color-status-error); font-weight: var(--font-weight-semibold); }
+.uw-kt__notarget { margin-top: var(--space-2); font-size: var(--font-size-xs); color: var(--color-text-tertiary); font-style: italic; }
+
 /* Block 3 — heatmap dimension controls */
 .uw-dash__heat-controls {
   display: flex;

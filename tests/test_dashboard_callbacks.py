@@ -45,3 +45,18 @@ def test_render_trace_meta_lists_each_eval_kind(tmp_path, monkeypatch):
     text = str(out)
     assert "Phosita" in text and "Citation" in text
     assert "50% PASS" in text and "n=80" in text and "v3" in text
+
+
+def test_render_kpi_vs_target_shows_gap_and_no_target(monkeypatch):
+    from core.kpi_targets import Target
+    monkeypatch.setattr(cb, "current_pass_rate",
+                        lambda d, s, kind: (0.54, 89) if kind == "phosita" else (0.45, 71))
+    monkeypatch.setattr(cb, "get_target",
+                        lambda kind: Target(target_pass_rate=0.85, target_date="2026-09-01")
+                        if kind == "phosita" else None)
+    out = cb.render_kpi_vs_target("live", 0, 0)
+    assert len(out) == 2
+    text = str(out)
+    assert "target 85%" in text and "-31 pp" in text   # phosita gap
+    assert "uw-kt__gap--bad" in text                    # below target
+    assert "No target set" in text                      # citation

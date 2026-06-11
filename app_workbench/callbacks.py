@@ -16,6 +16,8 @@ import plotly.graph_objects as go
 from dash import ALL, Input, Output, State, callback, ctx, dcc, html, no_update
 
 from core.failure_modes import UNTAGGED_LABEL, failure_mode_breakdown
+from core.kpi_targets import get_target
+from core.kpi_view import current_pass_rate, series, trajectory
 
 _TRACES_DIR = Path(__file__).resolve().parents[1] / "traces"
 
@@ -155,6 +157,56 @@ def render_heatmap(active_name, eval_name, row_dim, col_dim, theme=None, _v=None
 
     caption = html.P(_DIM_SOURCE_CAPTION, className="wb-caption")
     return [graph, avg_chips, caption]
+
+
+# ── Block 4 · Eval score vs KPI target ───────────────────────────────────────
+_EVAL_LABELS = {"phosita": "PHOSITA", "citation": "Citation"}
+
+
+def _target_row(label: str, rate: float, scored: int, target) -> html.Div:
+    cur = rate * 100
+    head = html.Div(className="uw-kt__head", children=[
+        html.Span(label, className="uw-kt__label"),
+        html.Span(f"{cur:.0f}%", className="uw-kt__cur uw-num"),
+        html.Span(f"PASS · n={scored}", className="uw-kt__n"),
+    ])
+    if target is None:
+        return html.Div(className="uw-kt", children=[
+            head,
+            html.Div(className="uw-kt__bar", children=html.Div(
+                className="uw-kt__fill", style={"width": f"{min(cur, 100):.0f}%"})),
+            html.Div("No target set", className="uw-kt__notarget"),
+        ])
+    tgt = target.target_pass_rate * 100
+    gap = cur - tgt
+    gap_cls = "uw-kt__gap--ok" if gap >= 0 else "uw-kt__gap--bad"
+    return html.Div(className="uw-kt", children=[
+        head,
+        html.Div(className="uw-kt__bar", children=[
+            html.Div(className="uw-kt__fill", style={"width": f"{min(cur, 100):.0f}%"}),
+            html.Div(className="uw-kt__marker", title=f"target {tgt:.0f}%",
+                     style={"left": f"{min(tgt, 100):.0f}%"}),
+        ]),
+        html.Div(className="uw-kt__sub", children=[
+            html.Span(f"target {tgt:.0f}%", className="uw-kt__target uw-num"),
+            html.Span(f"{gap:+.0f} pp", className=f"uw-kt__gap {gap_cls} uw-num"),
+        ]),
+    ])
+
+
+@callback(
+    Output("kpi-target-readout", "children"),
+    Input("corpus-selector", "value"),
+    Input("data-version", "data"),
+    Input("kpi-version", "data"),
+)
+def render_kpi_vs_target(active_name, _v, _kv):
+    set_name = active_name or "live"
+    return [
+        _target_row(_EVAL_LABELS[kind], *current_pass_rate(_TRACES_DIR, set_name, kind),
+                    get_target(kind))
+        for kind in ("phosita", "citation")
+    ]
 
 
 # ── T9 · Deep-link reader — apply ?set= / ?eval= on load (idempotent) ────────

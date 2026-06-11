@@ -149,17 +149,23 @@ def build_console_body() -> html.Div:
     machine-written insight — just the controls, charts, and numbers."""
     return html.Div(
         className="wb-root uw-dash",
-        children=html.Div(
-            className="uw-dash__grid",
-            children=[
-                _block("01 · SET & RUN", "Trace Properties", _block1_trace_properties()),
-                _block("02 · HOW BAD", "Eval Summary", _block2_eval_summary()),
-                _block("03 · WHERE", "Dimension Heatmap", _block3_heatmap()),
-                _block("04 · VS TARGET", "Eval Score vs Target", _placeholder("Block 4 · T5")),
-                _block("05 · OVER TIME", "Metric Trajectory", _placeholder("Block 5 · T6")),
-                _block("06 · TARGET", "Set KPI Target", _placeholder("Block 6 · T7")),
-            ],
-        ),
+        children=[
+            # Page-local signal: Block 6 bumps this when a target is saved so
+            # Blocks 4 & 5 refresh without a reload.
+            dcc.Store(id="kpi-version", data=0),
+            html.Div(
+                className="uw-dash__grid",
+                children=[
+                    _block("01 · SET & RUN", "Trace Properties", _block1_trace_properties()),
+                    _block("02 · HOW BAD", "Eval Summary", _block2_eval_summary()),
+                    _block("03 · WHERE", "Dimension Heatmap", _block3_heatmap()),
+                    _block("04 · VS TARGET", "Eval Score vs Target",
+                           _loading(html.Div(id="kpi-target-readout"))),
+                    _block("05 · OVER TIME", "Metric Trajectory", _placeholder("Block 5 · T6")),
+                    _block("06 · TARGET", "Set KPI Target", _placeholder("Block 6 · T7")),
+                ],
+            ),
+        ],
     )
 
 
