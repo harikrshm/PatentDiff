@@ -844,6 +844,9 @@
   font-family: var(--font-family-mono);
 }
 
+/* Block 6 — set KPI target */
+.uw-dash__save { margin-top: var(--space-2); }
+
 /* Block 4 — eval score vs KPI target (current fill + target marker + gap) */
 .uw-kt { margin-bottom: var(--space-5); }
 .uw-kt:last-child { margin-bottom: 0; }

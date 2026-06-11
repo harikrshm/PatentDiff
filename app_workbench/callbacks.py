@@ -16,7 +16,7 @@ import plotly.graph_objects as go
 from dash import ALL, Input, Output, State, callback, ctx, dcc, html, no_update
 
 from core.failure_modes import UNTAGGED_LABEL, failure_mode_breakdown
-from core.kpi_targets import get_target
+from core.kpi_targets import get_target, set_target
 from core.kpi_view import current_pass_rate, series, trajectory
 
 _TRACES_DIR = Path(__file__).resolve().parents[1] / "traces"
@@ -265,6 +265,54 @@ def _trajectory_figure(theme: str) -> go.Figure:
 )
 def render_trajectory(_v, _kv, theme):
     return _trajectory_figure(theme or "light")
+
+
+# ── Block 6 · Set KPI target — prefill from the current target + history ─────
+@callback(
+    Output("kt-rate", "value"),
+    Output("kt-date", "value"),
+    Output("kt-baseline", "options"),
+    Output("kt-baseline", "value"),
+    Input("kt-eval", "value"),
+    Input("kpi-version", "data"),
+    Input("data-version", "data"),
+)
+def prefill_target(eval_kind, _kv, _v):
+    eval_kind = eval_kind or "phosita"
+    target = get_target(eval_kind)
+    opts = [{"label": f"{r.timestamp[:16]} · {r.pass_rate * 100:.0f}% (n={r.scored})",
+             "value": r.run_id} for r in reversed(history_for(eval_kind))]
+    rate = round(target.target_pass_rate * 100) if target else None
+    date = target.target_date if target else None
+    baseline = target.baseline_run if target else None
+    return rate, date, opts, baseline
+
+
+@callback(
+    Output("kt-status", "children"),
+    Output("kpi-version", "data"),
+    Input("kt-save", "n_clicks"),
+    State("kt-eval", "value"),
+    State("kt-rate", "value"),
+    State("kt-date", "value"),
+    State("kt-baseline", "value"),
+    State("kpi-version", "data"),
+    prevent_initial_call=True,
+)
+def save_target(n_clicks, eval_kind, rate, date, baseline, version):
+    if not n_clicks:                     # only a real click saves (not a mount-fire)
+        return no_update, no_update
+    if rate is None or not date:
+        return html.Span("Enter a target PASS % and date.",
+                         className="uw-status--error"), no_update
+    try:
+        set_target(eval_kind or "phosita", float(rate) / 100.0, str(date),
+                   baseline_run=baseline)
+    except ValueError as exc:
+        return html.Span(f"Couldn't save: {exc}", className="uw-status--error"), no_update
+    return (html.Span(f"Target saved · {eval_kind} {float(rate):.0f}% by {date}.",
+                      className="uw-status--ok"),
+            (version or 0) + 1)
 
 
 # ── T9 · Deep-link reader — apply ?set= / ?eval= on load (idempotent) ────────

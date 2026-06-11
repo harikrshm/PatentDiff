@@ -144,6 +144,33 @@ def _block3_heatmap() -> list:
     ]
 
 
+def _block6_set_target() -> list:
+    """PM inputs that write a KPI target (rate + date + baseline run) per eval
+    kind; saving (render in callbacks) bumps kpi-version so Blocks 4/5 refresh."""
+    def _field(label, control):
+        return html.Div(className="uw-dash__field", children=[
+            html.Label(label, className="wb-kicker"), control])
+    return [
+        _field("Metric", dcc.Dropdown(
+            id="kt-eval",
+            options=[{"label": "PHOSITA", "value": "phosita"},
+                     {"label": "Citation", "value": "citation"}],
+            value="phosita", clearable=False, className="wb-dropdown wb-dropdown--tier")),
+        _field("Target PASS %", dcc.Input(
+            id="kt-rate", type="number", min=0, max=100, step=1,
+            placeholder="e.g. 85", className="uw-input")),
+        _field("Target date", dcc.Input(
+            id="kt-date", type="text", placeholder="YYYY-MM-DD", className="uw-input")),
+        _field("Baseline run", dcc.Dropdown(
+            id="kt-baseline", options=[], placeholder="earliest (default)",
+            className="wb-dropdown wb-dropdown--tier")),
+        html.Button("Save target", id="kt-save", n_clicks=0,
+                    className="uw-btn uw-btn--primary uw-dash__save"),
+        html.Div(id="kt-status", className="uw-status", role="status",
+                 **{"aria-live": "polite"}),
+    ]
+
+
 def build_console_body() -> html.Div:
     """The /eval dashboard: a 2x3 grid of instrument blocks. No funnel, no
     machine-written insight — just the controls, charts, and numbers."""
@@ -165,7 +192,7 @@ def build_console_body() -> html.Div:
                         id="trajectory-chart",
                         config={"displayModeBar": False, "responsive": True},
                         style={"height": "232px"}))),
-                    _block("06 · TARGET", "Set KPI Target", _placeholder("Block 6 · T7")),
+                    _block("06 · TARGET", "Set KPI Target", _block6_set_target()),
                 ],
             ),
         ],

@@ -83,3 +83,21 @@ def test_render_trajectory_builds_traces_and_handles_empty(monkeypatch):
     empty = cb.render_trajectory(0, 0, "dark")
     assert empty.data == ()                              # no traces
     assert empty.layout.annotations                      # shows the empty note
+
+
+def test_save_target_guards_mount_fire_and_validates(monkeypatch):
+    calls = []
+    monkeypatch.setattr(cb, "set_target",
+                        lambda *a, **k: calls.append((a, k)))
+    # mount-fire (n_clicks falsy) saves nothing
+    assert cb.save_target(0, "phosita", 85, "2026-09-01", None, 0) == (
+        cb.no_update, cb.no_update)
+    assert calls == []
+    # missing inputs -> error, no bump
+    msg, ver = cb.save_target(1, "phosita", None, "", None, 3)
+    assert getattr(msg, "className", "") == "uw-status--error" and ver is cb.no_update
+    # valid -> set_target called, version bumped
+    msg, ver = cb.save_target(1, "phosita", 85, "2026-09-01", "runA", 3)
+    assert len(calls) == 1 and calls[0][0][0] == "phosita"
+    assert calls[0][0][1] == 0.85 and ver == 4
+    assert getattr(msg, "className", "") == "uw-status--ok"
