@@ -799,6 +799,71 @@
   border-radius: var(--border-radius-sm);
 }
 
+/* ============================================================================
+   Dashboard (/eval) — 6-block instrument grid (replaces the step funnel)
+   ----------------------------------------------------------------------------
+   "Show, don't conclude": a 2x3 grid of instrument cards on the cool canvas,
+   reusing the console wb-* vocabulary (kpi tiles, heatmap, dropdowns) inside.
+   ============================================================================ */
+.uw-dash { padding: var(--space-7) var(--space-8); }
+.uw-dash__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+.uw-dash__block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  padding: var(--card-padding);
+}
+.uw-dash__block--wide { grid-column: span 2; }
+.uw-dash__block-head { margin-bottom: var(--space-4); }
+.uw-dash__block-kicker { display: block; }
+.uw-dash__block-title {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--color-text-primary);
+}
+.uw-dash__block-body { flex: 1 1 auto; min-width: 0; }
+
+.uw-dash__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+  border: 1px dashed var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-tertiary);
+  font-family: var(--font-family-mono);
+}
+
+/* Block 1 — trace properties / run UI (static, not a header) */
+.uw-dash__field { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
+.uw-dash__run { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); flex-wrap: wrap; }
+.uw-dash__meta { border-top: 1px solid var(--color-border-secondary); padding-top: var(--space-3); }
+.uw-dash__metarow { display: flex; align-items: baseline; gap: var(--space-2); }
+.uw-dash__metarow .wb-num { color: var(--color-text-secondary); }
+.uw-dash__metagrid {
+  margin-top: var(--space-2);
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 1024px) {
+  .uw-dash__grid { grid-template-columns: 1fr; }
+  .uw-dash__block--wide { grid-column: auto; }
+}
+
 /* ---- Motion preference ---------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .uw-root *,

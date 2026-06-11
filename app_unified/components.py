@@ -12,7 +12,7 @@ from dash import dcc, html
 # read as instrument iconography and survive the icon-collapsed sidebar.
 PRIMARY = [("PatentDiff", "/", "⊟")]
 EVAL_GROUP = [
-    ("Overview", "/eval", "◉"),
+    ("Dashboard", "/eval", "◉"),
     ("Traces", "/eval/traces", "≣"),
     ("Comparison", "/eval/comparison", "⇄"),
 ]
