@@ -69,9 +69,16 @@ def sidebar() -> html.Aside:
                     children=[
                         html.Span("PD", className="uw-sidebar__brand-mark",
                                   **{"aria-hidden": "true"}),
-                        html.Span("PatentDiff",
-                                  className="uw-sidebar__brand-strong"),
-                        html.Span("Workbench", className="uw-sidebar__brand-sub"),
+                        # Themeable wordmark (mirrors assets/logo.svg) — "Diff"
+                        # carries the indigo accent; colors flip with the theme.
+                        html.Span(
+                            className="uw-sidebar__wordmark",
+                            **{"aria-label": "PatentDiff"},
+                            children=[
+                                html.Span("Patent", className="uw-wordmark__a"),
+                                html.Span("Diff", className="uw-wordmark__b"),
+                            ],
+                        ),
                     ],
                 ),
                 html.Nav(id="uw-sidebar-nav", className="uw-nav",

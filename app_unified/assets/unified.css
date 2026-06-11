@@ -214,19 +214,16 @@
   letter-spacing: var(--letter-spacing-tight);
   color: var(--color-text-primary);
 }
-.uw-sidebar__brand-strong {
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-md);
-  letter-spacing: var(--letter-spacing-tight);
-  color: var(--color-text-primary);
+/* Typographic wordmark — themeable mirror of assets/logo.svg. */
+.uw-sidebar__wordmark {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-lg);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  line-height: 1;
 }
-.uw-sidebar__brand-sub {
-  font-family: var(--font-family-mono);
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-wide);
-  color: var(--sidebar-group-label);
-}
+.uw-wordmark__a { color: var(--color-text-primary); }
+.uw-wordmark__b { color: var(--color-accent-primary); }
 
 /* ---- Sidebar nav ---------------------------------------------------------- */
 .uw-nav {
@@ -304,8 +301,7 @@
 
 .uw-shell.is-collapsed .uw-nav__label,
 .uw-shell.is-collapsed .uw-nav__group,
-.uw-shell.is-collapsed .uw-sidebar__brand-strong,
-.uw-shell.is-collapsed .uw-sidebar__brand-sub {
+.uw-shell.is-collapsed .uw-sidebar__wordmark {
   opacity: 0;
   transition: opacity var(--duration-fast) var(--easing-default);
 }
@@ -322,10 +318,8 @@
 .uw-shell.is-collapsed .uw-sidebar:focus-within .uw-nav__label,
 .uw-shell.is-collapsed .uw-sidebar:hover .uw-nav__group,
 .uw-shell.is-collapsed .uw-sidebar:focus-within .uw-nav__group,
-.uw-shell.is-collapsed .uw-sidebar:hover .uw-sidebar__brand-strong,
-.uw-shell.is-collapsed .uw-sidebar:focus-within .uw-sidebar__brand-strong,
-.uw-shell.is-collapsed .uw-sidebar:hover .uw-sidebar__brand-sub,
-.uw-shell.is-collapsed .uw-sidebar:focus-within .uw-sidebar__brand-sub {
+.uw-shell.is-collapsed .uw-sidebar:hover .uw-sidebar__wordmark,
+.uw-shell.is-collapsed .uw-sidebar:focus-within .uw-sidebar__wordmark {
   opacity: 1;
 }
 .uw-shell.is-collapsed .uw-sidebar:hover .uw-sidebar__brand-mark,
@@ -400,31 +394,31 @@
   color: var(--memo-text);
 }
 
-/* Patent ID reads as an identifier — mono, on the quieter memo surface. */
+/* Patent Number reads as an identifier — mono, on the cool slate surface. */
 .uw-proto__id {
   font-family: var(--font-family-mono);
-  background: var(--memo-surface);
-  border-color: var(--memo-border);
-  color: var(--memo-text);
+  background: var(--color-bg-primary);
+  border-color: var(--color-border-primary);
+  color: var(--color-text-primary);
   max-width: 18rem;
 }
 
-/* Claim / spec wells: warm human-voice paper, serif reading face. */
+/* Claim / spec wells: cool slate paper, clean body face, indigo focus. */
 .uw-proto__well {
-  font-family: var(--font-family-memo);
-  font-size: var(--memo-reading-size);
-  line-height: var(--memo-reading-line-height);
-  color: var(--voice-human-text);
-  background: var(--voice-human-bg);
-  border: 1px solid var(--voice-human-border);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
 }
-.uw-proto__well::placeholder { color: var(--memo-text-muted); }
+.uw-proto__well::placeholder { color: var(--color-text-tertiary); }
 .uw-proto__well:focus {
   border-color: var(--color-border-focus);
   box-shadow: var(--focus-ring);
 }
 
-.uw-proto .uw-label { color: var(--memo-text-muted); }
+.uw-proto .uw-label { color: var(--color-text-secondary); }
 .uw-proto__analyze { margin-top: var(--space-2); }
 
 /* ---- Machine-voice report ------------------------------------------------- */
@@ -457,6 +451,7 @@
   margin: var(--space-3) 0 0;
   color: var(--voice-machine-text);
   max-width: var(--memo-measure);
+  text-align: left;          /* never centered — read as a left-set paragraph */
 }
 /* DataTable inside the machine block: kill the default chrome, keep hairlines. */
 .uw-machine .dash-spreadsheet-container { border: none; }
@@ -767,8 +762,7 @@
   }
   .uw-shell .uw-nav__label,
   .uw-shell .uw-nav__group,
-  .uw-shell .uw-sidebar__brand-strong,
-  .uw-shell .uw-sidebar__brand-sub {
+  .uw-shell .uw-sidebar__wordmark {
     opacity: 0;
     transition: opacity var(--duration-fast) var(--easing-default);
   }
@@ -784,10 +778,8 @@
   .uw-shell .uw-sidebar:focus-within .uw-nav__label,
   .uw-shell .uw-sidebar:hover .uw-nav__group,
   .uw-shell .uw-sidebar:focus-within .uw-nav__group,
-  .uw-shell .uw-sidebar:hover .uw-sidebar__brand-strong,
-  .uw-shell .uw-sidebar:focus-within .uw-sidebar__brand-strong,
-  .uw-shell .uw-sidebar:hover .uw-sidebar__brand-sub,
-  .uw-shell .uw-sidebar:focus-within .uw-sidebar__brand-sub {
+  .uw-shell .uw-sidebar:hover .uw-sidebar__wordmark,
+  .uw-shell .uw-sidebar:focus-within .uw-sidebar__wordmark {
     opacity: 1;
   }
   .uw-shell .uw-sidebar:hover .uw-sidebar__brand-mark,

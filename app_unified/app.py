@@ -32,7 +32,7 @@ app = Dash(
     background_callback_manager=background_callback_manager,
     suppress_callback_exceptions=True,
 )
-app.title = "PatentDiff — Workbench"
+app.title = "PatentDiff"
 
 
 def _theme_toggle() -> html.Button:

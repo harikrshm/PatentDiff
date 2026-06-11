@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 40" role="img" aria-label="PatentDiff">
+  <style>
+    .pd-word { font-family: 'Inter','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+               font-size: 28px; font-weight: 700; letter-spacing: -0.6px; }
+    .pd-a { fill: #1A2027; }
+    .pd-b { fill: #4F46E5; }
+    @media (prefers-color-scheme: dark) { .pd-a { fill: #E6EAEF; } .pd-b { fill: #7C74F0; } }
+  </style>
+  <text x="0" y="29" class="pd-word"><tspan class="pd-a">Patent</tspan><tspan class="pd-b">Diff</tspan></text>
+</svg>

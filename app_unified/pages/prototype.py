@@ -17,13 +17,12 @@ _EMPTY_LLM = {"raw_output": "", "model": "", "tokens_input": 0,
               "tokens_output": 0, "latency_ms": 0}
 
 
-def _patent_column(side: str, kicker: str, title: str) -> html.Div:
+def _patent_column(side: str, title: str) -> html.Div:
     return html.Div(
         className="uw-proto__col",
         children=[
-            html.Span(kicker, className="uw-kicker"),
             html.H2(title, className="uw-proto__coltitle"),
-            html.Label("Patent ID", className="uw-label",
+            html.Label("Patent Number", className="uw-label",
                        htmlFor=f"label-{side}"),
             dcc.Input(id=f"label-{side}", type="text", placeholder="US10,123,456",
                       className="uw-input uw-proto__id"),
@@ -42,12 +41,12 @@ def _patent_column(side: str, kicker: str, title: str) -> html.Div:
 layout = html.Div(
     className="uw-page uw-page--memo uw-proto",
     children=[
-        page_header("PatentDiff — Patent Claim Analysis"),
+        page_header("PatentDiff — Map your claim with any prior art"),
         html.Div(
             className="uw-proto__grid",
             children=[
-                _patent_column("a", "Source", "Patent A"),
-                _patent_column("b", "Target / Prior Art", "Patent B"),
+                _patent_column("a", "Your Patent"),
+                _patent_column("b", "Prior Art"),
             ],
         ),
         html.Button("Analyze", id="analyze-btn", n_clicks=0,
@@ -59,11 +58,14 @@ layout = html.Div(
     ],
 )
 
-# Machine-voice readout theming for the element-mapping table. Only the Y pole
-# (the patentability-failure outcome) carries the reserved FAIL data tint, so
-# "colored == FAIL" stays literally true; N stays quiet. Values are paired with
-# the Y/N letter, so the signal survives grayscale. var() resolves per theme.
-_VERDICT_COLS = ["Novelty", "Inventive Step", "Verdict"]
+# Element-mapping table theming. "Mapped" = is the claim element found in the
+# prior art? Y (mapped → not novel → bad for patentability) carries the reserved
+# FAIL data tint as a low-alpha wash; the Y/N letter is the grayscale-safe signal.
+# Empty corresponding text is shown as an explicit muted placeholder (see _NO_CT):
+# the model only emits VERBATIM prior-art quotes, so "" means no verbatim support
+# was found, not a rendering gap.
+_TINT_COLS = ["Mapped (Y/N)"]
+_NO_CT = "— no verbatim quote found —"
 _TABLE_STYLE = dict(
     style_as_list_view=True,
     style_table={"overflowX": "auto"},
@@ -99,8 +101,8 @@ _TABLE_STYLE = dict(
           "textAlign": "center", "width": "70px"}]
         + [{"if": {"column_id": c},
             "fontFamily": "var(--font-family-mono)",
-            "textAlign": "center", "width": "92px",
-            "color": "var(--color-text-tertiary)"} for c in _VERDICT_COLS]
+            "textAlign": "center", "width": "110px",
+            "color": "var(--color-text-tertiary)"} for c in _TINT_COLS]
     ),
     style_data_conditional=[
         # Low-alpha FAIL wash so the cell text keeps full contrast in both themes
@@ -108,7 +110,11 @@ _TABLE_STYLE = dict(
         {"if": {"filter_query": f'{{{c}}} = "Y"', "column_id": c},
          "backgroundColor": "rgba(192, 57, 43, 0.16)",
          "color": "var(--voice-machine-text)", "fontWeight": "600"}
-        for c in _VERDICT_COLS
+        for c in _TINT_COLS
+    ] + [
+        # Empty corresponding text → muted, italic placeholder.
+        {"if": {"filter_query": f'{{Prior Art}} = "{_NO_CT}"', "column_id": "Prior Art"},
+         "color": "var(--color-text-tertiary)", "fontStyle": "italic"},
     ],
 )
 
@@ -151,25 +157,21 @@ def run_analysis(label_a, claim_a, spec_a, label_b, claim_b, spec_b):
 
     rows = [{
         "Element #": em.element_number,
-        "Patent A Element": em.element_text,
-        "Patent B Corresponding Text": em.corresponding_text,
-        "Novelty": em.novelty,
-        "Inventive Step": em.inventive_step,
-        "Verdict": em.verdict,
+        "Your Patent": em.element_text,
+        "Prior Art": em.corresponding_text.strip() or _NO_CT,
+        "Mapped (Y/N)": em.novelty,
         "Comment": em.comment,
     } for em in report.element_mappings]
 
     report_children = html.Div(
         className="uw-machine uw-proto__report",
         children=[
-            html.Span("Machine reading", className="uw-machine__label"),
             html.H2("Element Mapping", className="uw-proto__h2"),
             dash_table.DataTable(
                 data=rows,
                 columns=[{"name": c, "id": c} for c in
-                         ["Element #", "Patent A Element",
-                          "Patent B Corresponding Text",
-                          "Novelty", "Inventive Step", "Verdict", "Comment"]],
+                         ["Element #", "Your Patent", "Prior Art",
+                          "Mapped (Y/N)", "Comment"]],
                 **_TABLE_STYLE,
             ),
             html.H2("Overall Opinion", className="uw-proto__h2"),
