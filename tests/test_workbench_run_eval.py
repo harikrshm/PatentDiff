@@ -38,14 +38,23 @@ def test_run_eval_ignores_none_clicks():
 
 
 def test_run_eval_runs_on_real_click():
+    import types
+
     calls = []
-    orig_run, orig_resolve = cb.run_evals, cb.resolve_set_strict
+    fake_set = types.SimpleNamespace(name="baseline",
+                                     phosita_path="p.jsonl", citation_path="c.jsonl")
+    orig = (cb.run_evals, cb.resolve_set_strict, cb.load_verdict_map,
+            cb._pass_rate, cb.append_run)
     cb.run_evals = lambda *a, **k: calls.append((a, k))
-    cb.resolve_set_strict = lambda _name: object()  # non-None: a real set
+    cb.resolve_set_strict = lambda _name: fake_set
+    cb.load_verdict_map = lambda _p: {"r": "PASS"}
+    cb._pass_rate = lambda _m: (1.0, 1, 1)
+    cb.append_run = lambda *a, **k: None        # don't touch the real history file
     try:
         out = cb.run_eval(_noop_progress, 1, "baseline", 4)
     finally:
-        cb.run_evals, cb.resolve_set_strict = orig_run, orig_resolve
+        (cb.run_evals, cb.resolve_set_strict, cb.load_verdict_map,
+         cb._pass_rate, cb.append_run) = orig
     assert len(calls) == 1                 # the eval actually ran
     assert out[1] == 5                     # data-version bumped from 4 -> 5
 
