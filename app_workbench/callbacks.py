@@ -448,6 +448,12 @@ def run_eval(set_progress, _n_clicks, active_name, version):
     data-version, which the section callbacks watch to refresh their displays.
     The eval scripts are idempotent-cached, so re-running is safe.
     """
+    if not _n_clicks:
+        # Multi-page navigation re-inserts run-eval-btn with n_clicks=0, which
+        # fires this callback even under prevent_initial_call (that only suppresses
+        # the app's first load, not later dynamic re-insertions). Only a real
+        # click (n_clicks >= 1) should ever run the evals.
+        return no_update, no_update
     set_progress(["Queued…"])
     ts_set = resolve_set_strict(active_name)  # strict: never run on a fallback set
     if ts_set is None:
