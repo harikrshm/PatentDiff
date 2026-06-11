@@ -60,3 +60,26 @@ def test_render_kpi_vs_target_shows_gap_and_no_target(monkeypatch):
     assert "target 85%" in text and "-31 pp" in text   # phosita gap
     assert "uw-kt__gap--bad" in text                    # below target
     assert "No target set" in text                      # citation
+
+
+def test_render_trajectory_builds_traces_and_handles_empty(monkeypatch):
+    from core.kpi_view import Point, Trajectory
+
+    def traj(kind):
+        if kind == "phosita":
+            return Trajectory(baseline=Point("2026-06-01T00:00:00", 0.5),
+                              current=Point("2026-06-05T00:00:00", 0.55),
+                              expected=Point("2026-09-01", 0.85))
+        return Trajectory(baseline=None, current=None, expected=None)
+
+    monkeypatch.setattr(cb, "trajectory", traj)
+    fig = cb.render_trajectory(0, 0, "light")
+    # phosita line + phosita dashed projection (citation has no points)
+    assert len(fig.data) == 2
+
+    monkeypatch.setattr(cb, "trajectory",
+                        lambda k: __import__("core.kpi_view", fromlist=["Trajectory"])
+                        .Trajectory(None, None, None))
+    empty = cb.render_trajectory(0, 0, "dark")
+    assert empty.data == ()                              # no traces
+    assert empty.layout.annotations                      # shows the empty note

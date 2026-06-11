@@ -209,6 +209,64 @@ def render_kpi_vs_target(active_name, _v, _kv):
     ]
 
 
+# ── Block 5 · Metric trajectory — baseline → current → expected over time ────
+_TRAJ_COLORS = {"phosita": "#4F46E5", "citation": "#0E8A7D"}  # indigo, teal (chrome)
+
+
+def _trajectory_figure(theme: str) -> go.Figure:
+    dark = theme == "dark"
+    fg = "#E6EAEF" if dark else "#1A2027"
+    grid = "rgba(255,255,255,0.08)" if dark else "rgba(0,0,0,0.07)"
+    fig = go.Figure()
+    any_pts = False
+    for kind, label in (("phosita", "PHOSITA"), ("citation", "Citation")):
+        tr = trajectory(kind)
+        ax, ay = [], []
+        for pt in (tr.baseline, tr.current):
+            if pt:
+                ax.append(pt.when[:10])
+                ay.append(pt.rate * 100)
+        if ax:
+            any_pts = True
+            fig.add_scatter(
+                x=ax, y=ay, mode="lines+markers", name=label,
+                line=dict(color=_TRAJ_COLORS[kind], width=2), marker=dict(size=8),
+                hovertemplate=label + " %{x}<br>%{y:.0f}% PASS<extra></extra>")
+        if tr.current and tr.expected:        # dashed projection to the target
+            fig.add_scatter(
+                x=[tr.current.when[:10], tr.expected.when],
+                y=[tr.current.rate * 100, tr.expected.rate * 100],
+                mode="lines+markers", showlegend=False,
+                line=dict(color=_TRAJ_COLORS[kind], width=2, dash="dot"),
+                marker=dict(size=11, symbol="star"),
+                hovertemplate=label + " target %{x}<br>%{y:.0f}%<extra></extra>")
+    if not any_pts:
+        fig.add_annotation(text="No eval history yet — run an eval",
+                           showarrow=False, font=dict(color=fg, size=13))
+        fig.update_xaxes(visible=False)
+        fig.update_yaxes(visible=False)
+    else:
+        fig.update_xaxes(showgrid=True, gridcolor=grid, type="date")
+        fig.update_yaxes(showgrid=True, gridcolor=grid, range=[0, 100], ticksuffix="%")
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=fg, family="'IBM Plex Mono','JetBrains Mono',monospace", size=11),
+        margin=dict(l=8, r=14, t=8, b=8), height=232, showlegend=any_pts,
+        legend=dict(orientation="h", y=1.15, x=0, font=dict(size=11)),
+    )
+    return fig
+
+
+@callback(
+    Output("trajectory-chart", "figure"),
+    Input("data-version", "data"),
+    Input("kpi-version", "data"),
+    Input("theme", "data"),
+)
+def render_trajectory(_v, _kv, theme):
+    return _trajectory_figure(theme or "light")
+
+
 # ── T9 · Deep-link reader — apply ?set= / ?eval= on load (idempotent) ────────
 _VALID_EVALS = {"phosita", "citation", "either"}
 

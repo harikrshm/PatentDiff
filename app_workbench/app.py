@@ -161,7 +161,10 @@ def build_console_body() -> html.Div:
                     _block("03 · WHERE", "Dimension Heatmap", _block3_heatmap()),
                     _block("04 · VS TARGET", "Eval Score vs Target",
                            _loading(html.Div(id="kpi-target-readout"))),
-                    _block("05 · OVER TIME", "Metric Trajectory", _placeholder("Block 5 · T6")),
+                    _block("05 · OVER TIME", "Metric Trajectory", _loading(dcc.Graph(
+                        id="trajectory-chart",
+                        config={"displayModeBar": False, "responsive": True},
+                        style={"height": "232px"}))),
                     _block("06 · TARGET", "Set KPI Target", _placeholder("Block 6 · T7")),
                 ],
             ),
