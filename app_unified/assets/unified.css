@@ -858,6 +858,11 @@
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
 }
+.uw-dash__meta-k {
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-tertiary);
+}
 
 @media (max-width: 1024px) {
   .uw-dash__grid { grid-template-columns: 1fr; }
