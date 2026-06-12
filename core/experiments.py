@@ -56,5 +56,7 @@ def load_experiments(path: Path = MANIFEST_PATH) -> list[Experiment]:
 
 def last_n(n: int = 4, path: Path = MANIFEST_PATH) -> list[Experiment]:
     """The n most recent experiments, oldest->newest, by `created`."""
+    if n <= 0:
+        return []
     rows = sorted(load_experiments(path), key=lambda e: e.created)
     return rows[-n:]

@@ -35,3 +35,9 @@ def test_last_n_orders_by_created_and_tails(tmp_path):
                  + _exp_line("e3", "c", "2026-06-03T00:00:00"))
     got = last_n(3, path=p)
     assert [e.exp_id for e in got] == ["e2", "e3", "e4"]  # oldest->newest, tail 3
+
+
+def test_last_n_zero_returns_empty(tmp_path):
+    p = tmp_path / "experiments.jsonl"
+    p.write_text(_exp_line("e1", "a", "2026-06-01T00:00:00"))
+    assert last_n(0, path=p) == []
