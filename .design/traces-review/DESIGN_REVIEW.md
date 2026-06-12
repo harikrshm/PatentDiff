@@ -1,7 +1,7 @@
-# Design Review: Traces — Reviewer Output + Review Tab
+# Design Review: Traces — Reviewer Output + In-Tab Coverage Navigator
 
 Reviewed against: `.design/traces-review/DESIGN_BRIEF.md`
-Philosophy: Analyst's workbench (memo annotator + instrument Review readout)
+Philosophy: Analyst's workbench (memo annotator)
 Date: 2026-06-12
 
 ## Screenshots Captured
@@ -10,18 +10,17 @@ Date: 2026-06-12
 | --- | --- | --- |
 | `screenshots/t1-reader-verdict.png` | Traces reader | "Mapped X/N" + per-element verdict chips + opinion |
 | `screenshots/t1-reader.png` | Traces reader | `status=error` trace → "No tool output" note |
-| `screenshots/t2-review.png` | Review @1280 light | Coverage headline + bar + what's-left |
-| `screenshots/review-review-dark.png` | Review @1280 dark | Same, dark register |
+| `screenshots/r2-nav.png` | Traces nav | Coverage header + filter + ✓/○ status list (selection highlighted) |
 
 ## Summary
 
-Both asks land cleanly. The trace reader now leads with PatentDiff's output — a
-"Mapped X of N" headline, a per-element Mapped Y/N chip row (mapped tinted via the
-FAIL valence), then the overall opinion — so the reviewer reads the decision
-before coding it; `error` traces show a calm note instead of silently hiding the
-verdict (the original complaint). The new **Review** tab answers "how many are
-reviewed?" at a glance (33 of 93 · 35% · the reviewed/annotated/untouched split +
-what's left). 212 tests pass.
+Both asks land, and the coverage view now lives **inside** Traces (the first cut's
+separate `/eval/review` sidebar tab was removed per feedback). The trace reader
+leads with PatentDiff's output — "Mapped X of N" + per-element Mapped Y/N chips,
+then the overall opinion — with a calm note for `error` traces. The Traces left
+pane is now a real navigator: a coverage header (X of N reviewed + bar), an
+All / To review / Reviewed filter, and a scrollable ✓/○ status list that replaces
+the dropdown — overall picture *and* selection in one place. 211 tests pass.
 
 ## Must Fix
 
@@ -29,29 +28,28 @@ _None._
 
 ## Should Fix
 
-_None._ Both views verified in light + dark; the verdict pairs Y/N text with tint
-(grayscale-safe), the progress bar pairs % with fill, and the Review nav item
-carries the active rail.
+_None._ Verified: filter narrows correctly (All 93 → To review 60, none reviewed);
+clicking a row loads the verdict reader; selection is highlighted; coverage +
+status dots refresh after a save (ann-version signal). Verdict pairs text with
+tint; ✓/○ pairs shape with color (grayscale-safe).
 
 ## Could Improve
 
-1. **Clickable "what's left" chips** — a run-id chip in the Review tab could
-   deep-link into the annotator for that trace. Deferred (out of scope; would
-   need a query param the Traces page reads).
-2. **Verdict chip could also surface the element `verdict` field** (not just
-   `novelty`/Mapped) for reviewers who want the bottom-line per element. Kept to
-   "Mapped" per the chosen compact design.
+1. **Sort/group the list** (e.g., unreviewed first, or by status) so the "what's
+   left" is even faster to work through. Currently corpus order.
+2. **Surface the element `verdict` field** alongside Mapped in the reader, for
+   reviewers who want the bottom-line per element. Kept to Mapped per the chosen
+   compact design.
 
 ## What Works Well
 
-- **Decision-first reader.** The tool's verdict + opinion sit above the claims, so
-  the reviewer judges the output, not a blank. Matches the brief's principle.
-- **Honest error state.** No more "just the claims" — `error` traces say why
-  (`No tool output — status: error`).
-- **Coverage at a glance.** The Review tab is a single instrument readout: big
-  mono "33 of 93", indigo progress bar, the three-way split, and the unreviewed
-  run-ids — no spreadsheet to parse (the deselected table/frequency/verdict
-  pieces were correctly left out).
-- **One lineage, two registers.** The annotator stays warm memo; Review is cool
-  instrument; both recolor with the theme toggle. The new nav item ("Review", ✓)
-  slots into the Evaluation group with the correct active state.
+- **Decision-first reader.** Tool verdict + opinion above the claims; `error`
+  traces explain themselves instead of showing only claims.
+- **Coverage + selection in one pane.** No separate tab — the navigator carries
+  the overall picture (33 of 93 · 35% · bar) and the filterable ✓/○ list, exactly
+  where the reviewer already is.
+- **Live feedback.** Saving an annotation updates the coverage and the row's
+  status dot without a reload (the `ann-version` store drives `render_nav`).
+- **In-register.** The navigator stays warm memo (selected row uses the
+  human-voice surface); the reused `uw-kt` progress bar ties it to the rest of
+  the system. Both themes covered.
