@@ -20,8 +20,11 @@ view toggle for exactly this; the unified port dropped it.
 Two changes. First, the trace reader shows **the tool's output up front** — a
 compact per-element verdict (Mapped Y/N) with a headline "Mapped X of N", then
 the overall opinion — so the reviewer reads the decision, then codes it. Second,
-a new **Review** tab (sidebar sub-route) answers one question at a glance: *how
-much is reviewed?* — a progress headline (X of N reviewed) and what's left.
+the Traces **left pane becomes a real navigator** that carries the overall
+picture *and* the selection: a coverage header (X of N reviewed + bar), a filter
+(All / To review / Reviewed), and a scrollable list of trace rows with a
+review-status dot (✓/○), click to select. (Superseded the earlier idea of a
+separate "Review" sidebar tab — coverage + selection belong inside Traces.)
 
 ## Experience Principles
 
@@ -63,8 +66,8 @@ much is reviewed?* — a progress headline (X of N reviewed) and what's left.
 | Trace reader verdict block | New | Compact per-element "Mapped Y/N" list + "Mapped X/N" headline, in the reader above/with the opinion. Mapped = novelty Y (found in prior art). Verdict tint via `--data-fail-*`. |
 | Trace reader opinion | Modify | Always show when present; for `status=error` / no parsed_output, show a calm "no tool output (error)" note instead of silence. |
 | "Your reading" label | **Remove** | Delete the `uw-field__voice` span in the annotation form. |
-| Review tab (`/eval/review`) | New | New Dash page: review-progress headline (X of N reviewed, % bar), reviewed/unreviewed split, and a compact list of what's left to review. Instrument register. |
-| Sidebar nav item "Review" | New | Add to `EVAL_GROUP` in `app_unified/components.py` (Dashboard · Traces · **Review** · Comparison). |
+| Trace navigator (left pane) | New (replaces dropdown) | Coverage header (X of N reviewed + `uw-kt` bar), filter chips (All / To review / Reviewed, `wb-segmented`), and a scrollable status list — each row a ✓/○ dot + label + run-id, click to select. Lives inside `/eval/traces`. |
+| Separate Review tab/route | **Removed** | The earlier `/eval/review` page + the "Review" sidebar item are reverted — coverage + selection live inside Traces, not a top-level tab. |
 
 ## Key Interactions
 

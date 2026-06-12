@@ -35,6 +35,22 @@ def test_build_record_phase1_fail_uses_open_coded_modes():
     assert rec.failure_modes is None
 
 
+def test_trace_coverage_counts():
+    from types import SimpleNamespace
+
+    from core.annotation import AnnotationRecord
+    traces = {f"r{i}": SimpleNamespace(run_id=f"r{i}") for i in range(4)}
+    anns = {
+        "r0": AnnotationRecord(run_id="r0", phase=3, verdict="PASS",
+                               comment="x", reviewed=True),
+        "r1": AnnotationRecord(run_id="r1", phase=3, verdict="PASS",
+                               comment="x", reviewed=False),
+    }
+    cov = eval_traces.trace_coverage(traces, anns)
+    assert cov["total"] == 4 and cov["reviewed"] == 1
+    assert cov["reviewed_ids"] == {"r0"}
+
+
 def test_save_round_trip(tmp_path):
     path = tmp_path / "ann.jsonl"
     rec = eval_traces.build_record(

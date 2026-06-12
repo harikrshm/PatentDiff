@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import dash
-from dash import Input, Output, State, callback, dcc, html, no_update
+from dash import ALL, Input, Output, State, callback, ctx, dcc, html, no_update
 
 from app_unified.components import page_header
 from core.annotation import (AnnotationRecord, detect_phase, load_annotations,
@@ -73,19 +73,13 @@ def _taxonomy_options() -> List[dict]:
 
 
 # ── Layout ────────────────────────────────────────────────────────────────────
-def _trace_options() -> List[dict]:
-    opts = []
-    for run_id, t in _load_traces().items():
-        label = t.inputs.get("source_patent", {}).get("label", "?")
-        opts.append({"label": f"{label[:24]}  ·  {run_id[:8]}", "value": run_id})
-    return opts
-
-
 layout = html.Div(
     className="uw-page uw-page--memo uw-traces",
     children=[
         page_header("Traces — Error Analysis", "Browse traces and code failure modes."),
         dcc.Store(id="traces-phase", data=detect_phase(TAXONOMY_FILE)),
+        dcc.Store(id="selected-trace"),         # run_id of the selected trace
+        dcc.Store(id="ann-version", data=0),     # bumped on save → refresh nav
         html.Div(
             className="uw-traces__grid",
             children=[
@@ -93,10 +87,17 @@ layout = html.Div(
                     className="uw-traces__nav",
                     children=[
                         html.Span("Contents", className="uw-kicker"),
-                        html.Label("Trace", className="uw-label"),
-                        dcc.Dropdown(id="traces-select", options=_trace_options(),
-                                     placeholder="Select a trace…",
-                                     className="uw-dropdown wb-dropdown"),
+                        html.Div(id="traces-coverage", className="uw-traces__coverage"),
+                        dcc.RadioItems(
+                            id="traces-filter",
+                            options=[{"label": "All", "value": "all"},
+                                     {"label": "To review", "value": "todo"},
+                                     {"label": "Reviewed", "value": "done"}],
+                            value="all",
+                            className="uw-segmented__items wb-segmented__items uw-traces__filter"),
+                        dcc.Loading(
+                            html.Div(id="traces-list", className="uw-traces__list"),
+                            type="dot"),
                     ],
                 ),
                 dcc.Loading(
@@ -214,13 +215,85 @@ def _render_trace_detail(trace) -> html.Div:
     return html.Div(className="uw-traces__reader", children=children)
 
 
+# ── Trace navigator — coverage header + filterable status list ───────────────
+def trace_coverage(traces: dict, annotations: dict) -> dict:
+    """Coverage over the loaded traces (unit-tested)."""
+    reviewed_ids = {rid for rid, a in annotations.items() if a.reviewed}
+    total = len(traces)
+    reviewed = sum(1 for rid in traces if rid in reviewed_ids)
+    return {"total": total, "reviewed": reviewed, "reviewed_ids": reviewed_ids}
+
+
+def _trace_row(run_id: str, trace, is_reviewed: bool, selected) -> html.Button:
+    label = trace.inputs.get("source_patent", {}).get("label", "?")
+    cls = "uw-traces__row"
+    if run_id == selected:
+        cls += " is-active"
+    if is_reviewed:
+        cls += " is-reviewed"
+    return html.Button(
+        id={"type": "trace-row", "run_id": run_id}, n_clicks=0, className=cls,
+        children=[
+            html.Span("✓" if is_reviewed else "○", className="uw-traces__row-dot",
+                      **{"aria-hidden": "true"}),
+            html.Span(label[:22], className="uw-traces__row-label"),
+            html.Span(run_id[:8], className="uw-traces__row-id uw-num"),
+        ])
+
+
+@callback(
+    Output("traces-coverage", "children"),
+    Output("traces-list", "children"),
+    Input("traces-filter", "value"),
+    Input("ann-version", "data"),
+    Input("selected-trace", "data"),
+)
+def render_nav(filt, _ver, selected):
+    traces = _load_traces()
+    cov = trace_coverage(traces, load_annotations(ANNOTATIONS_FILE))
+    total, reviewed, reviewed_ids = cov["total"], cov["reviewed"], cov["reviewed_ids"]
+    pct = (reviewed / total * 100) if total else 0
+    coverage = [
+        html.Div(className="uw-traces__cov-head", children=[
+            html.Span(f"{reviewed} of {total} reviewed",
+                      className="uw-traces__cov-text uw-num"),
+            html.Span(f"{pct:.0f}%", className="uw-traces__cov-pct uw-num"),
+        ]),
+        html.Div(className="uw-kt__bar", children=html.Div(
+            className="uw-kt__fill", style={"width": f"{pct:.0f}%"})),
+    ]
+    rows = []
+    for run_id, t in traces.items():
+        is_rev = run_id in reviewed_ids
+        if filt == "todo" and is_rev:
+            continue
+        if filt == "done" and not is_rev:
+            continue
+        rows.append(_trace_row(run_id, t, is_rev, selected))
+    if not rows:
+        rows = [html.P("No traces in this filter.", className="uw-traces__empty")]
+    return coverage, rows
+
+
+@callback(
+    Output("selected-trace", "data"),
+    Input({"type": "trace-row", "run_id": ALL}, "n_clicks"),
+    prevent_initial_call=True,
+)
+def pick_trace(_clicks):
+    # Ignore the mount/re-render fire (n_clicks=0); act only on a real click.
+    if not ctx.triggered_id or not (ctx.triggered and ctx.triggered[0].get("value")):
+        return no_update
+    return ctx.triggered_id["run_id"]
+
+
 @callback(
     Output("traces-detail", "children"),
     Output("ann-verdict", "value"),
     Output("ann-modes", "value"),
     Output("ann-comment", "value"),
     Output("ann-reviewed", "value"),
-    Input("traces-select", "value"),
+    Input("selected-trace", "data"),
     State("traces-phase", "data"),
     prevent_initial_call=True,
 )
@@ -242,23 +315,25 @@ def _select_trace(run_id, phase):
 
 @callback(
     Output("ann-status", "children"),
+    Output("ann-version", "data"),
     Input("ann-save", "n_clicks"),
-    State("traces-select", "value"),
+    State("selected-trace", "data"),
     State("ann-verdict", "value"),
     State("ann-modes", "value"),
     State("ann-comment", "value"),
     State("ann-reviewed", "value"),
     State("traces-phase", "data"),
+    State("ann-version", "data"),
     prevent_initial_call=True,
 )
-def _save(_n, run_id, verdict, modes, comment, reviewed, phase):
+def _save(_n, run_id, verdict, modes, comment, reviewed, phase, ann_version):
     if not run_id:
-        return "Select a trace first."
+        return "Select a trace first.", no_update
     modes = modes or []
     errors = validate_annotation(verdict, modes, comment or "")
     if errors:
-        return html.Span("Couldn't save: " + "; ".join(errors),
-                         className="uw-status--error")
+        return (html.Span("Couldn't save: " + "; ".join(errors),
+                          className="uw-status--error"), no_update)
     traces = _load_traces()
     trace = traces.get(run_id)
     dimensions = trace.dimensions if trace else None
@@ -268,4 +343,5 @@ def _save(_n, run_id, verdict, modes, comment, reviewed, phase):
         comment=comment, reviewed=bool(reviewed), dimensions=dimensions,
     )
     persist_record(ANNOTATIONS_FILE, annotations)
-    return html.Span("Annotation saved.", className="uw-status--ok")
+    return (html.Span("Annotation saved.", className="uw-status--ok"),
+            (ann_version or 0) + 1)
