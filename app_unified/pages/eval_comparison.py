@@ -1,5 +1,5 @@
 # app_unified/pages/eval_comparison.py
-"""Comparison (v1) — before/after eval delta for two trace sets."""
+"""Comparison — before/after failure-rate delta for two trace sets."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,6 +10,7 @@ from dash import Input, Output, callback, dash_table, dcc, html
 
 from app_unified.components import page_header
 from core.eval_delta import VERDICTS, compute_delta, load_verdict_map
+from core.phosita_eval import PROMPT_VERSION as PHOSITA_PROMPT_VERSION
 from core.workbench_data import list_trace_sets
 
 dash.register_page(__name__, path="/eval/comparison", name="Comparison")
@@ -42,8 +43,9 @@ def _set_options() -> list[dict]:
 
 def build_comparison(base: Path, before_set: str, after_set: str,
                      eval_kind: str) -> Dict:
-    before = load_verdict_map(eval_path(base, before_set, eval_kind))
-    after = load_verdict_map(eval_path(base, after_set, eval_kind))
+    pv = PHOSITA_PROMPT_VERSION if eval_kind == "phosita" else None
+    before = load_verdict_map(eval_path(base, before_set, eval_kind), prompt_version=pv)
+    after = load_verdict_map(eval_path(base, after_set, eval_kind), prompt_version=pv)
     d = compute_delta(before, after)
     return {
         "matrix": d.matrix, "buckets": d.buckets,
@@ -136,6 +138,23 @@ _MATRIX_STYLE = dict(
 )
 
 
+def _kpi_tiles(r: dict) -> list:
+    """KPI tiles from a comparison result dict, framed as failure-rate.
+
+    Internally pass rates are stored; flip to fail = 1 - pass for display.
+    A negative fail delta (falling error rate) is improvement.
+    """
+    before_fail = 100 * (1 - r["before_rate"])
+    after_fail = 100 * (1 - r["after_rate"])
+    fail_delta = -r["delta_pp"]          # Δfail = -Δpass (fail = 1 - pass)
+    valence = "up" if fail_delta < 0 else "down" if fail_delta > 0 else ""
+    return [
+        _kpi("Before FAIL", f"{before_fail:.1f}%", f"n={r['before_scored']}"),
+        _kpi("After FAIL", f"{after_fail:.1f}%", f"n={r['after_scored']}"),
+        _kpi("Delta", f"{fail_delta:+.1f} pp", "FAIL rate", valence=valence),
+    ]
+
+
 def _kpi(label: str, value: str, sub: str = "", valence: str = "") -> html.Div:
     style = {}
     if valence == "up":
@@ -168,13 +187,7 @@ def _render(before_set, after_set, eval_kind):
     # for these sets hasn't been generated yet) — rather than misleading 0% tiles.
     if r["before_scored"] == 0 and r["after_scored"] == 0:
         return _empty_readout(before_set, after_set, eval_kind), None, None
-    delta = r["delta_pp"]
-    valence = "up" if delta > 0 else "down" if delta < 0 else ""
-    kpis = [
-        _kpi("Before PASS", f"{100*r['before_rate']:.1f}%", f"n={r['before_scored']}"),
-        _kpi("After PASS", f"{100*r['after_rate']:.1f}%", f"n={r['after_scored']}"),
-        _kpi("Delta", f"{delta:+.1f} pp", "PASS rate", valence=valence),
-    ]
+    kpis = _kpi_tiles(r)
     matrix_rows = [{"before": b, **{a: r["matrix"].get((b, a), 0) for a in VERDICTS}}
                    for b in VERDICTS]
     matrix = dash_table.DataTable(
