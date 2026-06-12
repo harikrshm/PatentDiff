@@ -41,3 +41,37 @@ def test_last_n_zero_returns_empty(tmp_path):
     p = tmp_path / "experiments.jsonl"
     p.write_text(_exp_line("e1", "a", "2026-06-01T00:00:00"))
     assert last_n(0, path=p) == []
+
+
+from core.experiments import percentile, _measured_latency_tokens
+
+
+def test_percentile_interpolates():
+    xs = [10, 20, 30, 40]
+    assert percentile(xs, 0.0) == 10.0
+    assert percentile(xs, 1.0) == 40.0
+    assert percentile(xs, 0.5) == 25.0   # midpoint of 20 and 30
+    assert percentile([], 0.5) == 0.0
+    assert percentile([7], 0.9) == 7.0
+
+
+def _trace_line(run_id, lat, ti, to):
+    return json.dumps({"run_id": run_id,
+                       "llm_response": {"latency_ms": lat,
+                                        "tokens_input": ti, "tokens_output": to}}) + "\n"
+
+
+def test_measured_latency_tokens_filters_zeros(tmp_path):
+    p = tmp_path / "traces.jsonl"
+    p.write_text(_trace_line("r1", 100, 10, 5)
+                 + _trace_line("r2", 0, 0, 0)        # not captured -> excluded
+                 + _trace_line("r3", 300, 30, 15))
+    lat, ti, to = _measured_latency_tokens(p)
+    assert lat == [100, 300]
+    assert ti == [10, 30]
+    assert to == [5, 15]
+
+
+def test_measured_latency_tokens_missing_file(tmp_path):
+    lat, ti, to = _measured_latency_tokens(tmp_path / "nope.jsonl")
+    assert lat == [] and ti == [] and to == []

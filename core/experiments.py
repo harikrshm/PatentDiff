@@ -60,3 +60,46 @@ def last_n(n: int = 4, path: Path = MANIFEST_PATH) -> list[Experiment]:
         return []
     rows = sorted(load_experiments(path), key=lambda e: e.created)
     return rows[-n:]
+
+
+def percentile(xs: list[float], p: float) -> float:
+    """Linear-interpolated percentile, numpy-free. p in [0, 1]. Empty -> 0.0."""
+    if not xs:
+        return 0.0
+    s = sorted(xs)
+    if len(s) == 1:
+        return float(s[0])
+    k = (len(s) - 1) * p
+    f, c = math.floor(k), math.ceil(k)
+    if f == c:
+        return float(s[int(k)])
+    return float(s[f] * (c - k) + s[c] * (k - f))
+
+
+def _measured_latency_tokens(trace_path: Path):
+    """Read nonzero (latency_ms, tokens_input, tokens_output) from a trace JSONL.
+
+    Zeros mean "not captured for that trace" and are excluded. Missing file or
+    corrupt lines yield empty lists.
+    """
+    lat: list[float] = []
+    tin: list[float] = []
+    tout: list[float] = []
+    if not Path(trace_path).exists():
+        return lat, tin, tout
+    with open(trace_path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                lr = (json.loads(line).get("llm_response") or {})
+            except Exception:
+                continue
+            if lr.get("latency_ms"):
+                lat.append(lr["latency_ms"])
+            if lr.get("tokens_input"):
+                tin.append(lr["tokens_input"])
+            if lr.get("tokens_output"):
+                tout.append(lr["tokens_output"])
+    return lat, tin, tout
