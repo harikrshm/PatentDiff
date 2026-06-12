@@ -75,3 +75,66 @@ def test_measured_latency_tokens_filters_zeros(tmp_path):
 def test_measured_latency_tokens_missing_file(tmp_path):
     lat, ti, to = _measured_latency_tokens(tmp_path / "nope.jsonl")
     assert lat == [] and ti == [] and to == []
+
+
+from core.experiments import ExperimentMetrics, kpi_target_fail, metrics_for
+from core.phosita_eval import PROMPT_VERSION as _PV
+
+
+def _phosita_eval_line(run_id, verdict):
+    return json.dumps({"run_id": run_id, "verdict": verdict,
+                       "config": {"prompt_version": _PV}}) + "\n"
+
+
+def _citation_eval_line(run_id, verdict):
+    return json.dumps({"run_id": run_id, "verdict": verdict}) + "\n"
+
+
+def _make_exp(trace_set="live", override=None):
+    return Experiment(
+        exp_id="e1", name="t", created="2026-06-01T00:00:00",
+        splits=["all"], repetitions=1, trace_set=trace_set,
+        phosita_eval_file="phosita_eval_full.jsonl",
+        citation_eval_file="citation_text_eval_full.jsonl",
+        metrics_override=override)
+
+
+def test_metrics_for_measured_when_coverage_ok(tmp_path):
+    # phosita: 1 PASS of 2 -> pass 0.5 -> fail 0.5; citation: 0 PASS of 2 -> fail 1.0
+    (tmp_path / "phosita_eval_full.jsonl").write_text(
+        _phosita_eval_line("r1", "PASS") + _phosita_eval_line("r2", "FAIL"))
+    (tmp_path / "citation_text_eval_full.jsonl").write_text(
+        _citation_eval_line("r1", "FAIL") + _citation_eval_line("r2", "FAIL"))
+    # 6 nonzero latency samples (>= MIN_COVERAGE) -> measured wins over override
+    lines = "".join(_trace_line(f"r{i}", 100 * (i + 1), 10, 5) for i in range(6))
+    (tmp_path / "traces.jsonl").write_text(lines)
+    m = metrics_for(_make_exp(override={"lat_p50": 1, "lat_p99": 2,
+                                        "tok_in": 3, "tok_out": 4}),
+                    traces_dir=tmp_path)
+    assert isinstance(m, ExperimentMetrics)
+    assert m.phosita_fail == 0.5
+    assert m.citation_fail == 1.0
+    assert m.lat_p50 == percentile([100, 200, 300, 400, 500, 600], 0.5)
+    assert m.tok_in == 10 and m.tok_out == 5      # not the override
+
+
+def test_metrics_for_uses_override_when_coverage_thin(tmp_path):
+    (tmp_path / "phosita_eval_full.jsonl").write_text(_phosita_eval_line("r1", "PASS"))
+    (tmp_path / "citation_text_eval_full.jsonl").write_text(_citation_eval_line("r1", "PASS"))
+    # only 2 nonzero latency samples (< MIN_COVERAGE) -> override is used
+    (tmp_path / "traces.jsonl").write_text(
+        _trace_line("r1", 100, 10, 5) + _trace_line("r2", 200, 20, 10))
+    m = metrics_for(_make_exp(override={"lat_p50": 4400, "lat_p99": 24000,
+                                        "tok_in": 3900, "tok_out": 2300}),
+                    traces_dir=tmp_path)
+    assert m.lat_p50 == 4400 and m.lat_p99 == 24000
+    assert m.tok_in == 3900 and m.tok_out == 2300
+
+
+def test_kpi_target_fail(tmp_path):
+    p = tmp_path / "kpi_targets.json"
+    p.write_text(json.dumps({"phosita": {"target_pass_rate": 0.85,
+                                         "target_date": "2026-09-01",
+                                         "baseline_run": None}}))
+    assert kpi_target_fail("phosita", path=p) == 0.15  # 1 - 0.85
+    assert kpi_target_fail("citation", path=p) is None

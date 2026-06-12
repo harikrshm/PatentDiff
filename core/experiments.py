@@ -103,3 +103,53 @@ def _measured_latency_tokens(trace_path: Path):
             if lr.get("tokens_output"):
                 tout.append(lr["tokens_output"])
     return lat, tin, tout
+
+
+class ExperimentMetrics(NamedTuple):
+    phosita_fail: float           # 0..1
+    citation_fail: float          # 0..1
+    lat_p50: float                # ms
+    lat_p99: float                # ms
+    tok_in: float                 # tokens (median)
+    tok_out: float                # tokens (median)
+
+
+def _trace_path(traces_dir: Path, trace_set: str) -> Path:
+    if trace_set == "live":
+        return traces_dir / "traces.jsonl"
+    return traces_dir / f"traces.{trace_set}.jsonl"
+
+
+def _fail_rate(eval_path: Path, prompt_version: Optional[str]) -> float:
+    """FAIL-rate = 1 - PASS-rate, reusing the frozen ruler math. 0.0 if unscored."""
+    rate, _pass, scored = _pass_rate(load_verdict_map(eval_path, prompt_version=prompt_version))
+    return (1.0 - rate) if scored else 0.0
+
+
+def metrics_for(exp: Experiment, traces_dir: Path = TRACES_DIR) -> ExperimentMetrics:
+    phosita_fail = _fail_rate(traces_dir / exp.phosita_eval_file, PHOSITA_PROMPT_VERSION)
+    citation_fail = _fail_rate(traces_dir / exp.citation_eval_file, None)
+
+    lat, tin, tout = _measured_latency_tokens(_trace_path(traces_dir, exp.trace_set))
+    if len(lat) >= MIN_COVERAGE:
+        lat_p50 = percentile(lat, 0.5)
+        lat_p99 = percentile(lat, 0.99)
+        tok_in = float(median(tin)) if tin else 0.0
+        tok_out = float(median(tout)) if tout else 0.0
+    elif exp.metrics_override:
+        o = exp.metrics_override
+        lat_p50 = float(o.get("lat_p50", 0))
+        lat_p99 = float(o.get("lat_p99", 0))
+        tok_in = float(o.get("tok_in", 0))
+        tok_out = float(o.get("tok_out", 0))
+    else:
+        lat_p50 = lat_p99 = tok_in = tok_out = 0.0
+
+    return ExperimentMetrics(phosita_fail, citation_fail,
+                             lat_p50, lat_p99, tok_in, tok_out)
+
+
+def kpi_target_fail(eval_kind: str, path: Path = TARGETS_PATH) -> Optional[float]:
+    """Target FAIL-rate (1 - target_pass_rate) for an eval kind, or None if unset."""
+    t = get_target(eval_kind, path=path)
+    return round(1.0 - t.target_pass_rate, 10) if t else None
