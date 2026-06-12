@@ -138,3 +138,22 @@ def test_kpi_target_fail(tmp_path):
                                          "baseline_run": None}}))
     assert kpi_target_fail("phosita", path=p) == 0.15  # 1 - 0.85
     assert kpi_target_fail("citation", path=p) is None
+
+
+def test_metrics_for_thin_coverage_no_override_is_zero(tmp_path):
+    # < MIN_COVERAGE nonzero latency samples AND no override -> latency/tokens 0.0
+    (tmp_path / "phosita_eval_full.jsonl").write_text(_phosita_eval_line("r1", "PASS"))
+    (tmp_path / "citation_text_eval_full.jsonl").write_text(_citation_eval_line("r1", "PASS"))
+    (tmp_path / "traces.jsonl").write_text(_trace_line("r1", 100, 10, 5))  # only 1 sample
+    m = metrics_for(_make_exp(override=None), traces_dir=tmp_path)
+    assert m.lat_p50 == 0.0 and m.lat_p99 == 0.0
+    assert m.tok_in == 0.0 and m.tok_out == 0.0
+    # eval fail-rates still computed: 1 PASS -> fail 0.0
+    assert m.phosita_fail == 0.0 and m.citation_fail == 0.0
+
+
+def test_metrics_for_missing_eval_files_give_zero_fail(tmp_path):
+    # no eval files at all -> nothing scored -> fail-rate 0.0 (not a crash)
+    (tmp_path / "traces.jsonl").write_text(_trace_line("r1", 100, 10, 5))
+    m = metrics_for(_make_exp(override=None), traces_dir=tmp_path)
+    assert m.phosita_fail == 0.0 and m.citation_fail == 0.0
