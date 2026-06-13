@@ -817,14 +817,24 @@
 }
 .uw-dash__block--wide { grid-column: span 2; }
 .uw-dash__block-head { margin-bottom: var(--space-4); }
-.uw-dash__block-kicker { display: block; }
+/* Block name — the prominent, colored section label (numbers dropped). Scoped
+   under .uw-dash to override the faint .wb-kicker base for these heads. */
+.uw-dash .uw-dash__block-kicker {
+  display: block;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--color-accent-primary);
+}
 .uw-dash__block-title {
   margin: var(--space-1) 0 0;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--letter-spacing-tight);
-  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0;
+  color: var(--color-text-tertiary);
 }
+/* Block 2 — eval picker above the FAIL-rate gauge. */
+.uw-dash__fr-pick { margin-bottom: var(--space-3); }
 .uw-dash__block-body { flex: 1 1 auto; min-width: 0; }
 
 .uw-dash__placeholder {

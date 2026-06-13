@@ -82,7 +82,11 @@ def test_build_table_rows_newest_first_with_run_to_run_delta(monkeypatch):
     assert rows[1]["phosita_dir"] == ""               # oldest row: no previous
     assert newest["splits"] == "1 · all"
     assert newest["repetitions"] == 1
-    assert "15%" in newest["target"]                  # phosita target shown
+    # Gap-to-KPI column: phosita gap = 40% - 15% = +25pp, gap closed vs prev (▼).
+    assert "P +25pp" in newest["target"] and "▼" in newest["target"]
+    assert "C —" in newest["target"]                  # citation has no target
+    assert newest["target_dir"] == "down"             # gap closing toward KPI
+    assert rows[1]["target_dir"] == ""                # oldest row: no previous
 
 
 def test_build_table_rows_marks_only_newest_row():

@@ -44,7 +44,9 @@ def test_render_trace_meta_lists_each_eval_kind(tmp_path, monkeypatch):
     out = cb.render_trace_meta("live", 0)
     text = str(out)
     assert "Phosita" in text and "Citation" in text
-    assert "50% PASS" in text and "n=80" in text and "v3" in text
+    # Error dashboard: surface FAIL%, not PASS. pass_rate 0.5 -> 50% FAIL.
+    assert "50% FAIL" in text and "n=80" in text and "v3" in text
+    assert "PASS" not in text
 
 
 def test_render_kpi_vs_target_shows_gap_and_no_target(monkeypatch):
@@ -57,9 +59,34 @@ def test_render_kpi_vs_target_shows_gap_and_no_target(monkeypatch):
     out = cb.render_kpi_vs_target("live", 0, 0)
     assert len(out) == 2
     text = str(out)
-    assert "target 85%" in text and "-31 pp" in text   # phosita gap
-    assert "uw-kt__gap--bad" in text                    # below target
+    # FAIL framing: pass 0.54 -> 46% FAIL; target_pass 0.85 -> max 15% FAIL.
+    # Current error (46%) is 31pp ABOVE the ceiling (15%) -> bad.
+    assert "FAIL · n=89" in text
+    assert "target 15%" in text and "+31 pp" in text
+    assert "uw-kt__gap--bad" in text                    # error above ceiling
     assert "No target set" in text                      # citation
+    assert "PASS" not in text
+
+
+def test_render_failrate_gauge_selected_eval(monkeypatch):
+    from core.kpi_targets import Target
+    monkeypatch.setattr(cb, "current_pass_rate",
+                        lambda d, s, kind: (0.54, 89) if kind == "phosita" else (0.40, 71))
+    monkeypatch.setattr(cb, "get_target",
+                        lambda kind: Target(target_pass_rate=0.85, target_date="2026-09-01")
+                        if kind == "phosita" else None)
+    # PHOSITA selected: gauge value is the FAIL% (1 - 0.54 = 46), target marker 15%
+    import pytest
+    fig, caption = cb.render_failrate_gauge("phosita", "live", 0, "light")
+    ind = fig.data[0]
+    assert ind.value == 46
+    assert ind.gauge.threshold.value == pytest.approx(15)
+    assert "PHOSITA FAIL" in caption and "n=89" in caption and "target 15%" in caption
+    # Citation selected (no target): value 1 - 0.40 = 60, no threshold marker
+    fig2, cap2 = cb.render_failrate_gauge("citation", "live", 0, "dark")
+    assert fig2.data[0].value == 60
+    assert fig2.data[0].gauge.threshold.value is None
+    assert "no target" in cap2
 
 
 def test_render_trajectory_builds_traces_and_handles_empty(monkeypatch):
@@ -96,8 +123,9 @@ def test_save_target_guards_mount_fire_and_validates(monkeypatch):
     # missing inputs -> error, no bump
     msg, ver = cb.save_target(1, "phosita", None, "", None, 3)
     assert getattr(msg, "className", "") == "uw-status--error" and ver is cb.no_update
-    # valid -> set_target called, version bumped
-    msg, ver = cb.save_target(1, "phosita", 85, "2026-09-01", "runA", 3)
+    # valid -> set_target called, version bumped. Input is a MAX FAIL %; it is
+    # stored as the equivalent target PASS rate (15% fail -> 0.85 pass).
+    msg, ver = cb.save_target(1, "phosita", 15, "2026-09-01", "runA", 3)
     assert len(calls) == 1 and calls[0][0][0] == "phosita"
     assert calls[0][0][1] == 0.85 and ver == 4
     assert getattr(msg, "className", "") == "uw-status--ok"

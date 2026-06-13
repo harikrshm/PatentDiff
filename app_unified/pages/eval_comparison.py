@@ -94,7 +94,7 @@ _TABLE_COLUMNS = [
     {"name": "Reps", "id": "repetitions"},
     {"name": "PHOSITA FAIL", "id": "phosita"},
     {"name": "Citation FAIL", "id": "citation"},
-    {"name": "KPI Target", "id": "target"},
+    {"name": "Gap to KPI", "id": "target"},
 ]
 
 
@@ -110,31 +110,48 @@ def _fail_cell(cur: float, prev) -> tuple[str, str]:
     return f"{cur:.2f}  {arrow} {delta_pp:+.0f}pp", direction
 
 
-def _target_cell() -> str:
-    pt = kpi_target_fail("phosita")
-    ct = kpi_target_fail("citation")
-    parts = []
-    parts.append(f"P {pt * 100:.0f}%" if pt is not None else "P —")
-    parts.append(f"C {ct * 100:.0f}%" if ct is not None else "C —")
-    return " · ".join(parts)
+def _gap_seg(label: str, fail: float, prev_fail, target) -> tuple[str, str]:
+    """One eval's distance-to-target as pp + a run-to-run arrow. Gap = current
+    FAIL − target FAIL (positive = above the ceiling). ▼/'down' = gap closing
+    toward the KPI (improvement); ▲/'up' = widening. No target -> ('L —', '')."""
+    if target is None:
+        return f"{label} —", ""
+    gap = (fail - target) * 100.0
+    seg = f"{label} {gap:+.0f}pp"
+    if prev_fail is None:
+        return seg, ""
+    delta = gap - (prev_fail - target) * 100.0
+    if abs(delta) < 0.05:
+        return f"{seg} –", "flat"
+    return (f"{seg} ▼", "down") if delta < 0 else (f"{seg} ▲", "up")
+
+
+def _target_cell(m: ExperimentMetrics, prev, pt, ct) -> tuple[str, str]:
+    """KPI-gap column: per-eval distance-to-target (pp) with run-to-run arrows.
+    Cell coloring follows PHOSITA (the primary target)."""
+    p_seg, p_dir = _gap_seg("P", m.phosita_fail, prev.phosita_fail if prev else None, pt)
+    c_seg, _ = _gap_seg("C", m.citation_fail, prev.citation_fail if prev else None, ct)
+    return f"{p_seg} · {c_seg}", p_dir
 
 
 def build_table_rows(pairs: List[Pair]) -> list[dict]:
     """Rows newest-first; each fail cell carries a run-to-run delta vs the
     chronologically previous experiment. `*_dir` columns drive cell coloring."""
-    target = _target_cell()
+    pt = kpi_target_fail("phosita")
+    ct = kpi_target_fail("citation")
     rows = []
     for i, (e, m) in enumerate(pairs):
         prev = pairs[i - 1][1] if i > 0 else None
         ph_txt, ph_dir = _fail_cell(m.phosita_fail, prev.phosita_fail if prev else None)
         ct_txt, ct_dir = _fail_cell(m.citation_fail, prev.citation_fail if prev else None)
+        tgt_txt, tgt_dir = _target_cell(m, prev, pt, ct)
         rows.append({
             "experiment": e.name,
             "splits": f"{len(e.splits)} · {', '.join(e.splits)}",
             "repetitions": e.repetitions,
             "phosita": ph_txt, "phosita_dir": ph_dir,
             "citation": ct_txt, "citation_dir": ct_dir,
-            "target": target,
+            "target": tgt_txt, "target_dir": tgt_dir,
             "is_newest": "",
         })
     rows.reverse()   # newest first
@@ -179,6 +196,10 @@ _TABLE_STYLE = dict(
         {"if": {"filter_query": '{citation_dir} = "down"', "column_id": "citation"},
          "color": "var(--color-status-success)"},
         {"if": {"filter_query": '{citation_dir} = "up"', "column_id": "citation"},
+         "color": "var(--color-status-error)"},
+        {"if": {"filter_query": '{target_dir} = "down"', "column_id": "target"},
+         "color": "var(--color-status-success)"},
+        {"if": {"filter_query": '{target_dir} = "up"', "column_id": "target"},
          "color": "var(--color-status-error)"},
     ],
 )

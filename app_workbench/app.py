@@ -105,14 +105,31 @@ def _block1_trace_properties() -> list:
 
 
 def _block2_eval_summary() -> list:
-    """Failure-mode share-of-FAILs bar chart across the whole set (render_fm_chart)."""
+    """Radial gauge of the current FAIL-rate for the SELECTED eval on the active
+    set (render_failrate_gauge). Segmented PHOSITA · Citation picker drives it;
+    severity-colored needle with a marker at the KPI target. No failure-mode
+    breakdown, no untagged/unverified split."""
     return [
+        html.Div(
+            className="wb-segmented uw-dash__fr-pick",
+            role="radiogroup",
+            **{"aria-label": "Failure-rate eval: PHOSITA or Citation"},
+            children=dcc.RadioItems(
+                id="fr-eval",
+                options=[
+                    {"label": "PHOSITA", "value": "phosita"},
+                    {"label": "Citation", "value": "citation"},
+                ],
+                value="phosita",
+                className="wb-segmented__items",
+            ),
+        ),
         _loading(dcc.Graph(
-            id="fm-chart",
+            id="fr-gauge",
             config={"displayModeBar": False, "responsive": True},
-            style={"height": "232px"},
+            style={"height": "208px"},
         )),
-        html.P(id="fm-caption", className="wb-caption"),
+        html.P(id="fr-caption", className="wb-caption"),
     ]
 
 
@@ -160,9 +177,9 @@ def _block6_set_target() -> list:
             options=[{"label": "PHOSITA", "value": "phosita"},
                      {"label": "Citation", "value": "citation"}],
             value="phosita", clearable=False, className="wb-dropdown wb-dropdown--tier")),
-        _field("Target PASS %", dcc.Input(
+        _field("Target max FAIL %", dcc.Input(
             id="kt-rate", type="number", min=0, max=100, step=1,
-            placeholder="e.g. 85", className="uw-input")),
+            placeholder="e.g. 15", className="uw-input")),
         _field("Target date", dcc.Input(
             id="kt-date", type="text", placeholder="YYYY-MM-DD", className="uw-input")),
         _field("Baseline run", dcc.Dropdown(
@@ -187,16 +204,16 @@ def build_console_body() -> html.Div:
             html.Div(
                 className="uw-dash__grid",
                 children=[
-                    _block("01 · SET & RUN", "Trace Properties", _block1_trace_properties()),
-                    _block("02 · HOW BAD", "Eval Summary", _block2_eval_summary()),
-                    _block("03 · WHERE", "Dimension Heatmap", _block3_heatmap()),
-                    _block("04 · VS TARGET", "Eval Score vs Target",
+                    _block("SET & RUN", "Trace Properties", _block1_trace_properties()),
+                    _block("HOW BAD", "Eval Summary", _block2_eval_summary()),
+                    _block("WHERE", "Dimension Heatmap", _block3_heatmap()),
+                    _block("TARGET", "Set KPI Target", _block6_set_target()),
+                    _block("VS TARGET", "Eval Score vs Target",
                            _loading(html.Div(id="kpi-target-readout"))),
-                    _block("05 · OVER TIME", "Metric Trajectory", _loading(dcc.Graph(
+                    _block("OVER TIME", "Metric Trajectory", _loading(dcc.Graph(
                         id="trajectory-chart",
                         config={"displayModeBar": False, "responsive": True},
                         style={"height": "232px"}))),
-                    _block("06 · TARGET", "Set KPI Target", _block6_set_target()),
                 ],
             ),
         ],

@@ -15,7 +15,6 @@ import pandas as pd
 import plotly.graph_objects as go
 from dash import ALL, Input, Output, State, callback, ctx, dcc, html, no_update
 
-from core.failure_modes import UNTAGGED_LABEL, failure_mode_breakdown
 from core.kpi_targets import get_target, set_target
 from core.kpi_view import current_pass_rate, series, trajectory
 
@@ -44,57 +43,76 @@ def _rate(series: pd.Series, fail_value: str = "FAIL") -> float:
     return (series == fail_value).mean() if not series.empty else 0.0
 
 
-# ── Block 2 · Eval summary — failure-mode share of FAILs (whole set) ─────────
-_FM_RED = "rgba(192, 57, 43, 0.55)"        # FAIL valence (counts of failures)
-_FM_GRAY = "rgba(127, 135, 148, 0.45)"     # untagged — neutral, not on the data axis
+# ── Block 2 · Eval summary — radial FAIL-rate gauge for the selected eval ─────
+# Severity needle from the data palette (--data-good / --data-mid / --data-bad),
+# mirrored per theme since Plotly is server-rendered. Never the chrome indigo.
+_GAUGE_SEVERITY = {
+    "light": {"good": "#0E8A7D", "mid": "#C98A2B", "bad": "#C0392B"},
+    "dark":  {"good": "#2BB3A3", "mid": "#E0A33E", "bad": "#E06A5C"},
+}
 
 
-def _fm_figure(rows: list, theme: str) -> go.Figure:
-    """Horizontal bar chart of failure-mode share of FAILs. Transparent bg so the
-    card surface shows through in both themes; mono font; FAIL-tinted bars."""
+def _severity_color(fail_pct: float, ceiling: float, dark: bool) -> str:
+    """Green at/under the target ceiling, amber within +20pp, red beyond."""
+    pal = _GAUGE_SEVERITY["dark" if dark else "light"]
+    if fail_pct <= ceiling:
+        return pal["good"]
+    if fail_pct <= ceiling + 20:
+        return pal["mid"]
+    return pal["bad"]
+
+
+def _gauge_figure(fail_pct: float, target_pct, theme: str) -> go.Figure:
+    """Radial gauge (go.Indicator) of a FAIL-rate. Transparent so the card shows
+    through; mono number; faint track; KPI-target marker when a target is set."""
     dark = theme == "dark"
     fg = "#E6EAEF" if dark else "#1A2027"
-    grid = "rgba(255,255,255,0.08)" if dark else "rgba(0,0,0,0.07)"
-    fig = go.Figure()
-    if not rows:
-        fig.add_annotation(text="No FAILs to break down for this set",
-                           showarrow=False, font=dict(color=fg, size=13))
-        fig.update_xaxes(visible=False)
-        fig.update_yaxes(visible=False)
-    else:
-        labels = [r[0] for r in rows][::-1]   # largest on top
-        vals = [r[1] for r in rows][::-1]
-        colors = [_FM_GRAY if l == UNTAGGED_LABEL else _FM_RED for l in labels]
-        fig.add_bar(x=vals, y=labels, orientation="h", marker_color=colors,
-                    text=vals, textposition="outside",
-                    hovertemplate="%{y}: %{x}<extra></extra>")
-        hi = max(vals)
-        fig.update_xaxes(showgrid=True, gridcolor=grid, zeroline=False,
-                         range=[0, hi * 1.15])   # headroom for outside labels
-        fig.update_yaxes(showgrid=False, automargin=True)
+    muted = "#9AA5B1" if dark else "#586374"
+    track = "rgba(255,255,255,0.07)" if dark else "rgba(17,21,27,0.06)"
+    ceiling = target_pct if target_pct is not None else 15.0
+    gauge = dict(
+        axis=dict(range=[0, 100], tickvals=[0, 25, 50, 75, 100], ticksuffix="%",
+                  tickwidth=1, tickcolor=muted,
+                  tickfont=dict(color=muted, size=10,
+                                family="'IBM Plex Mono','JetBrains Mono',monospace")),
+        bar=dict(color=_severity_color(fail_pct, ceiling, dark), thickness=0.72),
+        bgcolor="rgba(0,0,0,0)", borderwidth=0,
+        steps=[dict(range=[0, 100], color=track)],
+    )
+    if target_pct is not None:
+        gauge["threshold"] = dict(line=dict(color=fg, width=2),
+                                  thickness=0.85, value=target_pct)
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number", value=round(fail_pct),
+        number=dict(suffix="%", font=dict(
+            color=fg, size=34,
+            family="'IBM Plex Mono','JetBrains Mono',monospace")),
+        gauge=gauge, domain=dict(x=[0, 1], y=[0, 1])))
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color=fg, family="'IBM Plex Mono','JetBrains Mono',monospace",
-                  size=12),
-        margin=dict(l=8, r=36, t=8, b=8), height=232, showlegend=False, bargap=0.4,
-    )
+        margin=dict(l=18, r=18, t=12, b=4), height=208,
+        font=dict(color=fg, family="'IBM Plex Mono','JetBrains Mono',monospace"))
     return fig
 
 
 @callback(
-    Output("fm-chart", "figure"),
-    Output("fm-caption", "children"),
+    Output("fr-gauge", "figure"),
+    Output("fr-caption", "children"),
+    Input("fr-eval", "value"),
     Input("corpus-selector", "value"),
     Input("data-version", "data"),
     Input("theme", "data"),
 )
-def render_fm_chart(active_name: str, _v, theme):
+def render_failrate_gauge(eval_kind, active_name, _v, theme):
+    kind = eval_kind or "phosita"
     set_name = active_name or "live"
-    rows = failure_mode_breakdown(_TRACES_DIR, set_name)
-    total = sum(c for _, c in rows)
-    caption = (f"share of FAILs · set {set_name} · {total} FAILs" if rows
-               else f"set {set_name} — no FAILs")
-    return _fm_figure(rows, theme or "light"), caption
+    rate, scored = current_pass_rate(_TRACES_DIR, set_name, kind)
+    fail = (1 - rate) * 100 if scored else 0.0
+    target = get_target(kind)
+    tgt = (1 - target.target_pass_rate) * 100 if target else None
+    caption = (f"{_EVAL_LABELS[kind]} FAIL · set {set_name} · n={scored}"
+               + (f" · target {tgt:.0f}%" if tgt is not None else " · no target"))
+    return _gauge_figure(fail, tgt, theme or "light"), caption
 
 
 # ── §2 Where — custom themed heatmap + relationship averages ─────────────────
@@ -163,11 +181,15 @@ _EVAL_LABELS = {"phosita": "PHOSITA", "citation": "Citation"}
 
 
 def _target_row(label: str, rate: float, scored: int, target) -> html.Div:
-    cur = rate * 100
+    # Error dashboard: show the FAIL rate. `rate` is the stored PASS rate over the
+    # scored set, so FAIL = 1 - PASS. The target is stored as a PASS rate too and
+    # is shown as a max-acceptable FAIL ceiling — lower is better, so a positive
+    # gap (error above the ceiling) is the bad direction.
+    cur = (1 - rate) * 100
     head = html.Div(className="uw-kt__head", children=[
         html.Span(label, className="uw-kt__label"),
         html.Span(f"{cur:.0f}%", className="uw-kt__cur uw-num"),
-        html.Span(f"PASS · n={scored}", className="uw-kt__n"),
+        html.Span(f"FAIL · n={scored}", className="uw-kt__n"),
     ])
     if target is None:
         return html.Div(className="uw-kt", children=[
@@ -176,9 +198,9 @@ def _target_row(label: str, rate: float, scored: int, target) -> html.Div:
                 className="uw-kt__fill", style={"width": f"{min(cur, 100):.0f}%"})),
             html.Div("No target set", className="uw-kt__notarget"),
         ])
-    tgt = target.target_pass_rate * 100
-    gap = cur - tgt
-    gap_cls = "uw-kt__gap--ok" if gap >= 0 else "uw-kt__gap--bad"
+    tgt = (1 - target.target_pass_rate) * 100
+    gap = cur - tgt                       # +ve => error above the ceiling => bad
+    gap_cls = "uw-kt__gap--ok" if gap <= 0 else "uw-kt__gap--bad"
     return html.Div(className="uw-kt", children=[
         head,
         html.Div(className="uw-kt__bar", children=[
@@ -220,25 +242,27 @@ def _trajectory_figure(theme: str) -> go.Figure:
     any_pts = False
     for kind, label in (("phosita", "PHOSITA"), ("citation", "Citation")):
         tr = trajectory(kind)
+        # FAIL rate over time (error dashboard): rates are stored PASS rates, so
+        # plot 100 - PASS. A falling line is improvement.
         ax, ay = [], []
         for pt in (tr.baseline, tr.current):
             if pt:
                 ax.append(pt.when[:10])
-                ay.append(pt.rate * 100)
+                ay.append((1 - pt.rate) * 100)
         if ax:
             any_pts = True
             fig.add_scatter(
                 x=ax, y=ay, mode="lines+markers", name=label,
                 line=dict(color=_TRAJ_COLORS[kind], width=2), marker=dict(size=8),
-                hovertemplate=label + " %{x}<br>%{y:.0f}% PASS<extra></extra>")
+                hovertemplate=label + " %{x}<br>%{y:.0f}% FAIL<extra></extra>")
         if tr.current and tr.expected:        # dashed projection to the target
             fig.add_scatter(
                 x=[tr.current.when[:10], tr.expected.when],
-                y=[tr.current.rate * 100, tr.expected.rate * 100],
+                y=[(1 - tr.current.rate) * 100, (1 - tr.expected.rate) * 100],
                 mode="lines+markers", showlegend=False,
                 line=dict(color=_TRAJ_COLORS[kind], width=2, dash="dot"),
                 marker=dict(size=11, symbol="star"),
-                hovertemplate=label + " target %{x}<br>%{y:.0f}%<extra></extra>")
+                hovertemplate=label + " target %{x}<br>%{y:.0f}% FAIL<extra></extra>")
     if not any_pts:
         fig.add_annotation(text="No eval history yet — run an eval",
                            showarrow=False, font=dict(color=fg, size=13))
@@ -279,9 +303,10 @@ def render_trajectory(_v, _kv, theme):
 def prefill_target(eval_kind, _kv, _v):
     eval_kind = eval_kind or "phosita"
     target = get_target(eval_kind)
-    opts = [{"label": f"{r.timestamp[:16]} · {r.pass_rate * 100:.0f}% (n={r.scored})",
+    opts = [{"label": f"{r.timestamp[:16]} · {(1 - r.pass_rate) * 100:.0f}% FAIL (n={r.scored})",
              "value": r.run_id} for r in reversed(history_for(eval_kind))]
-    rate = round(target.target_pass_rate * 100) if target else None
+    # Prefill the input with the target as a max FAIL % (stored as a PASS rate).
+    rate = round((1 - target.target_pass_rate) * 100) if target else None
     date = target.target_date if target else None
     baseline = target.baseline_run if target else None
     return rate, date, opts, baseline
@@ -302,14 +327,16 @@ def save_target(n_clicks, eval_kind, rate, date, baseline, version):
     if not n_clicks:                     # only a real click saves (not a mount-fire)
         return no_update, no_update
     if rate is None or not date:
-        return html.Span("Enter a target PASS % and date.",
+        return html.Span("Enter a target max FAIL % and date.",
                          className="uw-status--error"), no_update
     try:
-        set_target(eval_kind or "phosita", float(rate) / 100.0, str(date),
+        # Input is the max acceptable FAIL %; persist the equivalent PASS rate so
+        # the stored target stays a true PASS rate (15% FAIL -> 0.85 PASS).
+        set_target(eval_kind or "phosita", round(1 - float(rate) / 100.0, 4), str(date),
                    baseline_run=baseline)
     except ValueError as exc:
         return html.Span(f"Couldn't save: {exc}", className="uw-status--error"), no_update
-    return (html.Span(f"Target saved · {eval_kind} {float(rate):.0f}% by {date}.",
+    return (html.Span(f"Target saved · {eval_kind} max {float(rate):.0f}% FAIL by {date}.",
                       className="uw-status--ok"),
             (version or 0) + 1)
 
@@ -361,7 +388,7 @@ def render_trace_meta(active_name: str, _v=None):
     for kind, rec in rows:
         pv = f" · {rec.prompt_version}" if rec.prompt_version else ""
         out.append(html.Span(kind.capitalize(), className="uw-dash__meta-k"))
-        out.append(html.Span(f"{rec.pass_rate * 100:.0f}% PASS · n={rec.scored}{pv}",
+        out.append(html.Span(f"{(1 - rec.pass_rate) * 100:.0f}% FAIL · n={rec.scored}{pv}",
                              className="uw-num"))
     return out
 
@@ -411,7 +438,8 @@ def run_eval(set_progress, _n_clicks, active_name, version):
     recs = []
     for kind, p in (("phosita", ts_set.phosita_path),
                     ("citation", ts_set.citation_path)):
-        rate, _pass, scored = _pass_rate(load_verdict_map(p))
+        rate, _pass, scored = _pass_rate(
+            load_verdict_map(p, prompt_version=PROMPT_VERSIONS.get(kind)))
         recs.append(HistoryRecord(
             timestamp=now_iso, eval_kind=kind, trace_set=ts_set.name,
             pass_rate=rate, scored=scored,
