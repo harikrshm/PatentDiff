@@ -66,6 +66,9 @@
   --data-mid:       #C98A2B;
   --data-bad:       #C0392B;
   --data-flag:      var(--color-status-warning);
+  /* DATA · categorical chart series (neutral; NOT chrome indigo, NOT good/bad valence) */
+  --data-cat-1:     #3B6EA5;   /* slate-blue — series A (PHOSITA / P50 / Input) */
+  --data-cat-2:     #C98A2B;   /* amber — series B (Citation / P99 / Output) */
   --data-cell-text-on-light: #1A2027;
   --data-cell-text-on-dark:  #FFFFFF;
 
@@ -234,6 +237,8 @@
   --data-good:      #2BB3A3;
   --data-mid:       #E0A33E;
   --data-bad:       #E06A5C;
+  --data-cat-1:     #6FA8DC;   /* slate-blue, lightened for dark */
+  --data-cat-2:     #E0B25C;   /* amber, lightened for dark */
   --data-cell-text-on-light: #0E1116;
   --data-cell-text-on-dark:  #F4F6F8;
 
@@ -299,6 +304,8 @@
     --data-good:      #2BB3A3;
     --data-mid:       #E0A33E;
     --data-bad:       #E06A5C;
+    --data-cat-1:     #6FA8DC;   /* slate-blue, lightened for dark */
+    --data-cat-2:     #E0B25C;   /* amber, lightened for dark */
     --data-cell-text-on-light: #0E1116;
     --data-cell-text-on-dark:  #F4F6F8;
     --voice-machine-bg:        #1A1D38;

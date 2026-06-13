@@ -9,7 +9,7 @@ from typing import List, Tuple
 
 import dash
 import plotly.graph_objects as go
-from dash import dash_table, dcc, html
+from dash import Input, Output, callback, dash_table, dcc, html
 
 from app_unified.components import page_header
 from core.experiments import (Experiment, ExperimentMetrics, kpi_target_fail,
@@ -19,22 +19,22 @@ dash.register_page(__name__, path="/eval/comparison", name="Comparison")
 
 Pair = Tuple[Experiment, ExperimentMetrics]
 
-# Two-series palette, readable in both themes (indigo / teal).
-_COLOR_A = "#4F46E5"
-_COLOR_B = "#2EA091"
-
-# Plotly renders server-side and cannot read CSS vars; use a literal mono stack.
+# Plotly renders server-side and can't read CSS vars, so the chart palette is
+# mirrored here from workbench.css. These are the NEUTRAL categorical DATA series
+# (slate-blue / amber) — never the chrome indigo, never the good/bad valence
+# colors. Keyed by theme; tuple is (series-A, series-B).
+_DATA_CAT = {"light": ("#3B6EA5", "#C98A2B"), "dark": ("#6FA8DC", "#E0B25C")}
+# Axis/legend text (~ --color-text-secondary) and a faint gridline, per theme.
+_AXIS = {"light": "#586374", "dark": "#9AA5B1"}
+_GRID = {"light": "rgba(17,21,27,0.08)", "dark": "rgba(255,255,255,0.10)"}
 _FONT_MONO = "IBM Plex Mono, JetBrains Mono, ui-monospace, monospace"
 
-_FIG_LAYOUT = dict(
-    barmode="group",
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
-    margin=dict(l=48, r=12, t=8, b=32),
-    height=232,
-    legend=dict(orientation="h", y=1.12, x=0, font=dict(size=11)),
-    font=dict(family=_FONT_MONO, size=11),
-)
+
+def _opacity_ramp(n: int) -> list:
+    """Newest-experiment emphasis: older groups recede (0.70), newest is full (1.0)."""
+    if n <= 1:
+        return [1.0] * n
+    return [round(0.70 + 0.30 * i / (n - 1), 3) for i in range(n)]
 
 
 def experiments_with_metrics() -> List[Pair]:
@@ -42,28 +42,37 @@ def experiments_with_metrics() -> List[Pair]:
     return [(e, metrics_for(e)) for e in last_n(4)]
 
 
-def _grouped_bars(x, a_name, a_vals, b_name, b_vals, *, y_title) -> go.Figure:
+def _grouped_bars(x, a_name, a_vals, b_name, b_vals, *, y_title, dark) -> go.Figure:
+    key = "dark" if dark else "light"
+    cat1, cat2 = _DATA_CAT[key]
+    axis, grid = _AXIS[key], _GRID[key]
+    opacity = _opacity_ramp(len(x))   # x is oldest->newest; ramp lands full on newest
     fig = go.Figure()
-    fig.add_bar(name=a_name, x=x, y=a_vals, marker_color=_COLOR_A)
-    fig.add_bar(name=b_name, x=x, y=b_vals, marker_color=_COLOR_B)
-    fig.update_layout(**_FIG_LAYOUT)
-    fig.update_yaxes(title_text=y_title, gridcolor="rgba(128,128,128,0.18)")
-    fig.update_xaxes(showgrid=False)
+    fig.add_bar(name=a_name, x=x, y=a_vals, marker=dict(color=cat1, opacity=opacity))
+    fig.add_bar(name=b_name, x=x, y=b_vals, marker=dict(color=cat2, opacity=opacity))
+    fig.update_layout(
+        barmode="group", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=48, r=12, t=8, b=32), height=232,
+        legend=dict(orientation="h", y=1.12, x=0, font=dict(size=11, color=axis)),
+        font=dict(family=_FONT_MONO, size=11, color=axis))
+    fig.update_yaxes(title_text=y_title, gridcolor=grid, zerolinecolor=grid, color=axis)
+    fig.update_xaxes(showgrid=False, color=axis)
     return fig
 
 
-def build_figures(pairs: List[Pair]):
-    """Three grouped-bar figures: eval FAIL-rate, latency, tokens."""
+def build_figures(pairs: List[Pair], dark: bool = False):
+    """Three grouped-bar figures (eval FAIL-rate, latency, tokens), themed for
+    light/dark. x is oldest->newest so the opacity ramp lands full on the newest."""
     x = [e.name for e, _ in pairs]
     fail_fig = _grouped_bars(
         x, "PHOSITA", [m.phosita_fail for _, m in pairs],
-        "Citation", [m.citation_fail for _, m in pairs], y_title="FAIL rate")
+        "Citation", [m.citation_fail for _, m in pairs], y_title="FAIL rate", dark=dark)
     lat_fig = _grouped_bars(
         x, "P50", [m.lat_p50 for _, m in pairs],
-        "P99", [m.lat_p99 for _, m in pairs], y_title="latency (ms)")
+        "P99", [m.lat_p99 for _, m in pairs], y_title="latency (ms)", dark=dark)
     tok_fig = _grouped_bars(
         x, "Input", [m.tok_in for _, m in pairs],
-        "Output", [m.tok_out for _, m in pairs], y_title="tokens")
+        "Output", [m.tok_out for _, m in pairs], y_title="tokens", dark=dark)
     return fail_fig, lat_fig, tok_fig
 
 
@@ -126,8 +135,11 @@ def build_table_rows(pairs: List[Pair]) -> list[dict]:
             "phosita": ph_txt, "phosita_dir": ph_dir,
             "citation": ct_txt, "citation_dir": ct_dir,
             "target": target,
+            "is_newest": "",
         })
     rows.reverse()   # newest first
+    if rows:
+        rows[0]["is_newest"] = "1"   # hidden marker -> newest-row emphasis (styling)
     return rows
 
 
@@ -154,6 +166,12 @@ _TABLE_STYLE = dict(
                              "textAlign": "left",
                              "color": "var(--color-text-primary)"}],
     style_data_conditional=[
+        # Newest experiment brought forward: faint indigo wash + a left selection
+        # rail (indigo as selection chrome here, never a data color).
+        {"if": {"filter_query": '{is_newest} = "1"'},
+         "backgroundColor": "var(--color-accent-subtle)"},
+        {"if": {"filter_query": '{is_newest} = "1"', "column_id": "experiment"},
+         "borderLeft": "3px solid var(--color-accent-primary)"},
         {"if": {"filter_query": '{phosita_dir} = "down"', "column_id": "phosita"},
          "color": "var(--color-status-success)"},
         {"if": {"filter_query": '{phosita_dir} = "up"', "column_id": "phosita"},
@@ -166,27 +184,61 @@ _TABLE_STYLE = dict(
 )
 
 
+def _chart_blocks(pairs: List[Pair], dark: bool) -> list:
+    fail_fig, lat_fig, tok_fig = build_figures(pairs, dark=dark)
+    return [
+        _chart_block("01 · EVAL", "FAIL-rate", fail_fig),
+        _chart_block("02 · LATENCY", "P50 · P99", lat_fig),
+        _chart_block("03 · TOKENS", "Input · Output", tok_fig),
+    ]
+
+
+def _empty_state() -> html.Div:
+    """Calm full-width readout when the manifest is empty/missing — beats three
+    blank chart boxes and a header-only table."""
+    return html.Div(
+        className="uw-compare__empty", style={"gridColumn": "1 / -1"},
+        children=[
+            html.P("No experiments recorded yet.", className="uw-compare__empty-title"),
+            html.P("Run scripts/seed_experiments.py (or an experiment) to populate "
+                   "this view.", className="uw-compare__empty-hint"),
+        ],
+    )
+
+
+def _charts_or_empty(pairs: List[Pair], dark: bool) -> list:
+    return _chart_blocks(pairs, dark) if pairs else [_empty_state()]
+
+
+@callback(Output("cmp-charts", "children"), Input("theme", "data"))
+def _render_charts(theme):
+    """Rebuild the three figures on theme toggle. Plotly is server-rendered and
+    can't follow the CSS [data-theme] switch the way the table does, so the charts
+    are recolored here in lock-step with the shell's theme store."""
+    return _charts_or_empty(experiments_with_metrics(), dark=(theme == "dark"))
+
+
 def _build_layout() -> html.Div:
     pairs = experiments_with_metrics()
-    fail_fig, lat_fig, tok_fig = build_figures(pairs)
-    return html.Div(
-        className="uw-page uw-page--instrument uw-compare",
-        children=[
-            page_header("Comparison",
-                        "How have eval scores moved across the last experiments?"),
-            html.Div(className="uw-compare__charts", children=[
-                _chart_block("01 · EVAL", "FAIL-rate", fail_fig),
-                _chart_block("02 · LATENCY", "P50 · P99", lat_fig),
-                _chart_block("03 · TOKENS", "Input · Output", tok_fig),
-            ]),
+    # Charts pre-rendered light so first paint isn't empty; the callback recolors
+    # to the active theme on load and on every toggle.
+    children = [
+        page_header("Comparison",
+                    "How have eval scores moved across the last experiments?"),
+        html.Div(id="cmp-charts", className="uw-compare__charts",
+                 children=_charts_or_empty(pairs, dark=False)),
+    ]
+    if pairs:   # no header-only table on an empty manifest
+        children += [
             html.H2("Experiment history", className="uw-compare__h2"),
             dash_table.DataTable(
                 data=build_table_rows(pairs),
                 columns=_TABLE_COLUMNS,
                 **_TABLE_STYLE,
             ),
-        ],
-    )
+        ]
+    return html.Div(className="uw-page uw-page--instrument uw-compare",
+                    children=children)
 
 
 layout = _build_layout()
