@@ -23,6 +23,9 @@ Pair = Tuple[Experiment, ExperimentMetrics]
 _COLOR_A = "#4F46E5"
 _COLOR_B = "#2EA091"
 
+# Plotly renders server-side and cannot read CSS vars; use a literal mono stack.
+_FONT_MONO = "IBM Plex Mono, JetBrains Mono, ui-monospace, monospace"
+
 _FIG_LAYOUT = dict(
     barmode="group",
     paper_bgcolor="rgba(0,0,0,0)",
@@ -30,7 +33,7 @@ _FIG_LAYOUT = dict(
     margin=dict(l=48, r=12, t=8, b=32),
     height=232,
     legend=dict(orientation="h", y=1.12, x=0, font=dict(size=11)),
-    font=dict(family="var(--font-family-mono)", size=11),
+    font=dict(family=_FONT_MONO, size=11),
 )
 
 
