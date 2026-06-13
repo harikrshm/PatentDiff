@@ -13,14 +13,14 @@ Date: 2026-06-13
 > Verify the suite stays green (`python -m pytest -q`) after each code task.
 
 ## Foundation
-- [ ] **Data palette tokens**: Add a categorical chart palette to `workbench.css` — `--data-cat-1`
+- [x] **Data palette tokens**: Add a categorical chart palette to `workbench.css` — `--data-cat-1`
   / `--data-cat-2` in `:root` (light) and the `[data-theme="dark"]` block (and the
   `prefers-color-scheme: dark` fallback block). Proposed: light `#3B6EA5` (slate-blue) / `#C98A2B`
   (amber); dark `#6FA8DC` / `#E0B25C`. Done = both tokens resolve in both themes and each clears
   ≥3:1 against the card surface (`--color-bg-secondary`) and is visually distinct from the other
   and from red/teal. _New tokens; reuses the token-file structure._
 
-- [ ] **Chart card = instrument card, dead CSS removed**: In `unified.css`, rewrite the
+- [x] **Chart card = instrument card, dead CSS removed**: In `unified.css`, rewrite the
   `.uw-compare__chart` / `.uw-compare__charts` / `.uw-compare__chart-head` / `-title` rules to
   match `.uw-dash__block` exactly (`background: var(--color-bg-secondary)`, `border: 1px solid
   var(--color-border-primary)`, `border-radius: var(--border-radius-md)`, `padding:
@@ -32,7 +32,7 @@ Date: 2026-06-13
   classes remain (`grep`). _Modifies existing CSS; reuses `uw-dash__block` look._
 
 ## Core UI
-- [ ] **Theme-aware charts via callback + data palette + newest emphasis**: The highest-risk slice;
+- [x] **Theme-aware charts via callback + data palette + newest emphasis**: The highest-risk slice;
   do it early to validate the look. In `eval_comparison.py`: (1) make the figure builders take
   `dark: bool` and resolve bar colors to the per-theme hex of `--data-cat-1/2` (mirror
   `app_workbench/callbacks.py:_fm_figure(rows, theme)` — keep a small light/dark hex map in the
@@ -48,7 +48,7 @@ Date: 2026-06-13
   Done = toggling theme recolors all three charts in lock-step; newest bar group reads forward;
   suite green. _Modifies the page; reuses the dashboard theme-callback pattern._
 
-- [ ] **Experiment history table — newest-row emphasis**: In `eval_comparison.py`, give the top
+- [x] **Experiment history table — newest-row emphasis**: In `eval_comparison.py`, give the top
   (newest) table row a 3px indigo left rail + faint `--color-accent-primary` background wash (~8%
   alpha) using `style_data_conditional` keyed on a hidden marker column (e.g. add `"is_newest":
   "1"` to the first row's data dict, mirror of the existing `*_dir` hidden-column technique) so
@@ -58,7 +58,7 @@ Date: 2026-06-13
   green. _Modifies the table; reuses the hidden-marker-column idiom._
 
 ## Interactions & States
-- [ ] **Empty / missing-manifest state**: In `_build_layout()` (or the charts callback), when
+- [x] **Empty / missing-manifest state**: In `_build_layout()` (or the charts callback), when
   `experiments_with_metrics()` is empty, render one calm instrument empty-state card (reuse the
   `.uw-compare__empty` dashed-card pattern + `uw-compare__empty-title`/`-hint`) reading e.g. "No
   experiments recorded yet — run `scripts/seed_experiments.py` or an experiment to populate this
@@ -69,7 +69,7 @@ Date: 2026-06-13
   task)._
 
 ## Responsive & Polish
-- [ ] **Responsive + accessibility pass**: Standardize the chart-row stack breakpoint to the
+- [x] **Responsive + accessibility pass**: Standardize the chart-row stack breakpoint to the
   app-wide `@media (max-width: 1024px)` (remove the stray 920px rule added in Task 7 of the build)
   so it matches `uw-dash__grid`/`uw-compare`. Confirm: charts stack to one column ≤1024 and the
   table keeps `overflowX: auto`; legend series names are always present (color never the sole
