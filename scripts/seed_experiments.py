@@ -19,22 +19,27 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from core.experiments import MANIFEST_PATH, TRACES_DIR  # noqa: E402
 
-# (exp_id, name, trace_set, phosita_eval_file, citation_eval_file, metrics_override)
+# (exp_id, name, trace_set, phosita_eval_file, citation_eval_file, metrics_override, splits)
 # Override is None where the trace file has good coverage (measured wins anyway).
 _SEED = [
     ("e1", "baseline", "baseline",
      "phosita_eval_full.baseline.jsonl", "citation_text_eval_full.baseline.jsonl",
-     {"lat_p50": 6200, "lat_p99": 31000, "tok_in": 4100, "tok_out": 2600}),
+     {"lat_p50": 6200, "lat_p99": 31000, "tok_in": 4100, "tok_out": 2600}, ["all"]),
     ("e2", "prompt-v2", "post-prompt-v2.smoke",
      "phosita_eval_full.baseline.jsonl",
      "citation_text_eval_full.post-prompt-v2.fails.jsonl",
-     {"lat_p50": 5400, "lat_p99": 28000, "tok_in": 4000, "tok_out": 2500}),
+     {"lat_p50": 5400, "lat_p99": 28000, "tok_in": 4000, "tok_out": 2500}, ["all"]),
     ("e3", "exp2", "exp2",
      "phosita_eval_full.baseline.jsonl", "citation_text_eval_full.baseline.jsonl",
-     {"lat_p50": 4800, "lat_p99": 26000, "tok_in": 3900, "tok_out": 2400}),
+     {"lat_p50": 4800, "lat_p99": 26000, "tok_in": 3900, "tok_out": 2400}, ["all"]),
     ("e4", "live", "live",
      "phosita_eval_full.jsonl", "citation_text_eval_full.jsonl",
-     None),  # traces.jsonl has good latency coverage -> measured
+     None, ["all"]),  # traces.jsonl has good latency coverage -> measured
+    # Phase 2 · Experiment 1 (verbatim corresponding_text prompt fix). INITIAL
+    # implementation measured on a 38-trace subset only — flagged in `splits`.
+    ("e5", "exp1-verbatim", "exp1-verbatim",
+     "phosita_eval_full.exp1-verbatim.jsonl", "citation_text_eval_full.exp1-verbatim.jsonl",
+     None, ["subset · 38 traces"]),
 ]
 
 
@@ -46,10 +51,10 @@ def _created(eval_file: str) -> str:
 
 def main() -> None:
     records = []
-    for exp_id, name, trace_set, ph, ct, override in _SEED:
+    for exp_id, name, trace_set, ph, ct, override, splits in _SEED:
         rec = {
             "exp_id": exp_id, "name": name, "created": _created(ph),
-            "splits": ["all"], "repetitions": 1, "trace_set": trace_set,
+            "splits": splits, "repetitions": 1, "trace_set": trace_set,
             "phosita_eval_file": ph, "citation_eval_file": ct,
         }
         if override is not None:

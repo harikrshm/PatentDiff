@@ -52,7 +52,7 @@ Return ONLY valid JSON matching this exact schema — no markdown fences, no ext
     {
       "element_number": 1,
       "element_text": "the exact text of the claim element from the source patent",
-      "corresponding_text": "the EXACT verbatim text quoted from the target patent's independent_claim or specification — no paraphrase, no narration, no parenthetical citations — or mark as not disclosed if not disclosed",
+      "corresponding_text": "EXACT verbatim text quoted from the target patent's independent_claim or specification — no paraphrase, no narration, no parentheticals; use the empty string \"\" if no exact span discloses the element",
       "novelty": "Y or N",
       "inventive_step": "Y or N",
       "verdict": "Y or N",
