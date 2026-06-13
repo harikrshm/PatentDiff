@@ -783,6 +783,28 @@
   background-color: transparent !important;
 }
 
+/* Comparison — experiment tracker */
+.uw-compare__charts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4, 1rem);
+  margin-block: var(--space-4, 1rem);
+}
+.uw-compare__chart {
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-md, 8px);
+  padding: var(--space-3, 0.75rem);
+  background: var(--color-surface-raised, transparent);
+}
+.uw-compare__chart-head { margin-bottom: 0.25rem; }
+.uw-compare__chart-title {
+  font-size: 0.95rem; margin: 0;
+  color: var(--color-text-primary);
+}
+@media (max-width: 920px) {
+  .uw-compare__charts { grid-template-columns: 1fr; }
+}
+
 /* ============================================================================
    T10 · Responsive (~1024) + accessibility
    ----------------------------------------------------------------------------
