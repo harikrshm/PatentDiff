@@ -1,229 +1,82 @@
 # app_unified/pages/eval_comparison.py
-"""Comparison — before/after failure-rate delta for two trace sets."""
+"""Comparison — experiment tracker. The last 4 experiments as three grouped-bar
+charts (eval FAIL-rate, latency, tokens) plus a history table with run-to-run
+deltas and a KPI-target column. Reads core/experiments.py (manifest + on-read
+aggregation)."""
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Dict
+from typing import List, Tuple
 
 import dash
-from dash import Input, Output, callback, dash_table, dcc, html
+import plotly.graph_objects as go
+from dash import dash_table, dcc, html
 
 from app_unified.components import page_header
-from core.eval_delta import VERDICTS, compute_delta, load_verdict_map
-from core.phosita_eval import PROMPT_VERSION as PHOSITA_PROMPT_VERSION
-from core.workbench_data import list_trace_sets
+from core.experiments import (Experiment, ExperimentMetrics, kpi_target_fail,
+                              last_n, metrics_for)
 
 dash.register_page(__name__, path="/eval/comparison", name="Comparison")
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-TRACES_DIR = REPO_ROOT / "traces"
+Pair = Tuple[Experiment, ExperimentMetrics]
 
-_EVAL_STEM = {"phosita": "phosita_eval_full", "citation": "citation_text_eval_full"}
+# Two-series palette, readable in both themes (indigo / teal).
+_COLOR_A = "#4F46E5"
+_COLOR_B = "#2EA091"
 
-
-def eval_path(base: Path, trace_set: str, eval_kind: str) -> Path:
-    """Map (trace set, eval kind) → eval JSONL path (suffix convention)."""
-    if eval_kind not in _EVAL_STEM:
-        raise ValueError(f"unknown eval_kind {eval_kind!r}; expected one of {list(_EVAL_STEM)}")
-    stem = _EVAL_STEM[eval_kind]
-    if trace_set == "live":
-        return base / f"{stem}.jsonl"
-    return base / f"{stem}.{trace_set}.jsonl"
-
-
-def _set_options() -> list[dict]:
-    try:
-        names = [s.name for s in list_trace_sets(TRACES_DIR)]
-    except Exception:
-        names = []
-    if "live" not in names:
-        names = ["live", *names]
-    return [{"label": n, "value": n} for n in names]
-
-
-def build_comparison(base: Path, before_set: str, after_set: str,
-                     eval_kind: str) -> Dict:
-    pv = PHOSITA_PROMPT_VERSION if eval_kind == "phosita" else None
-    before = load_verdict_map(eval_path(base, before_set, eval_kind), prompt_version=pv)
-    after = load_verdict_map(eval_path(base, after_set, eval_kind), prompt_version=pv)
-    d = compute_delta(before, after)
-    return {
-        "matrix": d.matrix, "buckets": d.buckets,
-        "before_rate": d.before_rate, "after_rate": d.after_rate,
-        "delta_pp": d.delta_pp,
-        "before_scored": d.before_scored, "after_scored": d.after_scored,
-    }
-
-
-_SET_OPTIONS = _set_options()  # scan trace sets once at import
-
-layout = html.Div(
-    className="uw-page uw-page--instrument uw-compare",
-    children=[
-        page_header("Comparison", "How did eval scores change after a prompt change?"),
-        html.Div(
-            className="uw-compare__controls",
-            children=[
-                html.Div([html.Label("Before (baseline)", className="uw-label"),
-                          dcc.Dropdown(id="cmp-before", options=_SET_OPTIONS,
-                                       value="baseline",
-                                       className="uw-dropdown wb-dropdown")]),
-                html.Div([html.Label("After (experiment)", className="uw-label"),
-                          dcc.Dropdown(id="cmp-after", options=_SET_OPTIONS,
-                                       value="live",
-                                       className="uw-dropdown wb-dropdown")]),
-                html.Div([html.Label("Eval", className="uw-label"),
-                          dcc.RadioItems(id="cmp-eval",
-                                         options=[{"label": "PHOSITA", "value": "phosita"},
-                                                  {"label": "Citation", "value": "citation"}],
-                                         value="phosita",
-                                         className="uw-segmented__items wb-segmented__items")]),
-            ],
-        ),
-        html.Div(id="cmp-kpis", className="uw-compare__kpis wb-kpi-row"),
-        html.H2("Verdict transitions", className="uw-compare__h2"),
-        html.Div(id="cmp-matrix", className="uw-compare__matrix"),
-        html.H2("Flipped traces", className="uw-compare__h2"),
-        html.Div(id="cmp-flipped"),
-    ],
+_FIG_LAYOUT = dict(
+    barmode="group",
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=48, r=12, t=8, b=32),
+    height=232,
+    legend=dict(orientation="h", y=1.12, x=0, font=dict(size=11)),
+    font=dict(family="var(--font-family-mono)", size=11),
 )
 
 
-# Matrix theming — instrument readout: mono numerals, hairline list-view, the two
-# meaningful flips tinted (regressed = FAIL fill alarm; fixed = quiet teal text).
-# var() resolves per theme; white-on-red holds in both, success text is readable
-# on both card backgrounds.
-_MATRIX_STYLE = dict(
-    style_as_list_view=True,
-    style_table={"overflowX": "auto", "maxWidth": "44rem"},
-    style_header={
-        "backgroundColor": "transparent",
-        "color": "var(--color-text-secondary)",
-        "fontFamily": "var(--font-family-mono)",
-        "fontSize": "11px",
-        "textTransform": "uppercase",
-        "letterSpacing": "0.06em",
-        "fontWeight": "600",
-        "border": "none",
-        "borderBottom": "1px solid var(--color-border-primary)",
-        "padding": "8px 12px",
-        "textAlign": "right",
-    },
-    style_cell={
-        "fontFamily": "var(--font-family-mono)",
-        "fontVariantNumeric": "tabular-nums",
-        "fontSize": "13px",
-        "color": "var(--color-text-primary)",
-        "backgroundColor": "transparent",
-        "border": "none",
-        "borderBottom": "1px solid var(--color-border-secondary)",
-        "padding": "8px 12px",
-        "textAlign": "right",
-    },
-    style_cell_conditional=[{
-        "if": {"column_id": "before"},
-        "textAlign": "left",
-        "color": "var(--color-text-secondary)",
-    }],
-    style_data_conditional=[
-        # Low-alpha valence washes (regressed = red, fixed = teal) keep the mono
-        # numeral at full contrast in both themes; the number is the real signal.
-        {"if": {"filter_query": '{before} = "PASS"', "column_id": "FAIL"},
-         "backgroundColor": "rgba(192, 57, 43, 0.16)",
-         "color": "var(--color-text-primary)", "fontWeight": "600"},
-        {"if": {"filter_query": '{before} = "FAIL"', "column_id": "PASS"},
-         "backgroundColor": "rgba(46, 160, 145, 0.20)",
-         "color": "var(--color-text-primary)", "fontWeight": "600"},
-    ],
-)
+def experiments_with_metrics() -> List[Pair]:
+    """Last 4 experiments (oldest->newest) paired with their computed metrics."""
+    return [(e, metrics_for(e)) for e in last_n(4)]
 
 
-def _kpi_tiles(r: dict) -> list:
-    """KPI tiles from a comparison result dict, framed as failure-rate.
-
-    Internally pass rates are stored; flip to fail = 1 - pass for display.
-    A negative fail delta (falling error rate) is improvement.
-    """
-    before_fail = 100 * (1 - r["before_rate"])
-    after_fail = 100 * (1 - r["after_rate"])
-    fail_delta = -r["delta_pp"]          # Δfail = -Δpass (fail = 1 - pass)
-    valence = "up" if fail_delta < 0 else "down" if fail_delta > 0 else ""
-    return [
-        _kpi("Before FAIL", f"{before_fail:.1f}%", f"n={r['before_scored']}"),
-        _kpi("After FAIL", f"{after_fail:.1f}%", f"n={r['after_scored']}"),
-        _kpi("Delta", f"{fail_delta:+.1f} pp", "FAIL rate", valence=valence),
-    ]
+def _grouped_bars(x, a_name, a_vals, b_name, b_vals, *, y_title) -> go.Figure:
+    fig = go.Figure()
+    fig.add_bar(name=a_name, x=x, y=a_vals, marker_color=_COLOR_A)
+    fig.add_bar(name=b_name, x=x, y=b_vals, marker_color=_COLOR_B)
+    fig.update_layout(**_FIG_LAYOUT)
+    fig.update_yaxes(title_text=y_title, gridcolor="rgba(128,128,128,0.18)")
+    fig.update_xaxes(showgrid=False)
+    return fig
 
 
-def _kpi(label: str, value: str, sub: str = "", valence: str = "") -> html.Div:
-    style = {}
-    if valence == "up":
-        style["borderLeftColor"] = "var(--color-status-success)"
-    elif valence == "down":
-        style["borderLeftColor"] = "var(--color-status-error)"
-    children = [
-        html.Span(label, className="wb-kpi__label"),
-        html.Span(value, className="wb-kpi__value uw-num"),
-    ]
-    if sub:
-        children.append(html.Span(sub, className="wb-kpi__sub uw-num"))
-    return html.Div(className="wb-kpi uw-compare__kpi", style=style,
-                    children=children)
+def build_figures(pairs: List[Pair]):
+    """Three grouped-bar figures: eval FAIL-rate, latency, tokens."""
+    x = [e.name for e, _ in pairs]
+    fail_fig = _grouped_bars(
+        x, "PHOSITA", [m.phosita_fail for _, m in pairs],
+        "Citation", [m.citation_fail for _, m in pairs], y_title="FAIL rate")
+    lat_fig = _grouped_bars(
+        x, "P50", [m.lat_p50 for _, m in pairs],
+        "P99", [m.lat_p99 for _, m in pairs], y_title="latency (ms)")
+    tok_fig = _grouped_bars(
+        x, "Input", [m.tok_in for _, m in pairs],
+        "Output", [m.tok_out for _, m in pairs], y_title="tokens")
+    return fail_fig, lat_fig, tok_fig
 
 
-@callback(
-    Output("cmp-kpis", "children"),
-    Output("cmp-matrix", "children"),
-    Output("cmp-flipped", "children"),
-    Input("cmp-before", "value"),
-    Input("cmp-after", "value"),
-    Input("cmp-eval", "value"),
-)
-def _render(before_set, after_set, eval_kind):
-    if not (before_set and after_set and eval_kind):
-        return html.P("Pick two trace sets.", className="uw-compare__empty"), None, None
-    r = build_comparison(TRACES_DIR, before_set, after_set, eval_kind)
-    # Calm empty readout when neither set has scored results (e.g. the eval file
-    # for these sets hasn't been generated yet) — rather than misleading 0% tiles.
-    if r["before_scored"] == 0 and r["after_scored"] == 0:
-        return _empty_readout(before_set, after_set, eval_kind), None, None
-    kpis = _kpi_tiles(r)
-    matrix_rows = [{"before": b, **{a: r["matrix"].get((b, a), 0) for a in VERDICTS}}
-                   for b in VERDICTS]
-    matrix = dash_table.DataTable(
-        data=matrix_rows,
-        columns=[{"name": "before \\ after", "id": "before"}]
-                + [{"name": a, "id": a} for a in VERDICTS],
-        **_MATRIX_STYLE,
-    )
-    fixed = r["buckets"].get(("FAIL", "PASS"), [])
-    regressed = r["buckets"].get(("PASS", "FAIL"), [])
-    flipped = html.Div(className="uw-compare__flips", children=[
-        _flip_list("Fixed", "FAIL → PASS", "ok", fixed),
-        _flip_list("Regressed", "PASS → FAIL", "bad", regressed),
-    ])
-    return kpis, matrix, flipped
-
-
-def _empty_readout(before_set: str, after_set: str, eval_kind: str) -> html.Div:
-    return html.Div(className="uw-compare__empty", children=[
-        html.P(f"No {eval_kind} eval results for "
-               f"“{before_set}” → “{after_set}” yet.",
-               className="uw-compare__empty-title"),
-        html.P("Run the eval for these trace sets on Overview, then compare.",
-               className="uw-compare__empty-hint"),
-    ])
-
-
-def _flip_list(title: str, arrow: str, valence: str, ids: list) -> html.Div:
-    return html.Div(className=f"uw-compare__flip uw-compare__flip--{valence}", children=[
-        html.Div(className="uw-compare__flip-head", children=[
-            html.Span(title, className="uw-compare__flip-title"),
-            html.Span(arrow, className="uw-compare__flip-arrow uw-num"),
-            html.Span(str(len(ids)), className="uw-compare__flip-count uw-num"),
+def _chart_block(kicker: str, title: str, figure) -> html.Section:
+    return html.Section(className="uw-compare__chart", children=[
+        html.Div(className="uw-compare__chart-head", children=[
+            html.Span(kicker, className="wb-kicker"),
+            html.H2(title, className="uw-compare__chart-title"),
         ]),
-        html.Div(
-            className="uw-compare__flip-ids uw-num",
-            children=" ".join(x[:8] for x in ids[:20]) or "—",
-        ),
+        dcc.Graph(figure=figure,
+                  config={"displayModeBar": False, "responsive": True},
+                  style={"height": "232px"}),
     ])
+
+
+# Stub — Task 6 replaces this with the full history-table layout.
+layout = html.Div(className="uw-page uw-compare", children=[
+    page_header("Comparison", "Experiment tracker — coming soon."),
+])
