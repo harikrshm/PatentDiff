@@ -43,7 +43,7 @@ def test_last_n_zero_returns_empty(tmp_path):
     assert last_n(0, path=p) == []
 
 
-from core.experiments import percentile, _measured_latency_tokens
+from core.experiments import MIN_COVERAGE, percentile, _measured_latency_tokens
 
 
 def test_percentile_interpolates():
@@ -105,8 +105,9 @@ def test_metrics_for_measured_when_coverage_ok(tmp_path):
         _phosita_eval_line("r1", "PASS") + _phosita_eval_line("r2", "FAIL"))
     (tmp_path / "citation_text_eval_full.jsonl").write_text(
         _citation_eval_line("r1", "FAIL") + _citation_eval_line("r2", "FAIL"))
-    # 6 nonzero latency samples (>= MIN_COVERAGE) -> measured wins over override
-    lines = "".join(_trace_line(f"r{i}", 100 * (i + 1), 10, 5) for i in range(6))
+    # MIN_COVERAGE nonzero latency samples -> measured wins over override
+    lat_vals = [100 * (i + 1) for i in range(MIN_COVERAGE)]
+    lines = "".join(_trace_line(f"r{i}", v, 10, 5) for i, v in enumerate(lat_vals))
     (tmp_path / "traces.jsonl").write_text(lines)
     m = metrics_for(_make_exp(override={"lat_p50": 1, "lat_p99": 2,
                                         "tok_in": 3, "tok_out": 4}),
@@ -114,7 +115,7 @@ def test_metrics_for_measured_when_coverage_ok(tmp_path):
     assert isinstance(m, ExperimentMetrics)
     assert m.phosita_fail == 0.5
     assert m.citation_fail == 1.0
-    assert m.lat_p50 == percentile([100, 200, 300, 400, 500, 600], 0.5)
+    assert m.lat_p50 == percentile(lat_vals, 0.5)
     assert m.tok_in == 10 and m.tok_out == 5      # not the override
 
 

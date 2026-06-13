@@ -23,7 +23,7 @@ MANIFEST_PATH = TRACES_DIR / "experiments.jsonl"
 
 # Below this many measured (nonzero) latency samples, fall back to the manifest's
 # metrics_override rather than reporting misleadingly sparse percentiles.
-MIN_COVERAGE = 5
+MIN_COVERAGE = 20
 
 
 class Experiment(BaseModel):

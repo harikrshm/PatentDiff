@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 *.pyo
 traces/*.jsonl
+!traces/experiments.jsonl
 .env
 .venv/
 venv/
