@@ -79,7 +79,114 @@ def _chart_block(kicker: str, title: str, figure) -> html.Section:
     ])
 
 
-# Stub — Task 6 replaces this with the full history-table layout.
-layout = html.Div(className="uw-page uw-compare", children=[
-    page_header("Comparison", "Experiment tracker — coming soon."),
-])
+_TABLE_COLUMNS = [
+    {"name": "Experiment", "id": "experiment"},
+    {"name": "Splits", "id": "splits"},
+    {"name": "Reps", "id": "repetitions"},
+    {"name": "PHOSITA FAIL", "id": "phosita"},
+    {"name": "Citation FAIL", "id": "citation"},
+    {"name": "KPI Target", "id": "target"},
+]
+
+
+def _fail_cell(cur: float, prev) -> tuple[str, str]:
+    """Display string ('0.40  ▼ -10pp') + direction ('down'|'up'|'flat'|'')."""
+    if prev is None:
+        return f"{cur:.2f}", ""
+    delta_pp = (cur - prev) * 100.0
+    if abs(delta_pp) < 0.05:
+        return f"{cur:.2f}  – 0pp", "flat"
+    arrow = "▼" if delta_pp < 0 else "▲"          # FAIL fell = improvement = down
+    direction = "down" if delta_pp < 0 else "up"
+    return f"{cur:.2f}  {arrow} {delta_pp:+.0f}pp", direction
+
+
+def _target_cell() -> str:
+    pt = kpi_target_fail("phosita")
+    ct = kpi_target_fail("citation")
+    parts = []
+    parts.append(f"P {pt * 100:.0f}%" if pt is not None else "P —")
+    parts.append(f"C {ct * 100:.0f}%" if ct is not None else "C —")
+    return " · ".join(parts)
+
+
+def build_table_rows(pairs: List[Pair]) -> list[dict]:
+    """Rows newest-first; each fail cell carries a run-to-run delta vs the
+    chronologically previous experiment. `*_dir` columns drive cell coloring."""
+    target = _target_cell()
+    rows = []
+    for i, (e, m) in enumerate(pairs):
+        prev = pairs[i - 1][1] if i > 0 else None
+        ph_txt, ph_dir = _fail_cell(m.phosita_fail, prev.phosita_fail if prev else None)
+        ct_txt, ct_dir = _fail_cell(m.citation_fail, prev.citation_fail if prev else None)
+        rows.append({
+            "experiment": e.name,
+            "splits": f"{len(e.splits)} · {', '.join(e.splits)}",
+            "repetitions": e.repetitions,
+            "phosita": ph_txt, "phosita_dir": ph_dir,
+            "citation": ct_txt, "citation_dir": ct_dir,
+            "target": target,
+        })
+    rows.reverse()   # newest first
+    return rows
+
+
+_TABLE_STYLE = dict(
+    style_as_list_view=True,
+    style_table={"overflowX": "auto"},
+    style_header={
+        "backgroundColor": "transparent",
+        "color": "var(--color-text-secondary)",
+        "fontFamily": "var(--font-family-mono)",
+        "fontSize": "11px", "textTransform": "uppercase",
+        "letterSpacing": "0.06em", "fontWeight": "600",
+        "border": "none", "borderBottom": "1px solid var(--color-border-primary)",
+        "padding": "8px 12px", "textAlign": "right",
+    },
+    style_cell={
+        "fontFamily": "var(--font-family-mono)", "fontVariantNumeric": "tabular-nums",
+        "fontSize": "13px", "color": "var(--color-text-primary)",
+        "backgroundColor": "transparent", "border": "none",
+        "borderBottom": "1px solid var(--color-border-secondary)",
+        "padding": "8px 12px", "textAlign": "right",
+    },
+    style_cell_conditional=[{"if": {"column_id": "experiment"},
+                             "textAlign": "left",
+                             "color": "var(--color-text-primary)"}],
+    style_data_conditional=[
+        {"if": {"filter_query": '{phosita_dir} = "down"', "column_id": "phosita"},
+         "color": "var(--color-status-success)"},
+        {"if": {"filter_query": '{phosita_dir} = "up"', "column_id": "phosita"},
+         "color": "var(--color-status-error)"},
+        {"if": {"filter_query": '{citation_dir} = "down"', "column_id": "citation"},
+         "color": "var(--color-status-success)"},
+        {"if": {"filter_query": '{citation_dir} = "up"', "column_id": "citation"},
+         "color": "var(--color-status-error)"},
+    ],
+)
+
+
+def _build_layout() -> html.Div:
+    pairs = experiments_with_metrics()
+    fail_fig, lat_fig, tok_fig = build_figures(pairs)
+    return html.Div(
+        className="uw-page uw-page--instrument uw-compare",
+        children=[
+            page_header("Comparison",
+                        "How have eval scores moved across the last experiments?"),
+            html.Div(className="uw-compare__charts", children=[
+                _chart_block("01 · EVAL", "FAIL-rate", fail_fig),
+                _chart_block("02 · LATENCY", "P50 · P99", lat_fig),
+                _chart_block("03 · TOKENS", "Input · Output", tok_fig),
+            ]),
+            html.H2("Experiment history", className="uw-compare__h2"),
+            dash_table.DataTable(
+                data=build_table_rows(pairs),
+                columns=_TABLE_COLUMNS,
+                **_TABLE_STYLE,
+            ),
+        ],
+    )
+
+
+layout = _build_layout()

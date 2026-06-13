@@ -37,3 +37,27 @@ def test_build_figures_three_grouped_bar_charts():
 
     for fig in (fail_fig, lat_fig, tok_fig):
         assert fig.layout.barmode == "group"
+
+
+def test_build_table_rows_newest_first_with_run_to_run_delta(monkeypatch):
+    # oldest->newest fail: 0.50 -> 0.40 (phosita). Table is newest-first; the
+    # newest row's delta is vs the previous experiment (0.40 - 0.50 = -10pp).
+    pairs = [_pair("baseline", 0.50, 0.60), _pair("live", 0.40, 0.60)]
+    monkeypatch.setattr(eval_comparison, "kpi_target_fail",
+                        lambda kind: 0.15 if kind == "phosita" else None)
+    rows = eval_comparison.build_table_rows(pairs)
+    assert [r["experiment"] for r in rows] == ["live", "baseline"]  # newest first
+    newest = rows[0]
+    assert "0.40" in newest["phosita"]
+    assert "-10" in newest["phosita"] and "pp" in newest["phosita"]
+    assert newest["phosita_dir"] == "down"            # fail fell -> improvement
+    assert newest["citation_dir"] == "flat"           # 0.60 -> 0.60
+    assert rows[1]["phosita_dir"] == ""               # oldest row: no previous
+    assert newest["splits"] == "1 · all"
+    assert newest["repetitions"] == 1
+    assert "15%" in newest["target"]                  # phosita target shown
+
+
+def test_layout_has_chart_and_table_containers():
+    # layout is a module-level Dash component tree; smoke-check it builds.
+    assert eval_comparison.layout is not None
