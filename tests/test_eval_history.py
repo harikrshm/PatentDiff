@@ -33,9 +33,11 @@ def test_history_for_filters_and_sorts(tmp_path):
 
 def _write_eval(path, verdicts):
     import json
+    from core.phosita_eval import PROMPT_VERSION
     with open(path, "w", encoding="utf-8") as f:
         for i, v in enumerate(verdicts):
-            f.write(json.dumps({"run_id": f"r{i}", "verdict": v}) + "\n")
+            f.write(json.dumps({"run_id": f"r{i}", "verdict": v,
+                                "config": {"prompt_version": PROMPT_VERSION}}) + "\n")
 
 
 def test_backfill_computes_rate_and_is_idempotent(tmp_path):

@@ -72,7 +72,8 @@ def backfill_from_eval_files(traces_dir: Path, path: Path = HISTORY_PATH) -> int
         for kind, p in (("phosita", ts.phosita_path), ("citation", ts.citation_path)):
             if not p.exists():
                 continue
-            rate, _pass, scored = _pass_rate(load_verdict_map(p))
+            rate, _pass, scored = _pass_rate(
+                load_verdict_map(p, prompt_version=PROMPT_VERSIONS.get(kind)))
             if scored == 0:
                 continue
             stamp = datetime.fromtimestamp(p.stat().st_mtime).isoformat(timespec="seconds")

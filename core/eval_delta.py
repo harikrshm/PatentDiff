@@ -33,8 +33,15 @@ class EvalDelta:
         return 100.0 * (self.after_rate - self.before_rate)
 
 
-def load_verdict_map(path: Path) -> Dict[str, str]:
-    """Read {run_id: verdict} from an eval JSONL file (empty if missing)."""
+def load_verdict_map(path: Path, prompt_version: Optional[str] = None) -> Dict[str, str]:
+    """Read {run_id: verdict} from an eval JSONL file (empty if missing).
+
+    When ``prompt_version`` is given, only rows whose ``config.prompt_version``
+    matches are kept — required for the PHOSITA file, which appends multiple
+    judge-prompt versions (v2, v3, ...) and would otherwise mix versions under
+    last-wins-by-line-order. Citation files carry no version, so callers leave
+    this None.
+    """
     out: Dict[str, str] = {}
     if not path.exists():
         return out
@@ -44,6 +51,9 @@ def load_verdict_map(path: Path) -> Dict[str, str]:
             if not line:
                 continue
             d = json.loads(line)
+            if prompt_version is not None and \
+                    (d.get("config") or {}).get("prompt_version") != prompt_version:
+                continue
             if d.get("run_id") and d.get("verdict"):
                 out[d["run_id"]] = d["verdict"]
     return out

@@ -12,9 +12,15 @@ def _rec(ts, rate, run_id, kind="phosita"):
 
 
 def test_current_pass_rate_reads_live_eval_file(tmp_path):
+    from core.phosita_eval import PROMPT_VERSION
+    cfg = {"prompt_version": PROMPT_VERSION}
     with open(tmp_path / "phosita_eval_full.jsonl", "w", encoding="utf-8") as f:
-        f.write(json.dumps({"run_id": "r0", "verdict": "PASS"}) + "\n")
-        f.write(json.dumps({"run_id": "r1", "verdict": "FAIL"}) + "\n")
+        f.write(json.dumps({"run_id": "r0", "verdict": "PASS", "config": cfg}) + "\n")
+        f.write(json.dumps({"run_id": "r1", "verdict": "FAIL", "config": cfg}) + "\n")
+        # Stale prior-version line for r1 appended AFTER its current-version row —
+        # must be ignored, not override the current verdict (the PHOSITA bug).
+        f.write(json.dumps({"run_id": "r1", "verdict": "PASS",
+                            "config": {"prompt_version": "v2"}}) + "\n")
     rate, scored = current_pass_rate(tmp_path, "live", "phosita")
     assert rate == 0.5 and scored == 2
 

@@ -47,7 +47,7 @@ def test_run_eval_runs_on_real_click():
             cb._pass_rate, cb.append_run)
     cb.run_evals = lambda *a, **k: calls.append((a, k))
     cb.resolve_set_strict = lambda _name: fake_set
-    cb.load_verdict_map = lambda _p: {"r": "PASS"}
+    cb.load_verdict_map = lambda _p, prompt_version=None: {"r": "PASS"}
     cb._pass_rate = lambda _m: (1.0, 1, 1)
     cb.append_run = lambda *a, **k: None        # don't touch the real history file
     try:
@@ -70,7 +70,7 @@ def test_run_eval_records_history_on_real_click():
             cb._pass_rate, cb.append_run)
     cb.run_evals = lambda *a, **k: "ok"
     cb.resolve_set_strict = lambda _n: fake_set
-    cb.load_verdict_map = lambda _p: {"r": "PASS"}
+    cb.load_verdict_map = lambda _p, prompt_version=None: {"r": "PASS"}
     cb._pass_rate = lambda _m: (1.0, 1, 1)
     cb.append_run = lambda recs, **k: captured.setdefault("recs", recs)
     try:

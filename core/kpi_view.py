@@ -10,6 +10,7 @@ from typing import NamedTuple, Optional
 from core.eval_delta import _pass_rate, load_verdict_map
 from core.eval_history import HISTORY_PATH, history_for
 from core.kpi_targets import TARGETS_PATH, get_target
+from core.phosita_eval import PROMPT_VERSION as PHOSITA_PROMPT_VERSION
 from core.workbench_data import list_trace_sets
 
 
@@ -31,7 +32,8 @@ def current_pass_rate(traces_dir: Path, trace_set: str, eval_kind: str
     if ts is None:
         return 0.0, 0
     path = ts.phosita_path if eval_kind == "phosita" else ts.citation_path
-    rate, _pass, scored = _pass_rate(load_verdict_map(path))
+    pv = PHOSITA_PROMPT_VERSION if eval_kind == "phosita" else None
+    rate, _pass, scored = _pass_rate(load_verdict_map(path, prompt_version=pv))
     return rate, scored
 
 

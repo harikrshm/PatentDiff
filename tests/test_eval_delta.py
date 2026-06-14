@@ -44,6 +44,21 @@ def test_load_verdict_map_skips_records_without_run_id_or_verdict(tmp_path):
     assert load_verdict_map(p) == {"r1": "PASS"}
 
 
+def test_load_verdict_map_filters_by_prompt_version(tmp_path):
+    # Regression: a stale v2 line appended AFTER the v3 line for the same run_id
+    # must NOT override v3 when a prompt_version filter is requested.
+    p = tmp_path / "phosita.jsonl"
+    p.write_text(
+        '{"run_id":"r1","verdict":"PASS","config":{"prompt_version":"v3"}}\n'
+        '{"run_id":"r1","verdict":"FAIL","config":{"prompt_version":"v2"}}\n'
+        '{"run_id":"r2","verdict":"FAIL","config":{"prompt_version":"v2"}}\n'
+    )
+    # No filter (legacy): last-wins mixes versions -> r1 wrongly FAIL (the bug).
+    assert load_verdict_map(p) == {"r1": "FAIL", "r2": "FAIL"}
+    # Filtered to v3: only the v3 rows count.
+    assert load_verdict_map(p, prompt_version="v3") == {"r1": "PASS"}
+
+
 def test_compute_delta_empty_inputs():
     d = compute_delta({}, {})
     assert d.delta_pp == 0.0

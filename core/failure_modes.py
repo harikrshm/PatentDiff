@@ -13,6 +13,7 @@ from pathlib import Path
 
 from core.annotation import load_annotations, load_taxonomy
 from core.eval_delta import load_verdict_map
+from core.phosita_eval import PROMPT_VERSION as PHOSITA_PROMPT_VERSION
 from core.workbench_data import list_trace_sets
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -38,8 +39,8 @@ def failure_mode_breakdown(traces_dir: Path, trace_set: str,
     set_run_ids: set[str] = set()
     eval_fail: set[str] = set()
     if ts is not None:
-        for p in (ts.phosita_path, ts.citation_path):
-            for rid, verdict in load_verdict_map(p).items():
+        for pv, p in ((PHOSITA_PROMPT_VERSION, ts.phosita_path), (None, ts.citation_path)):
+            for rid, verdict in load_verdict_map(p, prompt_version=pv).items():
                 set_run_ids.add(rid)
                 if verdict == "FAIL":
                     eval_fail.add(rid)

@@ -6,9 +6,11 @@ from core.failure_modes import UNTAGGED_LABEL, failure_mode_breakdown
 
 
 def _eval(path, mapping):
+    from core.phosita_eval import PROMPT_VERSION
     with open(path, "w", encoding="utf-8") as f:
         for rid, v in mapping.items():
-            f.write(json.dumps({"run_id": rid, "verdict": v}) + "\n")
+            f.write(json.dumps({"run_id": rid, "verdict": v,
+                                "config": {"prompt_version": PROMPT_VERSION}}) + "\n")
 
 
 def _taxonomy(path):
