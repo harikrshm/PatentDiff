@@ -119,7 +119,7 @@ The framework follows **Hamel Husain's critique-shadowing** methodology — a pr
 
 A single Dash app (`app_unified`) hosts the prototype **and** the full evaluation workbench across four tabs.
 
-### `Overview` — the diagnostic console
+### `Dashboard` — the diagnostic console
 *Headline FAIL rates → dimension heatmap → KPI targets → priority (frequency × user impact) → decision.*
 
 <img src="docs/assets/02-overview.png" alt="Evaluation overview console" width="100%">
@@ -194,7 +194,7 @@ python -m app_unified.app          # prototype + workbench (port 8050)
 | Route | Page |
 |---|---|
 | `/` | PatentDiff claim-analysis prototype |
-| `/eval` | Overview — diagnostic console + KPI targets |
+| `/eval` | Dashboard — diagnostic console + KPI targets |
 | `/eval/traces` | Traces — expert annotation |
 | `/eval/comparison` | Comparison — experiment tracker |
 
