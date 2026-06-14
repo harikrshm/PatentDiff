@@ -1,13 +1,30 @@
+# Python
 __pycache__/
 *.pyc
 *.pyo
-traces/*.jsonl
-!traces/experiments.jsonl
+
+# Environment / secrets
 .env
 .venv/
 venv/
+
+# Dash / worktrees / caches
+.dash_cache/
 .worktrees/
 .claude/worktrees/
-.dash_cache/
 .superpowers/
+.pytest_cache/
+
+# Installed skill bundles (restorable via skills-lock.json)
+.agents/
+.claude/skills/
+
+# Trace data (large generated artifacts) — keep curated manifests only
+traces/*.jsonl
+!traces/experiments.jsonl
 traces/workbench_state/
+traces/*.xlsx
+traces/*.log
+traces/*_run_ids.txt
+traces/*_ids.txt
+traces/kpi_targets.json
