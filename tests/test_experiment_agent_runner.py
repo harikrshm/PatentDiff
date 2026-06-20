@@ -64,3 +64,25 @@ def test_run_stage_composes_block_and_gates(monkeypatch):
     assert result.gate.passed is True
     assert result.coverage == "ran 2/2"
     assert result.new_block == "PRIOR\n\nQuote verbatim."
+
+
+# ---------------------------------------------------------------------------
+# Task 8: keep_stage
+# ---------------------------------------------------------------------------
+
+import json
+from core.experiment_agent_runner import keep_stage
+
+
+def test_keep_stage_appends_manifest_row(tmp_path):
+    manifest = tmp_path / "experiments.jsonl"
+    keep_stage(exp_id="agent-1", name="Agent: verbatim (Method × Genus-species)",
+               created="2026-06-20T10:00:00Z",
+               phosita_eval_file="phosita_eval_full.agent-1.jsonl",
+               citation_eval_file="citation_text_eval_full.agent-1.jsonl",
+               manifest_path=manifest)
+    lines = manifest.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1
+    row = json.loads(lines[0])
+    assert row["exp_id"] == "agent-1"
+    assert row["name"].startswith("Agent:")
