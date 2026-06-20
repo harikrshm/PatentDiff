@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Literal, Optional
 
 import pandas as pd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from core.llm import call_groq
 from core.priority import priority_table, MODE_VERDICT
@@ -124,7 +124,7 @@ def propose_plan(context: AgentContext, pm_feedback: Optional[str] = None) -> Ex
         raw = (resp or {}).get("raw_output", "")
         try:
             return _parse_plan(raw)
-        except Exception as e:
+        except (json.JSONDecodeError, ValidationError) as e:
             last_err = e
             user = user + "\n\nYour previous output was not valid JSON. Return ONLY the JSON object."
     raise AgentPlanError(f"Could not parse a plan after 2 attempts: {last_err}")
