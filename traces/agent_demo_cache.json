@@ -1,0 +1,12 @@
+{
+  "plan": {
+    "experiments": [
+      {"order": 1, "target_eval": "citation", "target_segment": "Method × Genus-species",
+       "prompt_block": "For every element, corresponding_text MUST be an exact verbatim span copied from the target patent, or the empty string. Never paraphrase.",
+       "predicted_delta_pp": -30.0,
+       "rationale": "Citation FAILs concentrate in Method × Genus-species where the tool paraphrases prior art.",
+       "cited_run_ids": []}
+    ]
+  },
+  "stage_result": null
+}

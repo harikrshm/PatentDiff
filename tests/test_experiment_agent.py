@@ -61,3 +61,60 @@ def test_gather_context_picks_top_cell_and_examples():
     assert ctx.kpi_gaps["citation_text"] == pytest.approx(55.0, abs=1.0)
     assert set(ctx.examples["Citation Text"]).issubset({"m0", "m1", "m2"})
     assert len(ctx.examples["Citation Text"]) <= 3
+
+
+# ---------------------------------------------------------------------------
+# Task 5: propose_plan + demo-cache fallback
+# ---------------------------------------------------------------------------
+
+import core.experiment_agent as agent
+from core.experiment_agent import propose_plan, AgentPlanError, load_demo_plan
+
+
+_PLAN_JSON = (
+    '{"experiments": [{"order": 1, "target_eval": "citation", '
+    '"target_segment": "Method × Genus-species", "prompt_block": "Quote verbatim.", '
+    '"predicted_delta_pp": -30.0, "rationale": "paraphrasing", "cited_run_ids": ["m0"]}]}'
+)
+
+
+def _ctx():
+    return agent.AgentContext(
+        priority_rows=[{"failure_mode": "Citation Text", "cell": "Method × Genus-species",
+                        "claim_type": "Method", "relationship": "Genus-species",
+                        "fail_rate": 1.0, "n": 3, "score": 27}],
+        kpi_gaps={"citation_text": 55.0}, examples={"Citation Text": ["m0"]})
+
+
+def test_propose_plan_parses_llm_json(monkeypatch):
+    monkeypatch.setattr(agent, "call_groq",
+                        lambda system, user, model=None: {"raw_output": _PLAN_JSON})
+    plan = propose_plan(_ctx())
+    assert len(plan.experiments) == 1
+    assert plan.experiments[0].target_eval == "citation"
+
+
+def test_propose_plan_retries_then_raises(monkeypatch):
+    calls = {"n": 0}
+
+    def bad(system, user, model=None):
+        calls["n"] += 1
+        return {"raw_output": "not json"}
+
+    monkeypatch.setattr(agent, "call_groq", bad)
+    with pytest.raises(AgentPlanError):
+        propose_plan(_ctx())
+    assert calls["n"] == 2
+
+
+def test_propose_plan_passes_pm_feedback(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(agent, "call_groq",
+                        lambda system, user, model=None: seen.update(user=user) or {"raw_output": _PLAN_JSON})
+    propose_plan(_ctx(), pm_feedback="focus on System claims")
+    assert "focus on System claims" in seen["user"]
+
+
+def test_load_demo_plan_returns_plan():
+    plan = load_demo_plan()
+    assert plan.experiments
