@@ -17,8 +17,8 @@ def _estimate_tokens(text: str) -> int:
     return int(len(text.split()) * 2.5)
 
 
-def build_system_prompt() -> str:
-    return """You are an expert patent analyst. Your task is to assess the validity of a source patent's independent claim against a target patent (prior art).
+def build_system_prompt(extra_instructions: str = "") -> str:
+    base = """You are an expert patent analyst. Your task is to assess the validity of a source patent's independent claim against a target patent (prior art).
 
 ## Workflow
 
@@ -61,6 +61,9 @@ Return ONLY valid JSON matching this exact schema — no markdown fences, no ext
   ],
   "overall_opinion": "Final validity assessment focusing on the core technical advancement elements"
 }"""
+    if not extra_instructions:
+        return base
+    return base + "\n\n" + extra_instructions
 
 
 def build_user_prompt(
