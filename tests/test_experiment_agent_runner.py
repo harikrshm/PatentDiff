@@ -66,6 +66,39 @@ def test_run_stage_composes_block_and_gates(monkeypatch):
     assert result.new_block == "PRIOR\n\nQuote verbatim."
 
 
+def test_run_stage_segment_metrics_isolate_targeted_segment(monkeypatch):
+    # Targeted segment (m0,m1) improves FAIL->PASS (-100pp); guardrail (o0,o1)
+    # stays PASS. Overall delta is only -50pp, so the gate's segment branch must
+    # see -100pp on the segment alone, not the diluted overall number.
+    after_cit = {"m0": "PASS", "m1": "PASS", "o0": "PASS", "o1": "PASS"}
+
+    monkeypatch.setattr(runner, "regenerate_one",
+                        lambda trace, system_prompt: {"run_id": trace["run_id"],
+                                                      "parsed_output": {"element_mappings": []}})
+    monkeypatch.setattr(runner, "score_citation", lambda tr: after_cit[tr["run_id"]])
+    monkeypatch.setattr(runner, "score_phosita", lambda tr, client: "PASS")
+    monkeypatch.setattr(runner, "build_system_prompt", lambda extra_instructions="": "BASE")
+
+    subset = [{"run_id": r, "inputs": {}} for r in ("m0", "m1", "o0", "o1")]
+    before = {"m0": {"citation": "FAIL", "phosita": "PASS"},
+              "m1": {"citation": "FAIL", "phosita": "PASS"},
+              "o0": {"citation": "PASS", "phosita": "PASS"},
+              "o1": {"citation": "PASS", "phosita": "PASS"}}
+    cell_of = {"m0": "Method × Genus-species", "m1": "Method × Genus-species",
+               "o0": "System × Overlapping", "o1": "System × Overlapping"}
+
+    result = runner.run_stage(_exp(), kept_block="", subset_traces=subset,
+                              before_verdicts=before, judge_client=object(), cell_of=cell_of)
+
+    assert result.before == 50.0           # overall: 2/4 FAIL
+    assert result.after == 0.0
+    reasons = " ".join(result.gate.reasons)
+    assert "-50.0pp overall" in reasons
+    assert "-100.0pp segment" in reasons    # segment metrics use ONLY the targeted segment
+    assert result.gate.passed is True
+    assert result.new_block == "Quote verbatim."   # empty kept_block -> just the block
+
+
 # ---------------------------------------------------------------------------
 # Task 8: keep_stage
 # ---------------------------------------------------------------------------

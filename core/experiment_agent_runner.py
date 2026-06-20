@@ -105,9 +105,19 @@ def run_stage(proposed: ProposedExperiment, *, kept_block: str, subset_traces: l
         a = _fail_pct([after_verdicts[i][target] for i in cids])
         cell_deltas[cell] = a - b
 
+    # Segment metrics cover ONLY the targeted segment's traces (not the guardrail
+    # sample), so the gate's "improved >=10pp in the targeted segment" branch can
+    # actually fire. Fall back to overall when the subset has no segment traces.
+    seg_ids = [i for i in ids if cell_of.get(i) == proposed.target_segment]
+    if seg_ids:
+        segment_before = _fail_pct([before_verdicts[i][target] for i in seg_ids if i in before_verdicts])
+        segment_after = _fail_pct([after_verdicts[i][target] for i in seg_ids])
+    else:
+        segment_before, segment_after = before_t, after_t
+
     gate = evaluate_gate(
         target_eval=target, before=before_t, after=after_t,
-        segment_before=before_t, segment_after=after_t,
+        segment_before=segment_before, segment_after=segment_after,
         other_before=before_o, other_after=after_o,
         cell_deltas_pp=cell_deltas, ruler_ok=True,
     )
