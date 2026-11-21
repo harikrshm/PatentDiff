@@ -7,6 +7,12 @@ from groq import Groq
 from core.models import PatentInput
 from core.truncation import smart_truncate_spec
 
+# Import demo_mode after other imports to avoid circular deps
+try:
+    from core import demo_mode
+except ImportError:
+    demo_mode = None
+
 GROQ_TOKEN_LIMIT = 6500
 SYSTEM_PROMPT_TOKENS = 1800
 TEMPLATE_OVERHEAD_TOKENS = 800
@@ -144,7 +150,13 @@ def call_groq(
             "tokens_output": int,
             "latency_ms": int,
         }
+
+    In demo mode (DEMO_MODE=true), returns a stub response without making an API call.
     """
+    # Demo mode: return stub instead of making API call
+    if demo_mode and demo_mode.DEMO_MODE:
+        return demo_mode.stub_groq_response()
+
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise ValueError("GROQ_API_KEY environment variable is not set")

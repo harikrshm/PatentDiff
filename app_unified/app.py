@@ -19,6 +19,7 @@ from dash import (Dash, DiskcacheManager, Input, Output, State, dcc, html,
                   page_container)
 
 from app_unified.components import sidebar, sidebar_nav
+from core import demo_mode
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CACHE_DIR = REPO_ROOT / ".dash_cache"
@@ -47,6 +48,25 @@ def _theme_toggle() -> html.Button:
     )
 
 
+_demo_banner = None
+if demo_mode.DEMO_MODE:
+    _demo_banner = html.Div(
+        className="uw-demo-banner",
+        children=[
+            html.Span("[DEMO MODE] Using cached data (no live API calls)",
+                     className="uw-demo-banner__text"),
+        ],
+        style={
+            "backgroundColor": "#0ea5e9",
+            "color": "white",
+            "padding": "12px 16px",
+            "textAlign": "center",
+            "fontSize": "13px",
+            "fontWeight": "500",
+            "borderBottom": "1px solid rgba(255,255,255,0.1)",
+        }
+    )
+
 app.layout = html.Div(
     className="uw-root",
     children=[
@@ -54,6 +74,7 @@ app.layout = html.Div(
         html.Div(id="url-writer-dummy", style={"display": "none"}),
         dcc.Store(id="theme", data="light"),     # app-global; console figures read it
         dcc.Store(id="data-version", data=0),     # console refresh signal
+        _demo_banner,
         html.Div(
             id="uw-shell",
             className="uw-shell",
