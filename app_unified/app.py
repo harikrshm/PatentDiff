@@ -143,4 +143,10 @@ app.clientside_callback(
 server = app.server  # WSGI entry point for gunicorn
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    import os
+
+    port = os.environ.get("PORT")  # set by Render; absent locally
+    if port:
+        app.run(host="0.0.0.0", port=int(port), debug=False)
+    else:
+        app.run(debug=True)
