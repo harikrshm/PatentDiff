@@ -8,13 +8,16 @@ from __future__ import annotations
 
 from dash import dcc, html
 
+from core import demo_mode
+
 # (label, href, glyph). Glyphs are neutral geometric marks (not emoji) so they
 # read as instrument iconography and survive the icon-collapsed sidebar.
-PRIMARY = [("PatentDiff", "/", "⊟")]
+PRIMARY = [("PatentDiff", demo_mode.PROTOTYPE_PATH, "⊟")]
 EVAL_GROUP = [
     ("Dashboard", "/eval", "◉"),
     ("Traces", "/eval/traces", "≣"),
     ("Comparison", "/eval/comparison", "⇄"),
+    ("Experiment Agent", "/eval/agent", "◈"),
 ]
 
 

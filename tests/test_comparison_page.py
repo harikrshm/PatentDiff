@@ -40,7 +40,7 @@ def test_build_figures_three_grouped_bar_charts():
 
 
 def test_build_figures_uses_data_palette_and_themes():
-    # Series use the neutral categorical DATA palette (slate-blue/amber), not the
+    # Series use the neutral categorical DATA palette (slate-blue/plum), not the
     # chrome indigo, and recolor between light and dark.
     pairs = [_pair("baseline", 0.46, 0.55), _pair("live", 0.33, 0.45)]
     light_fail = eval_comparison.build_figures(pairs, dark=False)[0]
@@ -49,7 +49,7 @@ def test_build_figures_uses_data_palette_and_themes():
     dp = next(t for t in dark_fail.data if t.name == "PHOSITA")
     lc = next(t for t in light_fail.data if t.name == "Citation")
     assert lp.marker.color == "#3B6EA5"          # --data-cat-1 (light)
-    assert lc.marker.color == "#C98A2B"          # --data-cat-2 (light)
+    assert lc.marker.color == "#D06B9E"          # --data-cat-2 (light)
     assert dp.marker.color == "#6FA8DC"          # --data-cat-1 (dark)
     assert lp.marker.color != dp.marker.color    # themes differ
     assert "4F46E5" not in lp.marker.color.upper()   # never the chrome indigo
@@ -83,10 +83,10 @@ def test_build_table_rows_newest_first_with_run_to_run_delta(monkeypatch):
     assert newest["splits"] == "1 · all"
     assert newest["repetitions"] == 1
     # Gap-to-KPI column: phosita gap = 40% - 15% = +25pp, gap closed vs prev (▼).
-    assert "P +25pp" in newest["target"] and "▼" in newest["target"]
-    assert "C —" in newest["target"]                  # citation has no target
-    assert newest["target_dir"] == "down"             # gap closing toward KPI
-    assert rows[1]["target_dir"] == ""                # oldest row: no previous
+    assert newest["phosita_gap"].startswith("+25pp") and "▼" in newest["phosita_gap"]
+    assert newest["citation_gap"] == "—"              # citation has no target
+    assert newest["phosita_gap_dir"] == "down"        # gap closing toward KPI
+    assert rows[1]["phosita_gap_dir"] == ""           # oldest row: no previous
 
 
 def test_build_table_rows_marks_only_newest_row():
@@ -116,3 +116,28 @@ def test_empty_state_when_no_experiments(monkeypatch):
     lay = str(eval_comparison._build_layout())
     assert "uw-compare__empty" in lay
     assert "DataTable" not in lay and "Experiment history" not in lay
+
+
+def _css_tokens():
+    import re
+    from pathlib import Path
+    css = (Path(__file__).resolve().parents[1] / "app_unified/assets/workbench.css").read_text(encoding="utf-8")
+    blocks = css.split('[data-theme="dark"]')
+    light, dark = blocks[0], blocks[1]
+    grab = lambda text, name: re.search(rf"--{name}:\s*(#[0-9A-Fa-f]{{6}})", text).group(1).upper()
+    return light, dark, grab
+
+
+def test_chart_series_colors_match_css_tokens():
+    light, dark, grab = _css_tokens()
+    for key, text in (("light", light), ("dark", dark)):
+        c1, c2 = eval_comparison._DATA_CAT[key]
+        assert (c1.upper(), c2.upper()) == (grab(text, "data-cat-1"), grab(text, "data-cat-2"))
+
+
+def test_chart_series_never_reuse_a_valence_color():
+    # One color, one meaning: red/amber/teal mean FAIL valence everywhere.
+    light, dark, grab = _css_tokens()
+    for key, text in (("light", light), ("dark", dark)):
+        valence = {grab(text, n) for n in ("data-good", "data-mid", "data-bad")}
+        assert not valence & {c.upper() for c in eval_comparison._DATA_CAT[key]}

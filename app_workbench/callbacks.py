@@ -90,7 +90,7 @@ def _gauge_figure(fail_pct: float, target_pct, theme: str) -> go.Figure:
         gauge=gauge, domain=dict(x=[0, 1], y=[0, 1])))
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=18, r=18, t=12, b=4), height=208,
+        margin=dict(l=34, r=34, t=12, b=4), height=208,
         font=dict(color=fg, family="'IBM Plex Mono','JetBrains Mono',monospace"))
     return fig
 

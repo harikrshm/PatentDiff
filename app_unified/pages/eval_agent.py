@@ -28,6 +28,7 @@ from dash import Input, Output, State, callback, ctx, dcc, html, no_update
 from app_unified.components import page_header
 from app_workbench.data import load as _load_df
 from app_workbench.state import get_priority_inputs
+from core import demo_mode
 from core.experiment_agent import (
     AgentPlanError,
     ExperimentPlan,
@@ -39,6 +40,7 @@ from core.experiment_agent import (
 from core.experiment_agent_runner import (
     StageResult,
     keep_stage,
+    load_demo_stage_result,
     run_stage,
     select_subset,
 )
@@ -178,7 +180,7 @@ def render_plan(plan: ExperimentPlan) -> list:
     """
     cards = []
     for exp in plan.experiments:
-        delta_sign = "▼" if exp.predicted_delta_pp <= 0 else "▲"
+        delta_sign = "−" if exp.predicted_delta_pp <= 0 else "+"
         cards.append(
             html.Section(
                 className="uw-agent__exp-card",
@@ -190,7 +192,7 @@ def render_plan(plan: ExperimentPlan) -> list:
                             className="uw-agent__exp-target wb-mono",
                         ),
                         html.Span(
-                            f"{delta_sign} {abs(exp.predicted_delta_pp):.1f} pp predicted",
+                            f"Predicted {delta_sign}{abs(exp.predicted_delta_pp):.1f} pp {exp.target_eval} FAIL",
                             className="uw-agent__exp-delta wb-caption",
                             title="This is a PREDICTION. The measured gate result decides.",
                         ),
@@ -207,11 +209,12 @@ def render_plan(plan: ExperimentPlan) -> list:
     return cards
 
 
-def render_stage(result: StageResult) -> html.Div:
+def render_stage(result: StageResult, recorded: bool = False) -> html.Div:
     """Gate PASS/FAIL card for a completed stage.
 
     Shows: gate status, coverage (with low-n warning), target eval before→after,
-    gate.reasons list, and Approve(KEEP) / Reject(REVERT) buttons.
+    gate.reasons list, and Keep / Revert buttons. `recorded` labels a result that
+    comes from the demo cache rather than a fresh run.
     """
     gate_ok = result.gate.passed
     gate_cls = "uw-agent__gate--pass" if gate_ok else "uw-agent__gate--fail"
@@ -242,7 +245,8 @@ def render_stage(result: StageResult) -> html.Div:
                 html.Span(gate_label, className="uw-agent__gate-label"),
             ]),
             html.P(
-                f"Coverage: {result.coverage}",
+                f"Coverage: {result.coverage}"
+                + (" · recorded run, not recomputed" if recorded else ""),
                 className="wb-caption uw-agent__coverage",
             ),
             *([low_n_note] if low_n_note else []),
@@ -257,50 +261,52 @@ def render_stage(result: StageResult) -> html.Div:
                 ),
             ]),
             reasons_list,
-            html.Div(className="uw-agent__action-row", children=[
-                html.Button(
-                    "Approve (KEEP)",
-                    id="agent-stage-keep-btn",
-                    n_clicks=0,
-                    className="wb-btn wb-btn--primary",
-                ),
-                html.Button(
-                    "Reject (REVERT)",
-                    id="agent-stage-revert-btn",
-                    n_clicks=0,
-                    className="wb-btn wb-btn--secondary",
-                ),
-            ]),
         ],
     )
 
 
-def _complete_view() -> html.Div:
+def _complete_view(demo: bool = False) -> html.Div:
     """Shown when all staged experiments have been processed."""
+    body = (
+        "The demo records stage 1 only. Stages 2 and 3 need a live run with a Groq key. "
+        "Open the Comparison tab to see recorded experiments."
+        if demo else
+        "All stages have been kept or reverted. "
+        "Open the Comparison tab to see the recorded results."
+    )
     return html.Div(
         className="uw-agent__complete",
         children=[
-            html.P("Plan complete.", className="uw-agent__complete-title"),
-            html.P(
-                "All stages have been approved or reverted. "
-                "Check the Comparison tab to see the recorded results.",
-                className="wb-caption",
-            ),
-            dcc.Link("Go to Comparison tab →", href="/eval/comparison",
+            html.P("Demo ends here." if demo else "Plan complete.",
+                   className="uw-agent__complete-title"),
+            html.P(body, className="wb-caption"),
+            dcc.Link("Open Comparison →", href="/eval/comparison",
                      className="wb-btn wb-btn--secondary"),
         ],
     )
 
 
 def _demo_banner() -> html.Div:
+    text = (
+        "Demo: this plan was recorded from a live run. Live model calls are off here."
+        if demo_mode.DEMO_MODE else
+        "Showing the recorded plan. No Groq access "
+        "(GROQ_API_KEY is not set, or Groq returned an error)."
+    )
     return html.Div(
         className="uw-agent__banner uw-agent__banner--demo",
-        children=html.P(
-            "Showing cached plan — live API unavailable "
-            "(GROQ_API_KEY not set or Groq returned an error).",
-            className="wb-caption",
-        ),
+        children=html.P(text, className="wb-caption"),
     )
+
+
+_EMPTY_PLAN = html.Div(
+    className="uw-compare__empty",
+    children=[
+        html.P("No plan yet", className="uw-compare__empty-title"),
+        html.P("Analyze reads the live dashboard and proposes up to three experiments.",
+               className="uw-compare__empty-hint"),
+    ],
+)
 
 
 # ---------------------------------------------------------------------------
@@ -312,18 +318,13 @@ layout = html.Div(
     children=[
         page_header(
             "Experiment Agent",
-            "AI-proposed experiment plan with PM feedback loop and staged execution.",
+            "Reads the dashboard, proposes up to three prompt experiments, and runs them one at a time. You keep or revert each.",
         ),
 
-        # --- Analyze row ---
         html.Div(className="uw-agent__row", children=[
             html.Button(
                 "Analyze", id="agent-analyze-btn", n_clicks=0,
-                className="wb-btn wb-btn--primary",
-            ),
-            html.Button(
-                "Revise plan", id="agent-revise-btn", n_clicks=0,
-                className="wb-btn wb-btn--secondary",
+                className="wb-btn wb-btn--primary uw-agent__analyze",
             ),
             html.Span(
                 id="agent-analyze-status", className="wb-controlbar__status",
@@ -331,55 +332,68 @@ layout = html.Div(
             ),
         ]),
 
-        # --- Demo-mode / error banner ---
         html.Div(id="agent-banner"),
 
-        # --- Plan cards area ---
-        html.Div(id="agent-plan-area", className="uw-agent__plan-area"),
+        html.Div(id="agent-plan-area", className="uw-agent__plan-area", children=_EMPTY_PLAN),
 
-        # --- PM feedback ---
-        html.Div(className="uw-agent__feedback-row", children=[
-            html.Label("PM feedback", htmlFor="agent-feedback", className="wb-kicker"),
-            dcc.Textarea(
-                id="agent-feedback", value="",
-                placeholder="e.g. Focus on System claims, avoid touching phosita…",
-                className="uw-agent__textarea",
-            ),
+        html.Div(className="uw-agent__review", children=[
+            html.Div(className="uw-agent__feedback-row", children=[
+                html.Label("PM feedback", htmlFor="agent-feedback", className="uw-label"),
+                dcc.Textarea(
+                    id="agent-feedback", value="",
+                    placeholder="e.g. Focus on System claims. Leave PHOSITA alone.",
+                    className="uw-input--area uw-agent__textarea",
+                ),
+                html.Div(className="uw-agent__row", children=[
+                    html.Button(
+                        "Revise plan", id="agent-revise-btn", n_clicks=0,
+                        className="wb-btn wb-btn--secondary",
+                    ),
+                ]),
+            ]),
+            html.Div(className="uw-agent__row uw-agent__approve-row", children=[
+                html.Button(
+                    "Approve plan and start", id="agent-approve-btn", n_clicks=0,
+                    className="wb-btn wb-btn--primary",
+                ),
+                html.Span(
+                    id="agent-stage-status", className="wb-controlbar__status",
+                    role="status", **{"aria-live": "polite"},
+                ),
+            ]),
         ]),
 
-        # --- Approve / stage-status row ---
-        html.Div(className="uw-agent__row", children=[
-            html.Button(
-                "Approve plan & start", id="agent-approve-btn", n_clicks=0,
-                className="wb-btn wb-btn--primary",
-            ),
-            html.Span(
-                id="agent-stage-status", className="wb-controlbar__status",
-                role="status", **{"aria-live": "polite"},
-            ),
-        ]),
-
-        # --- Stage execution area ---
         html.Div(id="agent-stage-area", className="uw-agent__stage-area"),
 
-        # --- Persistent footer link ---
+        # Static (not rendered per stage): Dash won't fire _stage_control if any
+        # of its Inputs is missing from the layout. CSS shows them with a result.
+        html.Div(className="uw-agent__action-row uw-agent__stage-actions", children=[
+            html.Button(
+                "Keep change", id="agent-stage-keep-btn", n_clicks=0,
+                className="wb-btn wb-btn--primary",
+            ),
+            html.Button(
+                "Revert change", id="agent-stage-revert-btn", n_clicks=0,
+                className="wb-btn wb-btn--secondary",
+            ),
+        ]),
+
         html.Div(
             className="uw-agent__footer",
             children=[
                 dcc.Link(
-                    "View Comparison tab →",
+                    "See results in Comparison →",
                     href="/eval/comparison",
-                    className="wb-caption uw-agent__link",
+                    className="uw-agent__link",
                 ),
             ],
         ),
 
-        # --- Stores ---
-        dcc.Store(id="agent-plan"),                   # serialised ExperimentPlan dict
-        dcc.Store(id="agent-stage-idx", data=0),      # current stage index (int)
-        dcc.Store(id="agent-kept-block", data=""),    # cumulative kept prompt block
-        dcc.Store(id="agent-stage-trigger", data=None),  # bumped to start/advance stages
-        dcc.Store(id="agent-stage-result"),           # serialised StageResult dict
+        dcc.Store(id="agent-plan"),
+        dcc.Store(id="agent-stage-idx", data=0),
+        dcc.Store(id="agent-kept-block", data=""),
+        dcc.Store(id="agent-stage-trigger", data=None),
+        dcc.Store(id="agent-stage-result"),
     ],
 )
 
@@ -430,7 +444,7 @@ def _analyze_or_revise(set_progress, n_analyze, n_revise, feedback):
         return plan.model_dump(), _demo_banner(), render_plan(plan)
 
     use_demo = False
-    if not os.environ.get("GROQ_API_KEY"):
+    if demo_mode.DEMO_MODE or not os.environ.get("GROQ_API_KEY"):
         use_demo = True
     else:
         set_progress(["Proposing plan via Groq…"])
@@ -559,6 +573,12 @@ def _run_current_stage(trigger, plan_data, stage_idx, kept_block):
         return _complete_view(), no_update
 
     proposed = plan.experiments[idx]
+
+    if demo_mode.DEMO_MODE:
+        recorded = load_demo_stage_result() if idx == 0 else None
+        if recorded is None:
+            return _complete_view(demo=True), None
+        return render_stage(recorded, recorded=True), _serialize_stage_result(recorded)
 
     try:
         from groq import Groq

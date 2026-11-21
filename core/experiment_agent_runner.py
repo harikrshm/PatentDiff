@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 
 from core.citation_eval import evaluate_trace as _citation_eval
-from core.experiment_agent import ProposedExperiment
+from core.experiment_agent import DEMO_CACHE_PATH, ProposedExperiment
 from core.experiment_gate import GateResult, evaluate_gate
 from core.experiments import Experiment, MANIFEST_PATH
 from core.llm import build_system_prompt
@@ -141,3 +141,11 @@ def keep_stage(*, exp_id: str, name: str, created: str,
     Path(manifest_path).parent.mkdir(parents=True, exist_ok=True)
     with open(manifest_path, "a", encoding="utf-8") as f:
         f.write(_json.dumps(exp.model_dump()) + "\n")
+
+
+def load_demo_stage_result(path: Path = DEMO_CACHE_PATH) -> StageResult | None:
+    """The recorded stage-1 result from the demo cache, or None if the cache has none."""
+    data = _json.loads(Path(path).read_text(encoding="utf-8")).get("stage_result")
+    if not data:
+        return None
+    return StageResult(**{**data, "gate": GateResult(**data["gate"])})

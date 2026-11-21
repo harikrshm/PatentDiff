@@ -29,7 +29,7 @@
 
   --color-text-primary:      #1A2027;
   --color-text-secondary:    #586374;
-  --color-text-tertiary:     #646F7E;  /* AA: 5.1 on white, 4.75 on canvas */
+  --color-text-tertiary:     #616C7B;  /* AA on every light surface incl. sidebar/accent-subtle: >=4.69 */
   --color-text-inverse:      #F2F5F8;
   --color-text-link:         var(--color-accent-primary);
 
@@ -49,7 +49,7 @@
   --accent-fill-hover:  #4338CA;
   --on-accent:          #FFFFFF;
 
-  --color-status-success:    #0E8A7D;
+  --color-status-success:    #007B6E;  /* text role; AA >=4.56 on all light surfaces. Fills use --data-good. */
   --color-status-warning:    #B45309;
   --color-status-error:      #C0392B;
   --color-status-info:       #4F46E5;
@@ -68,7 +68,7 @@
   --data-flag:      var(--color-status-warning);
   /* DATA · categorical chart series (neutral; NOT chrome indigo, NOT good/bad valence) */
   --data-cat-1:     #3B6EA5;   /* slate-blue — series A (PHOSITA / P50 / Input) */
-  --data-cat-2:     #C98A2B;   /* amber — series B (Citation / P99 / Output) */
+  --data-cat-2:     #D06B9E;   /* plum — series B (Citation / P99 / Output); off the valence hues */
   --data-cell-text-on-light: #1A2027;
   --data-cell-text-on-dark:  #FFFFFF;
 
@@ -238,7 +238,7 @@
   --data-mid:       #E0A33E;
   --data-bad:       #E06A5C;
   --data-cat-1:     #6FA8DC;   /* slate-blue, lightened for dark */
-  --data-cat-2:     #E0B25C;   /* amber, lightened for dark */
+  --data-cat-2:     #B85C8B;   /* plum, darker than cat-1 so series split in grayscale */
   --data-cell-text-on-light: #0E1116;
   --data-cell-text-on-dark:  #F4F6F8;
 
@@ -305,7 +305,7 @@
     --data-mid:       #E0A33E;
     --data-bad:       #E06A5C;
     --data-cat-1:     #6FA8DC;   /* slate-blue, lightened for dark */
-    --data-cat-2:     #E0B25C;   /* amber, lightened for dark */
+    --data-cat-2:     #B85C8B;   /* plum, darker than cat-1 so series split in grayscale */
     --data-cell-text-on-light: #0E1116;
     --data-cell-text-on-dark:  #F4F6F8;
     --voice-machine-bg:        #1A1D38;
@@ -364,7 +364,9 @@ a, .wb-link {
   text-decoration: none;
   transition: color var(--duration-fast) var(--easing-default);
 }
-a:hover, .wb-link:hover { color: var(--color-accent-primary-hover); }
+@media (hover: hover) {
+  a:hover, .wb-link:hover { color: var(--color-accent-primary-hover); }
+}
 
 /* Every numeral in the app reads as an instrument: mono + tabular figures. */
 .wb-num, .wb-mono {
@@ -480,7 +482,9 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
   transition: border-color var(--duration-fast) var(--easing-default),
               color var(--duration-fast) var(--easing-default);
 }
-.wb-themetoggle:hover { border-color: var(--color-accent-primary); color: var(--color-accent-primary); }
+@media (hover: hover) {
+  .wb-themetoggle:hover { border-color: var(--color-accent-primary); color: var(--color-accent-primary); }
+}
 .wb-themetoggle__glyph { font-size: var(--font-size-lg); line-height: 1; }
 
 /* ── Shared control primitives (buttons, dropdown) ───────────────────────── */
@@ -497,7 +501,9 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
               opacity var(--duration-fast) var(--easing-default);
 }
 .wb-btn--primary { background: var(--accent-fill); color: var(--on-accent); }
-.wb-btn--primary:hover { background: var(--accent-fill-hover); }
+@media (hover: hover) {
+  .wb-btn--primary:hover { background: var(--accent-fill-hover); }
+}
 .wb-btn--primary:active { background: var(--color-accent-primary-active); }
 .wb-btn:disabled { opacity: 0.55; cursor: progress; }
 
@@ -516,6 +522,8 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
   border-color: var(--color-border-focus);
   box-shadow: var(--shadow-focus);
 }
+/* react-select's default #999 clear glyph is 2.85:1; UI graphics need 3:1. */
+.wb-dropdown .Select-clear-zone { color: var(--color-text-secondary); }
 .wb-dropdown .Select-value-label,
 .wb-dropdown .Select-placeholder { color: var(--color-text-primary) !important; }
 .wb-dropdown .Select-menu-outer {
@@ -553,7 +561,9 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
   transition: color var(--duration-fast) var(--easing-default),
               border-color var(--duration-fast) var(--easing-default);
 }
-.wb-rail__step:hover { color: var(--color-text-secondary); }
+@media (hover: hover) {
+  .wb-rail__step:hover { color: var(--color-text-secondary); }
+}
 .wb-rail__num { font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
 .wb-rail__label {
   font-size: 9px;
@@ -670,7 +680,9 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
 }
 .wb-segmented__items label:first-of-type { border-left-width: 1px; border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm); }
 .wb-segmented__items label:last-of-type { border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0; }
-.wb-segmented__items label:hover { color: var(--color-text-primary); background: var(--color-bg-tertiary); }
+@media (hover: hover) {
+  .wb-segmented__items label:hover { color: var(--color-text-primary); background: var(--color-bg-tertiary); }
+}
 .wb-segmented__items input { position: absolute; opacity: 0; width: 0; height: 0; }
 .wb-segmented__items label:has(input:checked) {
   background: var(--accent-fill);
@@ -687,10 +699,10 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--space-2) var(--space-4);
   margin-top: var(--space-4);
 }
-.wb-avg-chip { display: inline-flex; align-items: baseline; gap: var(--space-2); }
+.wb-avg-chip { display: inline-flex; align-items: baseline; gap: var(--space-2); white-space: nowrap; }
 .wb-avg-chip__dot {
   width: 8px; height: 8px; border-radius: var(--border-radius-full);
   display: inline-block; align-self: center;
@@ -792,7 +804,9 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
               color var(--duration-fast) var(--easing-default);
 }
 .wb-layer-radio input { position: absolute; opacity: 0; width: 0; height: 0; }
-.wb-layer-radio label:hover { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+@media (hover: hover) {
+  .wb-layer-radio label:hover { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+}
 .wb-layer-radio label:has(input:checked) {
   background: var(--accent-fill);
   border-color: var(--accent-fill);

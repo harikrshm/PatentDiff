@@ -119,3 +119,18 @@ def test_keep_stage_appends_manifest_row(tmp_path):
     row = json.loads(lines[0])
     assert row["exp_id"] == "agent-1"
     assert row["name"].startswith("Agent:")
+
+
+def test_load_demo_stage_result_round_trips_cache():
+    from core.experiment_agent_runner import StageResult, load_demo_stage_result
+    sr = load_demo_stage_result()
+    assert isinstance(sr, StageResult)
+    assert sr.gate.passed is True and sr.gate.reasons
+    assert sr.coverage.startswith("ran ")
+
+
+def test_load_demo_stage_result_none_when_cache_has_no_stage(tmp_path):
+    from core.experiment_agent_runner import load_demo_stage_result
+    f = tmp_path / "c.json"
+    f.write_text(json.dumps({"plan": {"experiments": []}, "stage_result": None}), encoding="utf-8")
+    assert load_demo_stage_result(f) is None
