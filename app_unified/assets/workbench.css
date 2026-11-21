@@ -364,7 +364,9 @@ a, .wb-link {
   text-decoration: none;
   transition: color var(--duration-fast) var(--easing-default);
 }
-a:hover, .wb-link:hover { color: var(--color-accent-primary-hover); }
+@media (hover: hover) {
+  a:hover, .wb-link:hover { color: var(--color-accent-primary-hover); }
+}
 
 /* Every numeral in the app reads as an instrument: mono + tabular figures. */
 .wb-num, .wb-mono {
@@ -480,7 +482,9 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
   transition: border-color var(--duration-fast) var(--easing-default),
               color var(--duration-fast) var(--easing-default);
 }
-.wb-themetoggle:hover { border-color: var(--color-accent-primary); color: var(--color-accent-primary); }
+@media (hover: hover) {
+  .wb-themetoggle:hover { border-color: var(--color-accent-primary); color: var(--color-accent-primary); }
+}
 .wb-themetoggle__glyph { font-size: var(--font-size-lg); line-height: 1; }
 
 /* ── Shared control primitives (buttons, dropdown) ───────────────────────── */
@@ -497,7 +501,9 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
               opacity var(--duration-fast) var(--easing-default);
 }
 .wb-btn--primary { background: var(--accent-fill); color: var(--on-accent); }
-.wb-btn--primary:hover { background: var(--accent-fill-hover); }
+@media (hover: hover) {
+  .wb-btn--primary:hover { background: var(--accent-fill-hover); }
+}
 .wb-btn--primary:active { background: var(--color-accent-primary-active); }
 .wb-btn:disabled { opacity: 0.55; cursor: progress; }
 
@@ -555,7 +561,9 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
   transition: color var(--duration-fast) var(--easing-default),
               border-color var(--duration-fast) var(--easing-default);
 }
-.wb-rail__step:hover { color: var(--color-text-secondary); }
+@media (hover: hover) {
+  .wb-rail__step:hover { color: var(--color-text-secondary); }
+}
 .wb-rail__num { font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
 .wb-rail__label {
   font-size: 9px;
@@ -672,7 +680,9 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
 }
 .wb-segmented__items label:first-of-type { border-left-width: 1px; border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm); }
 .wb-segmented__items label:last-of-type { border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0; }
-.wb-segmented__items label:hover { color: var(--color-text-primary); background: var(--color-bg-tertiary); }
+@media (hover: hover) {
+  .wb-segmented__items label:hover { color: var(--color-text-primary); background: var(--color-bg-tertiary); }
+}
 .wb-segmented__items input { position: absolute; opacity: 0; width: 0; height: 0; }
 .wb-segmented__items label:has(input:checked) {
   background: var(--accent-fill);
@@ -689,10 +699,10 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--space-2) var(--space-4);
   margin-top: var(--space-4);
 }
-.wb-avg-chip { display: inline-flex; align-items: baseline; gap: var(--space-2); }
+.wb-avg-chip { display: inline-flex; align-items: baseline; gap: var(--space-2); white-space: nowrap; }
 .wb-avg-chip__dot {
   width: 8px; height: 8px; border-radius: var(--border-radius-full);
   display: inline-block; align-self: center;
@@ -794,7 +804,9 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
               color var(--duration-fast) var(--easing-default);
 }
 .wb-layer-radio input { position: absolute; opacity: 0; width: 0; height: 0; }
-.wb-layer-radio label:hover { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+@media (hover: hover) {
+  .wb-layer-radio label:hover { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+}
 .wb-layer-radio label:has(input:checked) {
   background: var(--accent-fill);
   border-color: var(--accent-fill);

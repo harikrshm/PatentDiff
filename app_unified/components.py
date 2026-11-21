@@ -15,6 +15,7 @@ EVAL_GROUP = [
     ("Dashboard", "/eval", "◉"),
     ("Traces", "/eval/traces", "≣"),
     ("Comparison", "/eval/comparison", "⇄"),
+    ("Experiment Agent", "/eval/agent", "◈"),
 ]
 
 

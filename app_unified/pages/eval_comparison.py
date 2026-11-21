@@ -52,8 +52,9 @@ def _grouped_bars(x, a_name, a_vals, b_name, b_vals, *, y_title, dark) -> go.Fig
     fig.add_bar(name=b_name, x=x, y=b_vals, marker=dict(color=cat2, opacity=opacity))
     fig.update_layout(
         barmode="group", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=48, r=12, t=8, b=32), height=232,
-        legend=dict(orientation="h", y=1.12, x=0, font=dict(size=11, color=axis)),
+        margin=dict(l=48, r=12, t=40, b=32), height=232,
+        legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="left", x=0,
+                    font=dict(size=11, color=axis)),
         font=dict(family=_FONT_MONO, size=11, color=axis))
     fig.update_yaxes(title_text=y_title, gridcolor=grid, zerolinecolor=grid, color=axis)
     fig.update_xaxes(showgrid=False, color=axis)
@@ -94,7 +95,8 @@ _TABLE_COLUMNS = [
     {"name": "Reps", "id": "repetitions"},
     {"name": "PHOSITA FAIL", "id": "phosita"},
     {"name": "Citation FAIL", "id": "citation"},
-    {"name": "Gap to KPI", "id": "target"},
+    {"name": "PHOSITA gap", "id": "phosita_gap"},
+    {"name": "Citation gap", "id": "citation_gap"},
 ]
 
 
@@ -110,28 +112,19 @@ def _fail_cell(cur: float, prev) -> tuple[str, str]:
     return f"{cur:.2f}  {arrow} {delta_pp:+.0f}pp", direction
 
 
-def _gap_seg(label: str, fail: float, prev_fail, target) -> tuple[str, str]:
-    """One eval's distance-to-target as pp + a run-to-run arrow. Gap = current
-    FAIL − target FAIL (positive = above the ceiling). ▼/'down' = gap closing
-    toward the KPI (improvement); ▲/'up' = widening. No target -> ('L —', '')."""
+def _gap_cell(fail: float, prev_fail, target) -> tuple[str, str]:
+    """One eval's distance to its KPI target: pp gap + a run-to-run arrow.
+    Gap = current FAIL - target FAIL (positive = above the ceiling). ▼/'down' =
+    gap closing toward the KPI (improvement); ▲/'up' = widening; no target -> '—'."""
     if target is None:
-        return f"{label} —", ""
-    gap = (fail - target) * 100.0
-    seg = f"{label} {gap:+.0f}pp"
+        return "—", ""
+    text = f"{(fail - target) * 100.0:+.0f}pp"
     if prev_fail is None:
-        return seg, ""
-    delta = gap - (prev_fail - target) * 100.0
+        return text, ""
+    delta = (fail - target) * 100.0 - (prev_fail - target) * 100.0
     if abs(delta) < 0.05:
-        return f"{seg} –", "flat"
-    return (f"{seg} ▼", "down") if delta < 0 else (f"{seg} ▲", "up")
-
-
-def _target_cell(m: ExperimentMetrics, prev, pt, ct) -> tuple[str, str]:
-    """KPI-gap column: per-eval distance-to-target (pp) with run-to-run arrows.
-    Cell coloring follows PHOSITA (the primary target)."""
-    p_seg, p_dir = _gap_seg("P", m.phosita_fail, prev.phosita_fail if prev else None, pt)
-    c_seg, _ = _gap_seg("C", m.citation_fail, prev.citation_fail if prev else None, ct)
-    return f"{p_seg} · {c_seg}", p_dir
+        return f"{text} –", "flat"
+    return (f"{text} ▼", "down") if delta < 0 else (f"{text} ▲", "up")
 
 
 def build_table_rows(pairs: List[Pair]) -> list[dict]:
@@ -144,14 +137,16 @@ def build_table_rows(pairs: List[Pair]) -> list[dict]:
         prev = pairs[i - 1][1] if i > 0 else None
         ph_txt, ph_dir = _fail_cell(m.phosita_fail, prev.phosita_fail if prev else None)
         ct_txt, ct_dir = _fail_cell(m.citation_fail, prev.citation_fail if prev else None)
-        tgt_txt, tgt_dir = _target_cell(m, prev, pt, ct)
+        pg_txt, pg_dir = _gap_cell(m.phosita_fail, prev.phosita_fail if prev else None, pt)
+        cg_txt, cg_dir = _gap_cell(m.citation_fail, prev.citation_fail if prev else None, ct)
         rows.append({
             "experiment": e.name,
             "splits": f"{len(e.splits)} · {', '.join(e.splits)}",
             "repetitions": e.repetitions,
             "phosita": ph_txt, "phosita_dir": ph_dir,
             "citation": ct_txt, "citation_dir": ct_dir,
-            "target": tgt_txt, "target_dir": tgt_dir,
+            "phosita_gap": pg_txt, "phosita_gap_dir": pg_dir,
+            "citation_gap": cg_txt, "citation_gap_dir": cg_dir,
             "is_newest": "",
         })
     rows.reverse()   # newest first
@@ -197,9 +192,13 @@ _TABLE_STYLE = dict(
          "color": "var(--color-status-success)"},
         {"if": {"filter_query": '{citation_dir} = "up"', "column_id": "citation"},
          "color": "var(--color-status-error)"},
-        {"if": {"filter_query": '{target_dir} = "down"', "column_id": "target"},
+        {"if": {"filter_query": '{phosita_gap_dir} = "down"', "column_id": "phosita_gap"},
          "color": "var(--color-status-success)"},
-        {"if": {"filter_query": '{target_dir} = "up"', "column_id": "target"},
+        {"if": {"filter_query": '{phosita_gap_dir} = "up"', "column_id": "phosita_gap"},
+         "color": "var(--color-status-error)"},
+        {"if": {"filter_query": '{citation_gap_dir} = "down"', "column_id": "citation_gap"},
+         "color": "var(--color-status-success)"},
+        {"if": {"filter_query": '{citation_gap_dir} = "up"', "column_id": "citation_gap"},
          "color": "var(--color-status-error)"},
     ],
 )
@@ -251,6 +250,8 @@ def _build_layout() -> html.Div:
     ]
     if pairs:   # no header-only table on an empty manifest
         children += [
+            html.P("Fading shows age: the newest experiment is solid.",
+                   className="wb-caption uw-compare__note"),
             html.H2("Experiment history", className="uw-compare__h2"),
             dash_table.DataTable(
                 data=build_table_rows(pairs),

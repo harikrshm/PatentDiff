@@ -10,6 +10,7 @@ Entry point: ``python -m app_unified.app`` (route /eval).
 """
 from __future__ import annotations
 
+import plotly.graph_objects as go
 from dash import dcc, html
 
 from app_workbench.data import trace_set_options
@@ -125,7 +126,7 @@ def _block2_eval_summary() -> list:
             ),
         ),
         _loading(dcc.Graph(
-            id="fr-gauge",
+            id="fr-gauge", figure=_blank_figure(),
             config={"displayModeBar": False, "responsive": True},
             style={"height": "208px"},
         )),
@@ -138,6 +139,17 @@ _DIM_OPTIONS = [
     {"label": "Claim length", "value": "claim_length"},
     {"label": "Relationship", "value": "relationship"},
 ]
+
+
+def _blank_figure() -> go.Figure:
+    """Initial figure: transparent and axis-free so the card shows through while
+    the first render runs (Plotly's default is a white box with stray 0-6 axes)."""
+    fig = go.Figure()
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                      margin=dict(l=0, r=0, t=0, b=0))
+    return fig
 
 
 def _block3_heatmap() -> list:
@@ -158,7 +170,7 @@ def _block3_heatmap() -> list:
             _dim("heat-col", "Columns", "relationship"),
         ]),
         _loading(dcc.Graph(
-            id="heatmap",
+            id="heatmap", figure=_blank_figure(),
             config={"displayModeBar": False, "responsive": True},
             style={"height": "300px"})),
         html.Div(id="heatmap-avg", className="uw-dash__heat-avg"),
@@ -211,7 +223,7 @@ def build_console_body() -> html.Div:
                     _block("VS TARGET", "Eval Score vs Target",
                            _loading(html.Div(id="kpi-target-readout"))),
                     _block("OVER TIME", "Metric Trajectory", _loading(dcc.Graph(
-                        id="trajectory-chart",
+                        id="trajectory-chart", figure=_blank_figure(),
                         config={"displayModeBar": False, "responsive": True},
                         style={"height": "232px"}))),
                 ],
