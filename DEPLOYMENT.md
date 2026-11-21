@@ -106,11 +106,12 @@ https://patentdiff-demo.onrender.com
 
 1. Open your Render URL
 2. You should see:
-   - **Blue banner at top:** "🚀 Demo Mode: Using cached data (no live API calls)"
+   - **Info strip at top:** "Demo mode: every number here is recorded from real runs. Live model calls are off."
    - **Dashboard tab** (`/eval`) — fully interactive with cached heatmaps
    - **Traces tab** (`/eval/traces`) — click to view cached traces
    - **Comparison tab** (`/eval/comparison`) — see experiment results (if any)
-   - **PatentDiff prototype** (`/`) — form is present but Groq calls will return stubs
+   - **PatentDiff prototype** (`/prototype`) — "Load example" fills a real patent pair and Analyze replays its recorded output. `/` redirects to the Dashboard.
+   - **Experiment Agent** (`/eval/agent`) — Analyze shows the recorded plan; Approve shows the recorded stage-1 result.
 
 ---
 
@@ -201,7 +202,7 @@ When `DEMO_MODE=true`:
 
 1. **On app startup:**
    - `core/demo_mode.py` loads all `.jsonl` files into memory
-   - Groq calls are stubbed out (return minimal valid JSON)
+   - No live model calls: the prototype and Experiment Agent replay recorded results
    - Dashboard, Traces, Comparison tabs serve cached data
 
 2. **Performance:**

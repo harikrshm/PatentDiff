@@ -5,13 +5,14 @@ import dash
 from dash import Input, Output, State, callback, dash_table, dcc, html
 
 from app_unified.components import page_header
+from core import demo_mode
 from core.llm import build_system_prompt, build_user_prompt, call_groq
-from core.models import PatentInput
+from core.models import AnalysisReport, PatentInput
 from core.report import parse_llm_response
 from tracing.logger import build_trace_record
 from tracing.store import append_trace
 
-dash.register_page(__name__, path="/", name="PatentDiff")
+dash.register_page(__name__, path=demo_mode.PROTOTYPE_PATH, name="PatentDiff")
 
 _EMPTY_LLM = {"raw_output": "", "model": "", "tokens_input": 0,
               "tokens_output": 0, "latency_ms": 0}
@@ -40,10 +41,21 @@ def _patent_column(side: str, title: str) -> html.Div:
     )
 
 
+def _demo_controls() -> list:
+    if not demo_mode.DEMO_MODE:
+        return []
+    return [html.Div(className="uw-proto__demo", children=[
+        html.Button("Load example", id="load-example-btn", n_clicks=0, className="uw-btn"),
+        html.Span("Analyze replays the recorded model output for the loaded example. "
+                  "Edited text has no recording.", className="uw-proto__demo-hint"),
+    ])]
+
+
 layout = html.Div(
     className="uw-page uw-page--memo uw-proto",
     children=[
         page_header("PatentDiff — Map your claim with any prior art"),
+        *_demo_controls(),
         html.Div(
             className="uw-proto__grid",
             children=[
@@ -130,6 +142,9 @@ def run_analysis(label_a, claim_a, spec_a, label_b, claim_b, spec_b):
     if not all([label_a, claim_a, spec_a, label_b, claim_b, spec_b]):
         return "Please fill in all fields for both patents.", None, None
 
+    if demo_mode.DEMO_MODE:
+        return _replay_recorded(claim_a, claim_b)
+
     source = PatentInput(label=label_a, independent_claim=claim_a, specification=spec_a)
     target = PatentInput(label=label_b, independent_claim=claim_b, specification=spec_b)
 
@@ -157,6 +172,10 @@ def run_analysis(label_a, claim_a, spec_a, label_b, claim_b, spec_b):
         ))
         return f"Analysis failed: {e}", None, None
 
+    return "", _report_children(report), _meta_children(trace["run_id"], llm_response)
+
+
+def _report_children(report: AnalysisReport) -> html.Div:
     rows = [{
         "Element #": em.element_number,
         "Your Patent": em.element_text,
@@ -165,7 +184,7 @@ def run_analysis(label_a, claim_a, spec_a, label_b, claim_b, spec_b):
         "Comment": em.comment,
     } for em in report.element_mappings]
 
-    report_children = html.Div(
+    return html.Div(
         className="uw-machine uw-proto__report",
         children=[
             html.H2("Element Mapping", className="uw-proto__h2"),
@@ -180,12 +199,15 @@ def run_analysis(label_a, claim_a, spec_a, label_b, claim_b, spec_b):
             html.P(report.overall_opinion, className="uw-prose uw-proto__opinion"),
         ],
     )
-    meta_children = html.Details(
+
+
+def _meta_children(run_id: str, llm_response: dict) -> html.Details:
+    return html.Details(
         className="uw-proto__meta",
         children=[
             html.Summary("Run metadata"),
             html.Dl(className="uw-proto__metagrid", children=[
-                html.Dt("Run ID"), html.Dd(trace["run_id"], className="uw-num"),
+                html.Dt("Run ID"), html.Dd(run_id, className="uw-num"),
                 html.Dt("Model"), html.Dd(llm_response["model"], className="uw-num"),
                 html.Dt("Input tokens"),
                 html.Dd(str(llm_response["tokens_input"]), className="uw-num"),
@@ -196,7 +218,18 @@ def run_analysis(label_a, claim_a, spec_a, label_b, claim_b, spec_b):
             ]),
         ],
     )
-    return "", report_children, meta_children
+
+
+def _replay_recorded(claim_a, claim_b):
+    """Demo mode: show the recorded analysis for these claims. Never calls the
+    model and never appends a trace, so visitors cannot alter shared data."""
+    recorded = demo_mode.find_recorded(claim_a, claim_b)
+    if recorded is None:
+        return ("This demo replays recorded analyses. Choose Load example to try one.",
+                None, None)
+    report = AnalysisReport.model_validate(recorded["parsed_output"])
+    return ("", _report_children(report),
+            _meta_children(recorded["run_id"], recorded["llm_response"]))
 
 
 @callback(
@@ -210,3 +243,21 @@ def run_analysis(label_a, claim_a, spec_a, label_b, claim_b, spec_b):
 )
 def _on_analyze(_n, la, ca, sa, lb, cb, sb):
     return run_analysis(la, ca, sa, lb, cb, sb)
+
+
+if demo_mode.DEMO_MODE:
+    @callback(
+        Output("label-a", "value"), Output("claim-a", "value"), Output("spec-a", "value"),
+        Output("label-b", "value"), Output("claim-b", "value"), Output("spec-b", "value"),
+        Output("analyze-status", "children", allow_duplicate=True),
+        Input("load-example-btn", "n_clicks"),
+        prevent_initial_call=True,
+    )
+    def _load_example(n_clicks):
+        examples = demo_mode.examples()
+        if not examples:
+            return (dash.no_update,) * 6 + ("No recorded examples are available.",)
+        inputs = examples[((n_clicks or 1) - 1) % len(examples)]["trace"]["inputs"]
+        a, b = inputs["source_patent"], inputs["target_patent"]
+        return (a["label"], a["independent_claim"], a["specification"],
+                b["label"], b["independent_claim"], b["specification"], "")

@@ -1177,3 +1177,14 @@
 @media (max-width: 720px) {
   .uw-dash__agentlink { padding: var(--space-4) var(--space-4) 0; }
 }
+
+
+/* Demo-only strip above the prototype form: load a recorded example. */
+.uw-proto__demo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+.uw-proto__demo-hint { font-size: var(--font-size-sm); color: var(--memo-text-muted); }

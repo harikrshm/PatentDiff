@@ -54,11 +54,38 @@ def fail_colorscale(dark: bool = False) -> list[list]:
     return _stops((_DARK if dark else _LIGHT)["fail"])
 
 
+def _rgb(hex_color: str) -> tuple[float, float, float]:
+    h = hex_color.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _luminance(rgb) -> float:
+    lin = [(c / 255) / 12.92 if c / 255 <= 0.04045 else ((c / 255 + 0.055) / 1.055) ** 2.4
+           for c in rgb]
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+
+def _contrast(a, b) -> float:
+    hi, lo = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def _fill_at(stops: list[str], rate: float) -> tuple[float, float, float]:
+    """The cell fill Plotly draws at `rate`: linear RGB blend between the stops."""
+    x = min(max(rate, 0.0), 1.0) * (len(stops) - 1)
+    i = min(int(x), len(stops) - 2)
+    a, b, f = _rgb(stops[i]), _rgb(stops[i + 1]), x - i
+    return tuple(a[k] + (b[k] - a[k]) * f for k in range(3))
+
+
 def cell_text_color(rate: float, dark: bool = False) -> str:
-    """Legible % text color for a heatmap cell at the given FAIL rate."""
+    """Legible % text color for a heatmap cell at the given FAIL rate: whichever
+    of the theme's two text colors contrasts more with the cell's actual fill.
+    (A fixed rate threshold is wrong: the dark scale's *low* end is the dark one.)"""
     t = _DARK if dark else _LIGHT
-    # Deep red high-end needs light text; pale low/mid needs dark text.
-    return t["cell_text_high"] if rate >= 0.75 else t["cell_text_low"]
+    fill = _fill_at(t["fail"], rate)
+    low, high = t["cell_text_low"], t["cell_text_high"]
+    return low if _contrast(fill, _rgb(low)) >= _contrast(fill, _rgb(high)) else high
 
 
 def workbench_template(dark: bool = False) -> go.layout.Template:

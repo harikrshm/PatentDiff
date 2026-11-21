@@ -34,6 +34,13 @@ app = Dash(
     suppress_callback_exceptions=True,
 )
 app.title = "PatentDiff"
+if demo_mode.DEMO_MODE:
+    from flask import redirect, request
+
+    @app.server.before_request
+    def _demo_landing():
+        if request.path == "/":
+            return redirect("/eval")
 app.index_string = app.index_string.replace("<html>", '<html lang="en">', 1)
 
 

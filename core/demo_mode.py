@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import Optional
 
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+# In the hosted demo "/" lands on the dashboard, so the prototype moves aside.
+PROTOTYPE_PATH = "/prototype" if DEMO_MODE else "/"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 # Pre-load cached data on module import
@@ -101,6 +103,38 @@ def get_phosita_evals() -> dict[str, dict]:
 def get_cached_plan() -> dict | None:
     """Return cached experiment plan (demo mode only)."""
     return _CACHED_PLAN
+
+
+def examples(limit: int = 3) -> list[dict]:
+    """Recorded traces worth replaying in the prototype: successful, with enough
+    mapped elements to be readable, one per distinct source/target pair."""
+    picked, seen = [], set()
+    for row in _CACHED_TRACES.values():
+        out = row.get("parsed_output") or {}
+        if row.get("status") != "success" or len(out.get("element_mappings") or []) < 4:
+            continue
+        inputs = row["inputs"]
+        pair = (inputs["source_patent"]["label"], inputs["target_patent"]["label"])
+        if pair in seen:
+            continue
+        seen.add(pair)
+        picked.append({"title": f"{pair[0]} vs {pair[1]}", "trace": row})
+        if len(picked) == limit:
+            break
+    return picked
+
+
+def find_recorded(claim_a: str, claim_b: str) -> dict | None:
+    """The recorded trace whose two independent claims match the given text."""
+    a, b = (claim_a or "").strip(), (claim_b or "").strip()
+    for row in _CACHED_TRACES.values():
+        inputs = row.get("inputs") or {}
+        if not row.get("parsed_output") or row.get("status") != "success":
+            continue
+        if (inputs["source_patent"]["independent_claim"].strip() == a
+                and inputs["target_patent"]["independent_claim"].strip() == b):
+            return row
+    return None
 
 
 def stub_groq_response() -> dict:
