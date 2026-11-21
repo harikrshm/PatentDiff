@@ -7,6 +7,12 @@ from groq import Groq
 from core.models import PatentInput
 from core.truncation import smart_truncate_spec
 
+# Import demo_mode after other imports to avoid circular deps
+try:
+    from core import demo_mode
+except ImportError:
+    demo_mode = None
+
 GROQ_TOKEN_LIMIT = 6500
 SYSTEM_PROMPT_TOKENS = 1800
 TEMPLATE_OVERHEAD_TOKENS = 800
@@ -17,8 +23,8 @@ def _estimate_tokens(text: str) -> int:
     return int(len(text.split()) * 2.5)
 
 
-def build_system_prompt() -> str:
-    return """You are an expert patent analyst. Your task is to assess the validity of a source patent's independent claim against a target patent (prior art).
+def build_system_prompt(extra_instructions: str = "") -> str:
+    base = """You are an expert patent analyst. Your task is to assess the validity of a source patent's independent claim against a target patent (prior art).
 
 ## Workflow
 
@@ -61,6 +67,9 @@ Return ONLY valid JSON matching this exact schema — no markdown fences, no ext
   ],
   "overall_opinion": "Final validity assessment focusing on the core technical advancement elements"
 }"""
+    if not extra_instructions:
+        return base
+    return base + "\n\n" + extra_instructions
 
 
 def build_user_prompt(
@@ -141,7 +150,13 @@ def call_groq(
             "tokens_output": int,
             "latency_ms": int,
         }
+
+    In demo mode (DEMO_MODE=true), returns a stub response without making an API call.
     """
+    # Demo mode: return stub instead of making API call
+    if demo_mode and demo_mode.DEMO_MODE:
+        return demo_mode.stub_groq_response()
+
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise ValueError("GROQ_API_KEY environment variable is not set")

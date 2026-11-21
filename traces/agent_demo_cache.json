@@ -1,0 +1,51 @@
+{
+  "plan": {
+    "experiments": [
+      {
+        "order": 1,
+        "target_eval": "citation",
+        "target_segment": "Method × Genus-species",
+        "prompt_block": "For every element, `corresponding_text` MUST be an exact verbatim span copied character-for-character from the target patent's independent_claim or specification, or the empty string \"\" if no exact span discloses the element. Never paraphrase, summarize, or narrate the prior art.",
+        "predicted_delta_pp": -38.0,
+        "rationale": "Citation FAILs are densest in Method × Genus-species (100% fail, n=high), where the tool paraphrases prior art instead of quoting it. A hard verbatim instruction is the cheapest fix and directly targets the citation eval's definition.",
+        "cited_run_ids": ["m0", "m1", "m2"]
+      },
+      {
+        "order": 2,
+        "target_eval": "phosita",
+        "target_segment": "System × Overlapping",
+        "prompt_block": "In `overall_opinion`, do not conclude an element is non-obvious by asserting absence alone. State explicitly what the prior art teaches, then explain why a Person Having Ordinary Skill In The Art would NOT naturally bridge that gap to reach the claimed combination. Name the specific conceptual step that is non-trivial.",
+        "predicted_delta_pp": -22.0,
+        "rationale": "After citations are fixed, the largest remaining KPI gap is absent PHOSITA reasoning in System × Overlapping, where bare assertions of non-obviousness dominate. This block forces the conceptual-gap argument the judge rewards.",
+        "cited_run_ids": []
+      },
+      {
+        "order": 3,
+        "target_eval": "citation",
+        "target_segment": "Apparatus × Subset",
+        "prompt_block": "When no exact verbatim span in the target patent discloses an element, return the empty string for `corresponding_text` rather than the closest approximate phrase. An honest empty quote is preferred over a near-miss paraphrase.",
+        "predicted_delta_pp": -9.0,
+        "rationale": "A smaller, second-order citation cleanup: catch the residual near-miss paraphrases that survive experiment 1 by making the empty-string fallback explicit. Lower predicted impact, run last.",
+        "cited_run_ids": []
+      }
+    ]
+  },
+  "stage_result": {
+    "before": 100.0,
+    "after": 0.0,
+    "other_before": 53.1,
+    "other_after": 53.1,
+    "gate": {
+      "passed": true,
+      "reasons": [
+        "[PASS] target citation: -38.0pp overall, -100.0pp segment (need <=-3 overall or <=-10 segment)",
+        "[PASS] other eval: +0.0pp (need <=+2)",
+        "[PASS] ruler vs human: unchanged",
+        "[PASS] worst dimension cell: +0.0pp (need <=+10)"
+      ]
+    },
+    "coverage": "ran 8/8",
+    "new_block": "For every element, `corresponding_text` MUST be an exact verbatim span copied character-for-character from the target patent's independent_claim or specification, or the empty string.",
+    "after_verdicts": {}
+  }
+}

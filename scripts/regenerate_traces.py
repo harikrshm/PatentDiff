@@ -15,7 +15,6 @@ import argparse
 import json
 import sys
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -25,47 +24,11 @@ sys.path.insert(0, str(REPO_ROOT))
 
 load_dotenv(REPO_ROOT / ".env")
 
-from core.llm import build_system_prompt, build_user_prompt, call_groq
-from core.models import PatentInput
-from core.report import parse_llm_response
+from core.llm import build_system_prompt
+from core.regeneration import regenerate_one
 
 DEFAULT_TRACES_PATH = REPO_ROOT / "traces" / "traces.jsonl"
 DEFAULT_OUTPUT_PATH = REPO_ROOT / "traces" / "traces.post-prompt-v2.jsonl"
-
-
-def regenerate_one(trace: dict, system_prompt: str) -> dict:
-    inputs = trace["inputs"]
-    source = PatentInput(**inputs["source_patent"])
-    target = PatentInput(**inputs["target_patent"])
-    user_prompt, truncation_warnings = build_user_prompt(source, target)
-
-    parsed_dump = None
-    status = "ok"
-    error = None
-    llm_response = {"raw_output": "", "model": "", "tokens_input": 0, "tokens_output": 0, "latency_ms": 0}
-    try:
-        llm_response = call_groq(system_prompt, user_prompt)
-        try:
-            parsed = parse_llm_response(llm_response["raw_output"])
-            parsed_dump = parsed.model_dump()
-        except ValueError as parse_err:
-            status = "parse_error"
-            error = str(parse_err)
-    except Exception as api_err:
-        status = "api_error"
-        error = str(api_err)
-
-    return {
-        "run_id": trace["run_id"],
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "inputs": inputs,
-        "prompt": {"system_prompt": system_prompt, "user_prompt": user_prompt},
-        "llm_response": llm_response,
-        "parsed_output": parsed_dump,
-        "status": status,
-        "error": error,
-        "truncation_warnings": truncation_warnings,
-    }
 
 
 def _load_run_id_filter(path: Path) -> set[str]:
