@@ -1,0 +1,6 @@
+{"timestamp":"2026-06-11T06:17:39","eval_kind":"phosita","trace_set":"live","pass_rate":0.5393258426966292,"scored":89,"prompt_version":"v3","run_id":"backfill-phosita-live"}
+{"timestamp":"2026-06-11T06:35:02","eval_kind":"citation","trace_set":"live","pass_rate":0.4507042253521127,"scored":71,"prompt_version":null,"run_id":"backfill-citation-live"}
+{"timestamp":"2026-06-03T06:14:48","eval_kind":"phosita","trace_set":"baseline","pass_rate":0.5517241379310345,"scored":87,"prompt_version":"v3","run_id":"backfill-phosita-baseline"}
+{"timestamp":"2026-06-03T06:14:48","eval_kind":"citation","trace_set":"baseline","pass_rate":0.4507042253521127,"scored":71,"prompt_version":null,"run_id":"backfill-citation-baseline"}
+{"timestamp":"2026-06-13T14:02:07","eval_kind":"phosita","trace_set":"live","pass_rate":0.5333333333333333,"scored":90,"prompt_version":"v3","run_id":"65ea160b"}
+{"timestamp":"2026-06-13T14:02:07","eval_kind":"citation","trace_set":"live","pass_rate":0.4583333333333333,"scored":72,"prompt_version":null,"run_id":"65ea160b"}

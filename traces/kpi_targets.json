@@ -1,0 +1,12 @@
+{
+  "phosita": {
+    "target_pass_rate": 0.85,
+    "target_date": "2026-09-01",
+    "baseline_run": "backfill-phosita-live"
+  },
+  "citation": {
+    "target_pass_rate": 0.8,
+    "target_date": "2026-10-01",
+    "baseline_run": null
+  }
+}
