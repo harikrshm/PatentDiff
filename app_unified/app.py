@@ -140,5 +140,7 @@ app.clientside_callback(
     State("theme", "data"),
 )
 
+server = app.server  # WSGI entry point for gunicorn
+
 if __name__ == "__main__":
     app.run(debug=True)
