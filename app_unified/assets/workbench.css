@@ -29,7 +29,7 @@
 
   --color-text-primary:      #1A2027;
   --color-text-secondary:    #586374;
-  --color-text-tertiary:     #646F7E;  /* AA: 5.1 on white, 4.75 on canvas */
+  --color-text-tertiary:     #616C7B;  /* AA on every light surface incl. sidebar/accent-subtle: >=4.69 */
   --color-text-inverse:      #F2F5F8;
   --color-text-link:         var(--color-accent-primary);
 
@@ -49,7 +49,7 @@
   --accent-fill-hover:  #4338CA;
   --on-accent:          #FFFFFF;
 
-  --color-status-success:    #0E8A7D;
+  --color-status-success:    #007B6E;  /* text role; AA >=4.56 on all light surfaces. Fills use --data-good. */
   --color-status-warning:    #B45309;
   --color-status-error:      #C0392B;
   --color-status-info:       #4F46E5;
@@ -68,7 +68,7 @@
   --data-flag:      var(--color-status-warning);
   /* DATA · categorical chart series (neutral; NOT chrome indigo, NOT good/bad valence) */
   --data-cat-1:     #3B6EA5;   /* slate-blue — series A (PHOSITA / P50 / Input) */
-  --data-cat-2:     #C98A2B;   /* amber — series B (Citation / P99 / Output) */
+  --data-cat-2:     #D06B9E;   /* plum — series B (Citation / P99 / Output); off the valence hues */
   --data-cell-text-on-light: #1A2027;
   --data-cell-text-on-dark:  #FFFFFF;
 
@@ -238,7 +238,7 @@
   --data-mid:       #E0A33E;
   --data-bad:       #E06A5C;
   --data-cat-1:     #6FA8DC;   /* slate-blue, lightened for dark */
-  --data-cat-2:     #E0B25C;   /* amber, lightened for dark */
+  --data-cat-2:     #B85C8B;   /* plum, darker than cat-1 so series split in grayscale */
   --data-cell-text-on-light: #0E1116;
   --data-cell-text-on-dark:  #F4F6F8;
 
@@ -305,7 +305,7 @@
     --data-mid:       #E0A33E;
     --data-bad:       #E06A5C;
     --data-cat-1:     #6FA8DC;   /* slate-blue, lightened for dark */
-    --data-cat-2:     #E0B25C;   /* amber, lightened for dark */
+    --data-cat-2:     #B85C8B;   /* plum, darker than cat-1 so series split in grayscale */
     --data-cell-text-on-light: #0E1116;
     --data-cell-text-on-dark:  #F4F6F8;
     --voice-machine-bg:        #1A1D38;
@@ -516,6 +516,8 @@ button:focus-visible { box-shadow: var(--shadow-focus); }
   border-color: var(--color-border-focus);
   box-shadow: var(--shadow-focus);
 }
+/* react-select's default #999 clear glyph is 2.85:1; UI graphics need 3:1. */
+.wb-dropdown .Select-clear-zone { color: var(--color-text-secondary); }
 .wb-dropdown .Select-value-label,
 .wb-dropdown .Select-placeholder { color: var(--color-text-primary) !important; }
 .wb-dropdown .Select-menu-outer {

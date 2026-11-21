@@ -23,7 +23,7 @@ Pair = Tuple[Experiment, ExperimentMetrics]
 # mirrored here from workbench.css. These are the NEUTRAL categorical DATA series
 # (slate-blue / amber) — never the chrome indigo, never the good/bad valence
 # colors. Keyed by theme; tuple is (series-A, series-B).
-_DATA_CAT = {"light": ("#3B6EA5", "#C98A2B"), "dark": ("#6FA8DC", "#E0B25C")}
+_DATA_CAT = {"light": ("#3B6EA5", "#D06B9E"), "dark": ("#6FA8DC", "#B85C8B")}
 # Axis/legend text (~ --color-text-secondary) and a faint gridline, per theme.
 _AXIS = {"light": "#586374", "dark": "#9AA5B1"}
 _GRID = {"light": "rgba(17,21,27,0.08)", "dark": "rgba(255,255,255,0.10)"}
