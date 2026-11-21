@@ -34,6 +34,7 @@ app = Dash(
     suppress_callback_exceptions=True,
 )
 app.title = "PatentDiff"
+app.index_string = app.index_string.replace("<html>", '<html lang="en">', 1)
 
 
 def _theme_toggle() -> html.Button:

@@ -1127,3 +1127,22 @@
 .uw-agent__complete .wb-btn { justify-self: start; text-decoration: none; }
 .uw-agent__footer { margin-top: var(--space-6); }
 .uw-agent__link { font-size: var(--font-size-sm); color: var(--color-text-link); }
+
+
+/* ============================================================================
+   T12 · Narrow widths (<= 720px)
+   ----------------------------------------------------------------------------
+   The sidebar is already a 56px rail below 1024. What is left at ~320 is page
+   padding sized for desktop (40px a side of a 264px column) and a few console
+   controls that outgrow their card. Instrument tables keep scrolling inside
+   their own container.
+   ============================================================================ */
+@media (max-width: 720px) {
+  .uw-page,
+  .uw-dash { padding: var(--space-5) var(--space-4); }
+  .uw-dash__field,
+  .wb-segmented,
+  .wb-dropdown { min-width: 0; max-width: 100%; }
+  .wb-segmented__items { flex-wrap: wrap; }
+  .uw-dash__block { padding: var(--space-4); }
+}
