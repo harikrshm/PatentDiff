@@ -7,3 +7,4 @@ pandas==2.3.3
 matplotlib==3.10.9
 dash[diskcache]==2.18.2
 diskcache==5.6.3
+gunicorn==23.0.0

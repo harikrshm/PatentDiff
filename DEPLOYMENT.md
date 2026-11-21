@@ -23,14 +23,14 @@ This guide walks you through deploying the PatentDiff evaluation workbench to [R
 Make sure the following files are in your repo root:
 
 - ✅ `Procfile` — tells Render how to start the app
-- ✅ `runtime.txt` — specifies Python 3.13.1
+- ✅ `.python-version` — pins Python 3.13.9 (Render ignores runtime.txt)
 - ✅ `.env.example` — documents environment variables
 - ✅ `requirements.txt` — dependencies (should already exist)
 
 **Check these are committed:**
 
 ```bash
-git add Procfile runtime.txt .env.example DEPLOYMENT.md
+git add Procfile .python-version .env.example DEPLOYMENT.md
 git commit -m "deployment: add Procfile, runtime.txt, .env.example for Render"
 git push origin main
 ```
@@ -50,7 +50,7 @@ git push origin main
 | **Name** | `patentdiff-demo` (or your preferred name) |
 | **Environment** | `Python 3` |
 | **Build Command** | `pip install -r requirements.txt` |
-| **Start Command** | `python -m app_unified.app` |
+| **Start Command** | `gunicorn app_unified.app:server --bind 0.0.0.0:$PORT --workers 1 --timeout 120` |
 | **Instance Type** | Free (or paid if you want faster startup) |
 
 6. Click **"Advanced"** to add environment variables
@@ -78,7 +78,7 @@ Click **"Create Web Service"** — Render will:
 
 1. ✅ Clone your repo
 2. ✅ Install dependencies from `requirements.txt`
-3. ✅ Read `Procfile` and `runtime.txt`
+3. ✅ Read `.python-version`
 4. ✅ Set environment variables
 5. ✅ Start the app
 
