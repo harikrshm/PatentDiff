@@ -34,3 +34,32 @@ def test_render_stage_smoke():
                      coverage="ran 8/8", new_block="b", after_verdicts={})
     comp = render_stage(sr)
     assert comp is not None
+
+
+def _layout_ids(node, acc=None):
+    acc = set() if acc is None else acc
+    node_id = getattr(node, "id", None)
+    if isinstance(node_id, str):
+        acc.add(node_id)
+    children = getattr(node, "children", None)
+    for child in children if isinstance(children, (list, tuple)) else [children]:
+        if child is not None and not isinstance(child, (str, int, float)):
+            _layout_ids(child, acc)
+    return acc
+
+
+def test_every_agent_callback_input_exists_in_static_layout():
+    """Dash will not fire a callback when an Input id is absent from the layout.
+    Keep/Revert once lived only inside render_stage, so Approve never worked."""
+    from dash._callback import GLOBAL_CALLBACK_LIST
+    from app_unified.pages.eval_agent import layout
+
+    ids = _layout_ids(layout)
+    missing = []
+    for cb in GLOBAL_CALLBACK_LIST:
+        if "agent-" not in cb["output"]:
+            continue
+        for inp in cb["inputs"]:
+            if inp["id"].startswith("agent-") and inp["id"] not in ids:
+                missing.append(inp["id"])
+    assert not missing, f"callback Inputs missing from layout: {missing}"

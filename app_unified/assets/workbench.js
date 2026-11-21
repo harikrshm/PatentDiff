@@ -51,9 +51,30 @@
     setActive(sections[0].id);
   }
 
+  /* ── Accessible names: dcc.Dropdown has no aria-label prop, so bind each
+        <label for=…> to the dropdown's inner search input / combobox. ───────── */
+  function nameDropdowns() {
+    document.querySelectorAll("label[for]").forEach(function (label) {
+      var host = document.getElementById(label.getAttribute("for"));
+      if (!host || host.tagName === "INPUT" || host.tagName === "TEXTAREA") { return; }
+      var field = host.querySelector("input, [role=combobox]");
+      var name = label.textContent.trim();
+      if (field && name && field.getAttribute("aria-label") !== name) {
+        field.setAttribute("aria-label", name);
+      }
+    });
+  }
+  var namePending = false;
+  new MutationObserver(function () {
+    if (namePending) { return; }
+    namePending = true;
+    requestAnimationFrame(function () { namePending = false; nameDropdowns(); });
+  }).observe(document.documentElement, { childList: true, subtree: true });
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () { initSpy(0); });
+    document.addEventListener("DOMContentLoaded", function () { initSpy(0); nameDropdowns(); });
   } else {
     initSpy(0);
+    nameDropdowns();
   }
 })();

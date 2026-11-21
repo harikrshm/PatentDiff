@@ -48,24 +48,13 @@ def _theme_toggle() -> html.Button:
     )
 
 
-_demo_banner = None
-if demo_mode.DEMO_MODE:
-    _demo_banner = html.Div(
+_demo_banner = (
+    html.Div(
+        "Demo mode: every number here is recorded from real runs. Live model calls are off.",
         className="uw-demo-banner",
-        children=[
-            html.Span("[DEMO MODE] Using cached data (no live API calls)",
-                     className="uw-demo-banner__text"),
-        ],
-        style={
-            "backgroundColor": "#0ea5e9",
-            "color": "white",
-            "padding": "12px 16px",
-            "textAlign": "center",
-            "fontSize": "13px",
-            "fontWeight": "500",
-            "borderBottom": "1px solid rgba(255,255,255,0.1)",
-        }
     )
+    if demo_mode.DEMO_MODE else None
+)
 
 app.layout = html.Div(
     className="uw-root",

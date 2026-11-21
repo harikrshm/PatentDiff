@@ -9,6 +9,9 @@
 
 /* ---- App root + base type ------------------------------------------------- */
 .uw-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   font-family: var(--font-family-body);
   color: var(--color-text-primary);
   background: var(--color-bg-primary);
@@ -154,7 +157,8 @@
    the viewport top (T7 integration). */
 .uw-shell {
   display: flex;
-  height: 100vh;
+  flex: 1 1 auto;
+  min-height: 0;
   align-items: stretch;
 }
 
@@ -982,3 +986,144 @@
     --memo-kicker:      #9A8B6E;
   }
 }
+
+
+/* ============================================================================
+   T11 · Demo banner + Experiment Agent (/eval/agent)
+   ----------------------------------------------------------------------------
+   Banner is a quiet info strip in the machine voice (indigo paper), not a
+   colored alert. The Agent page is instrument register: plan = machine-voice
+   prompt blocks on cards, gate verdict = data valence (text + color), one
+   primary action per state.
+   ============================================================================ */
+.uw-demo-banner {
+  flex: 0 0 auto;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  text-align: center;
+  color: var(--voice-machine-text);
+  background: var(--voice-machine-bg);
+  border-bottom: 1px solid var(--color-border-primary);
+}
+
+.wb-btn--secondary {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-primary);
+}
+.wb-btn--secondary:hover { background: var(--color-bg-tertiary); }
+
+.uw-agent { max-width: var(--max-width-wide); }
+.uw-agent__row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); }
+
+.uw-agent__banner {
+  margin-top: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  background: var(--voice-machine-bg);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+}
+.uw-agent__banner .wb-caption { margin: 0; font-size: var(--font-size-sm); color: var(--voice-machine-text); }
+
+.uw-agent__plan-area { display: grid; gap: var(--space-4); margin: var(--space-5) 0; }
+
+.uw-agent__exp-card {
+  min-width: 0;
+  padding: var(--card-padding);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+}
+.uw-agent__exp-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.uw-agent__exp-target {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.uw-agent__exp-delta { margin-inline-start: auto; font-family: var(--font-family-mono); font-variant-numeric: tabular-nums; }
+.uw-agent__exp-rationale {
+  max-width: var(--max-width-content);
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+}
+.uw-agent__exp-block {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--voice-machine-text);
+  background: var(--voice-machine-bg);
+  border-inline-start: 3px solid var(--voice-machine-border);
+  border-radius: var(--border-radius-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.uw-agent__exp-note { margin: var(--space-2) 0 0; }
+
+/* Review controls (feedback, revise, approve) only exist once a plan does. */
+.uw-agent__review { display: none; gap: var(--space-4); }
+.uw-agent:has(.uw-agent__exp-card) .uw-agent__review { display: grid; }
+.uw-agent__feedback-row { display: grid; gap: var(--space-2); max-width: var(--max-width-content); }
+.uw-agent__textarea { min-height: 88px; }
+
+/* One primary per state: Analyze yields to Approve; Approve yields to Keep. */
+.uw-agent:has(.uw-agent__exp-card) .uw-agent__analyze {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-primary);
+}
+.uw-agent:has(.uw-agent__exp-card) .uw-agent__analyze:hover { background: var(--color-bg-tertiary); }
+.uw-agent:has(.uw-agent__stage-result) .uw-agent__approve-row { display: none; }
+
+.uw-agent__stage-area { margin-top: var(--space-5); }
+.uw-agent__stage-result,
+.uw-agent__complete {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--card-padding);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+}
+.uw-agent__gate { display: flex; align-items: center; gap: var(--space-3); }
+.uw-agent__gate-label {
+  padding: 0 var(--space-2);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  border: 1px solid currentColor;
+  border-radius: var(--border-radius-sm);
+}
+.uw-agent__gate--pass .uw-agent__gate-label { color: var(--color-status-success); }
+.uw-agent__gate--fail .uw-agent__gate-label { color: var(--color-status-error); }
+.uw-agent__coverage,
+.uw-agent__low-n { margin: 0; }
+.uw-agent__low-n { color: var(--color-status-warning); }
+.uw-agent__deltas { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); font-size: var(--font-size-md); }
+.uw-agent__other { color: var(--color-text-secondary); }
+.uw-agent__reasons { display: grid; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
+.uw-agent__reason { font-size: var(--font-size-sm); color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.uw-agent__action-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.uw-agent__stage-actions { display: none; margin-top: var(--space-3); }
+.uw-agent:has(.uw-agent__stage-result) .uw-agent__stage-actions { display: flex; }
+.uw-agent__stage-error {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-inline-start: 3px solid var(--color-status-error);
+  border-radius: var(--border-radius-sm);
+}
+.uw-agent__stage-error .wb-caption { margin: 0; font-size: var(--font-size-sm); color: var(--color-text-primary); }
+.uw-agent__complete-title { margin: 0; font-size: var(--font-size-md); font-weight: var(--font-weight-semibold); }
+.uw-agent__complete .wb-btn { justify-self: start; text-decoration: none; }
+.uw-agent__footer { margin-top: var(--space-6); }
+.uw-agent__link { font-size: var(--font-size-sm); color: var(--color-text-link); }

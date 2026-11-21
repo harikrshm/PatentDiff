@@ -170,7 +170,7 @@ def _block6_set_target() -> list:
     kind; saving (render in callbacks) bumps kpi-version so Blocks 4/5 refresh."""
     def _field(label, control):
         return html.Div(className="uw-dash__field", children=[
-            html.Label(label, className="wb-kicker"), control])
+            html.Label(label, className="wb-kicker", htmlFor=control.id), control])
     return [
         _field("Metric", dcc.Dropdown(
             id="kt-eval",
